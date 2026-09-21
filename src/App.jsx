@@ -249,25 +249,42 @@ const LANGUAGES = {
     avatars: [
       { id:'anais', name:'Anaïs', age:30, location:'Port-Louis, Maurice', role:'Amie',
         tagline:'Décontractée, plage, lagon, séga',
-        persona:'casual Mauritian Creole, warm and lively. Use authentic expressions like "Ki manyer", "Bonzour", "Korek".',
+        persona:`casual Mauritian Creole, warm and lively.
+- Use authentic Mauritian expressions constantly: "Ki manyer", "Bonzour", "Korek", "Zenfan", "Mo bro", "Mo ser", "Ala", "Samem sa", "Ayo", "Mo bon", "Bonpe", "Ti-mama", "Ki nouvel", "Kot to ete", "Pa gagn traka", "Kontan trouv twa".
+- Use "mo/to" (I/you), "pe" for progressive tense, "ti" for past tense.
+- Talk about lagoon, beach, gato-pima, dholl-puri, séga music, weekends in Blue Bay or Trou aux Biches, family Sundays.
+- Mix in a French or English word sometimes as Mauritians naturally do.
+- Never use standard French — always Creole spelling (e.g. "azordi" not "aujourd'hui", "koz" not "parler", "bien" stays "bien", "kot" not "où").`,
         color:'#0F766E', soft:'#CDE8E5', pattern:'circles',
-        voiceHint:['amelie','audrey','female'],
-        greetings:[{t:"Bonzour ! Ki manyer azordi ?", fr:"Bonjour ! Comment ça va aujourd'hui ?"},
-                   {t:"Eh, ki to pe fer ?", fr:"Hé, qu'est-ce que tu fais ?"}]},
+        // Google FR is warmer than Windows Hortense; French Canadian is more melodious.
+        voiceHint:['google français','google french','amélie','audrey','virginie','marie','female'],
+        rate: 0.82, pitch: 1.05,
+        greetings:[{t:"Bonzour mo ser ! Ki manyer azordi, korek ?", fr:"Bonjour ma sœur ! Comment ça va aujourd'hui, tout va bien ?"},
+                   {t:"Eh salu ! Ki to pe fer ? Mo kontan trouv twa.", fr:"Hé salut ! Qu'est-ce que tu fais ? Je suis contente de te voir."}]},
       { id:'ravi', name:'Ravi', age:42, location:'Curepipe, Maurice', role:'Ingénieur',
         tagline:'Pragmatique, parle boulot, projets',
-        persona:'professional Mauritian Creole. Mixes Creole with French and English terms as is natural.',
+        persona:`professional Mauritian Creole.
+- Mixes Creole with French and English words as is natural for Mauritian professionals (e.g. "mo pe travay lor enn projet interesan").
+- Use "mo bro", "ki manyer", "korek sa", "azordi", "demen".
+- Discusses work, engineering, tech, cyclones, elections, family. Direct but warm.
+- Never respond in standard French — always Creole.`,
         color:'#7C2D12', soft:'#EFD8C9', pattern:'grid',
-        voiceHint:['thomas','nicolas','daniel','male'],
-        greetings:[{t:"Bonzour mo bro. To travay dan ki domenn ?", fr:"Bonjour mon ami. Tu travailles dans quel domaine ?"},
-                   {t:"Salam, ki nouvel ?", fr:"Salut, quelles nouvelles ?"}]},
+        voiceHint:['google français','google french','thomas','nicolas','daniel','male'],
+        rate: 0.85, pitch: 0.95,
+        greetings:[{t:"Bonzour mo bro. Ki manyer ? To travay dan ki domenn ?", fr:"Bonjour mon ami. Comment ça va ? Tu travailles dans quel domaine ?"},
+                   {t:"Salam, ki nouvel ? Ki to pe fer sa lasemenn la ?", fr:"Salut, quelles nouvelles ? Qu'est-ce que tu fais cette semaine ?"}]},
       { id:'marie', name:'Marie', age:48, location:'Beau Bassin, Maurice', role:'Professeure',
         tagline:'Patiente, explique tout, créole standard',
-        persona:'standard Mauritian Creole teacher, patient and clear',
+        persona:`standard Mauritian Creole teacher, patient and clear.
+- Speaks slowly and repeats important words.
+- Uses classic teacher expressions: "mo zanfan", "gete bien", "konpran ?", "pran twa letan", "byen tranquil", "pa gagn traka".
+- Explains vocabulary when the learner seems lost. Never switches to French.
+- Warm, motherly tone. Uses "to" (informal you) affectionately.`,
         color:'#5B21B6', soft:'#DDD3F0', pattern:'dots',
-        voiceHint:['audrey','marie','female'],
-        greetings:[{t:"Bonzour mo zanfan. Kouma to apele ?", fr:"Bonjour mon enfant. Comment tu t'appelles ?"},
-                   {t:"Ki to anvi koz lor li azordi ?", fr:"De quoi as-tu envie de parler aujourd'hui ?"}]},
+        voiceHint:['google français','google french','audrey','marie','virginie','female'],
+        rate: 0.78, pitch: 1.0,
+        greetings:[{t:"Bonzour mo zanfan. Kouma to apele, di mwa ?", fr:"Bonjour mon enfant. Comment tu t'appelles, dis-moi ?"},
+                   {t:"Bonzour ! Pran twa letan. Ki to anvi koz lor li azordi ?", fr:"Bonjour ! Prends ton temps. De quoi as-tu envie de parler aujourd'hui ?"}]},
     ],
   },
 };
@@ -497,8 +514,9 @@ function useSpeech() {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang?.ttsLocale || 'en-US';
-    u.rate = 0.9;
-    u.pitch = 1;
+    // Per-avatar rate/pitch override if defined (used e.g. for Mauritian Creole)
+    u.rate = avatar?.rate ?? 0.9;
+    u.pitch = avatar?.pitch ?? 1;
     u.onstart = () => setSpeakingText(text);
     u.onend = () => setSpeakingText(null);
     u.onerror = () => setSpeakingText(null);
@@ -514,15 +532,16 @@ function useSpeech() {
         const langPool = voices.filter(v => v.lang.startsWith(base));
         const exactPool = langPool.filter(v => v.lang === (lang?.ttsLocale || 'en-US'));
         const pool = exactPool.length ? exactPool : langPool;
-        // Prioritize higher-quality voices
+        // Prioritize higher-quality voices AND per-avatar hints
         const scored = pool.map(v => {
           let score = 0;
           const n = v.name.toLowerCase();
           if (/natural|premium|enhanced|neural|wavenet|studio/.test(n)) score += 100;
-          if (/google/.test(n)) score += 50;
+          if (/google/.test(n)) score += 60;
           if (/microsoft/.test(n) && /online|natural/.test(n)) score += 40;
-          if (avatar && avatar.voiceHint.some(h => n.includes(h))) score += 20;
-          if (v.localService === false) score += 5; // cloud voices often better
+          // Boost avatar-specific voice preferences a lot — they matter more than generic Google
+          if (avatar && avatar.voiceHint.some(h => n.includes(h))) score += 80;
+          if (v.localService === false) score += 5;
           return { v, score };
         });
         scored.sort((a, b) => b.score - a.score);

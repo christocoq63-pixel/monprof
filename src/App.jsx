@@ -549,7 +549,9 @@ function useRecognition(srLocale) {
       const r = new SR();
       r.lang = srLocale || 'en-US';
       r.interimResults = true;
-      r.continuous = false;
+      // Continuous mode: keeps listening across pauses within a single sentence.
+      // Our own silence timer (2.5s) decides when the user has really finished.
+      r.continuous = true;
       recRef.current = r;
       setSupported(true);
     } else {
@@ -563,13 +565,17 @@ function useRecognition(srLocale) {
     let finalText = '';
     r.onresult = (e) => {
       let interim = '';
+      let newFinal = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += t;
+        if (e.results[i].isFinal) newFinal += t;
         else interim += t;
       }
+      if (newFinal) {
+        finalText += newFinal;
+        onFinal?.(newFinal, finalText); // pass chunk and cumulative
+      }
       if (interim) onInterim?.(interim);
-      if (finalText) onFinal?.(finalText);
     };
     r.onerror = (e) => onError?.(e);
     r.onend = () => onEnd?.(finalText);
@@ -577,8 +583,9 @@ function useRecognition(srLocale) {
   };
 
   const stop = () => { try { recRef.current?.stop(); } catch (e) {} };
+  const abort = () => { try { recRef.current?.abort(); } catch (e) {} };
 
-  return { supported, listen, stop };
+  return { supported, listen, stop, abort };
 }
 
 // ─── ANIMATED AVATAR ──────────────────────────────────────────────────────────
@@ -1000,101 +1007,208 @@ function TypingIndicator({ avatar }) {
 
 // ─── CHAT INPUT ───────────────────────────────────────────────────────────────
 
-function ChatInput({ onSend, disabled, avatar, lang }) {
+function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeaking }) {
   const [text, setText] = useState('');
   const [recording, setRecording] = useState(false);
   const [interim, setInterim] = useState('');
   const [micError, setMicError] = useState(null); // null | 'denied' | 'other'
-  const { supported, listen, stop } = useRecognition(lang.srLocale);
+  const [countdown, setCountdown] = useState(0); // seconds remaining before auto-send
+  const { supported, listen, stop, abort } = useRecognition(lang.srLocale);
   const textareaRef = useRef(null);
 
-  useEffect(() => {
-    if (!disabled && textareaRef.current) textareaRef.current.focus();
-  }, [disabled]);
+  // Refs used inside setTimeout callbacks (which can't read latest state)
+  const silenceTimerRef = useRef(null);
+  const countdownTimerRef = useRef(null);
+  const accumulatedRef = useRef('');
+  const submittedRef = useRef(false);
 
-  const submit = () => {
-    const t = (text || interim).trim();
-    if (!t || disabled) return;
-    onSend(t); setText(''); setInterim(''); setMicError(null);
+  const SILENCE_MS = 3000; // Auto-send after 3 seconds of silence
+
+  const clearTimers = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    silenceTimerRef.current = null;
+    countdownTimerRef.current = null;
   };
 
-  const toggleMic = () => {
-    if (recording) { stop(); setRecording(false); return; }
+  const doSubmit = (value) => {
+    if (submittedRef.current) return;
+    const v = (value ?? '').trim();
+    if (!v) return;
+    submittedRef.current = true;
+    clearTimers();
+    setRecording(false);
+    setInterim('');
+    setCountdown(0);
+    accumulatedRef.current = '';
+    setText('');
+    abort(); // hard stop the mic
+    onSend(v);
+  };
+
+  const armSilenceTimer = () => {
+    clearTimers();
+    setCountdown(Math.ceil(SILENCE_MS / 1000));
+    let remaining = SILENCE_MS;
+    countdownTimerRef.current = setInterval(() => {
+      remaining -= 1000;
+      setCountdown(Math.max(0, Math.ceil(remaining / 1000)));
+    }, 1000);
+    silenceTimerRef.current = setTimeout(() => {
+      // Silence timer fired → send whatever we have
+      doSubmit(accumulatedRef.current || text);
+    }, SILENCE_MS);
+  };
+
+  const startListening = () => {
     if (!supported) { setMicError('other'); return; }
-    setRecording(true); setInterim(''); setMicError(null);
+    if (recording || disabled) return;
+    setMicError(null);
+    setInterim('');
+    setRecording(true);
+    submittedRef.current = false;
+    accumulatedRef.current = text || '';
     listen({
-      onInterim: setInterim,
-      onFinal: (txt) => setText(prev => (prev ? prev + ' ' : '') + txt.trim()),
-      onEnd: () => { setRecording(false); setInterim(''); },
+      onInterim: (t) => {
+        setInterim(t);
+        // Any speech → reset silence timer
+        armSilenceTimer();
+      },
+      onFinal: (chunk) => {
+        accumulatedRef.current = (accumulatedRef.current
+          ? accumulatedRef.current + ' '
+          : '') + chunk.trim();
+        setText(accumulatedRef.current);
+        setInterim('');
+        armSilenceTimer();
+      },
+      onEnd: () => {
+        setRecording(false);
+        setInterim('');
+        // If not yet submitted and we have something → send now
+        if (!submittedRef.current && (accumulatedRef.current || '').trim()) {
+          doSubmit(accumulatedRef.current);
+        }
+      },
       onError: (e) => {
-        setRecording(false); setInterim('');
-        if (e?.error === 'no-speech') return; // benign
+        clearTimers();
+        setRecording(false);
+        setInterim('');
+        setCountdown(0);
+        if (e?.error === 'no-speech') return;
         if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
           setMicError('denied');
-        } else {
+        } else if (e?.error !== 'aborted') {
           setMicError('other');
         }
       },
     });
   };
 
-  const focusInput = () => textareaRef.current?.focus();
-  const handleKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } };
-  const displayText = recording && interim ? (text ? text + ' ' : '') + interim : text;
+  const stopListening = () => {
+    clearTimers();
+    setCountdown(0);
+    stop();
+  };
 
-  const hint = PLATFORM_HINTS[PLATFORM];
+  const submitFromButton = () => {
+    const v = ((accumulatedRef.current || text) + ' ' + interim).trim();
+    if (!v || disabled) return;
+    doSubmit(v);
+  };
+
+  // Auto-listen: when enabled, start mic as soon as it's our turn and avatar isn't speaking
+  useEffect(() => {
+    if (!autoListen) return;
+    if (disabled) return;
+    if (avatarIsSpeaking) return;
+    if (recording) return;
+    if (micError === 'denied') return; // don't spam if user refused
+    // Small delay so the avatar's voice fully ends
+    const id = setTimeout(() => startListening(), 400);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line
+  }, [autoListen, disabled, avatarIsSpeaking]);
+
+  // Stop listening if avatar starts speaking
+  useEffect(() => {
+    if (avatarIsSpeaking && recording) stopListening();
+    // eslint-disable-next-line
+  }, [avatarIsSpeaking]);
+
+  // Cleanup on unmount
+  useEffect(() => () => { clearTimers(); abort(); }, []);
+
+  useEffect(() => {
+    if (!disabled && !recording && textareaRef.current) textareaRef.current.focus();
+  }, [disabled, recording]);
+
+  const handleKey = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitFromButton(); }
+  };
+
+  const displayText = recording && interim
+    ? (text ? text + ' ' : '') + interim
+    : text;
 
   return (
     <div className="border-t-2 border-stone-900 bg-stone-50 px-3 sm:px-5 py-2.5 sticky bottom-0">
       <div className="max-w-3xl mx-auto">
-        {/* Dictation hint — adapts to platform */}
-        <button onClick={focusInput}
-          className="mb-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-stone-700 hover:bg-amber-50 hover:border-stone-900 transition-all py-1.5 border border-stone-300 bg-amber-50/40"
-          style={{ fontFamily:'JetBrains Mono, monospace' }}>
-          <span>🎙 dictée :</span>
-          {PLATFORM === 'windows' ? (
-            <span className="inline-flex items-center gap-1 normal-case font-medium">
-              <span className="px-1.5 py-0.5 bg-stone-100 border border-stone-500 text-stone-900">Win</span>
-              <span className="text-stone-500">+</span>
-              <span className="px-1.5 py-0.5 bg-stone-100 border border-stone-500 text-stone-900">H</span>
-            </span>
-          ) : (
-            <span className="normal-case font-medium">{hint.label}</span>
-          )}
-          <span className="text-stone-500 normal-case hidden sm:inline">· {hint.detail}</span>
-        </button>
-
         {micError === 'denied' && (
           <div className="mb-2 text-[10px] uppercase tracking-widest text-amber-800 bg-amber-50 border border-amber-700/30 px-2 py-1.5 text-center" style={{ fontFamily:'JetBrains Mono, monospace' }}>
-            ⚠ micro refusé par le navigateur · utilisez {hint.label}
+            ⚠ micro refusé · autorisez-le dans les paramètres du site
           </div>
         )}
         {micError === 'other' && (
           <div className="mb-2 text-[10px] uppercase tracking-widest text-stone-600 bg-stone-100 border border-stone-300 px-2 py-1.5 text-center" style={{ fontFamily:'JetBrains Mono, monospace' }}>
-            micro app indisponible · utilisez {hint.label}
+            micro non disponible sur ce navigateur
           </div>
         )}
 
-        {/* Input row */}
+        {/* Recording status bar */}
+        {recording && (
+          <div className="mb-2 flex items-center gap-2 px-3 py-2 border" style={{ backgroundColor: avatar.soft, borderColor: avatar.color }}>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: avatar.color }}></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: avatar.color }}></span>
+            </span>
+            <span className="text-[11px] uppercase tracking-widest flex-1" style={{ fontFamily:'JetBrains Mono, monospace', color: avatar.color }}>
+              {countdown > 0
+                ? `envoi dans ${countdown} s… continuez de parler pour attendre`
+                : `à l'écoute · parlez en ${lang.name.toLowerCase()}`}
+            </span>
+          </div>
+        )}
+
         <div className="flex items-end gap-2">
-          <button onClick={toggleMic} disabled={disabled}
+          <button
+            onClick={recording ? stopListening : startListening}
+            disabled={disabled}
             className={`shrink-0 w-11 h-11 grid place-items-center transition-all ${
               recording
-                ? 'bg-red-700 text-stone-50 animate-pulse'
-                : micError
-                  ? 'bg-stone-400 text-stone-100 cursor-not-allowed'
+                ? 'text-stone-50 animate-pulse'
+                : micError === 'denied' || micError === 'other'
+                  ? 'bg-stone-400 text-stone-100'
                   : 'bg-stone-900 text-stone-50 hover:bg-stone-700 disabled:opacity-30'
             }`}
-            aria-label="micro" title="micro de l'appli (peut nécessiter une autorisation du navigateur)">
+            style={recording ? { backgroundColor: avatar.color } : {}}
+            aria-label={recording ? 'arrêter le micro' : 'démarrer le micro'}
+            title={recording ? 'arrêter' : 'démarrer le micro'}>
             {recording ? <MicOff size={18} /> : <Mic size={18} />}
           </button>
           <div className="flex-1 relative">
-            <textarea ref={textareaRef} value={displayText} onChange={(e) => setText(e.target.value)} onKeyDown={handleKey} rows={1} disabled={disabled} autoFocus
-              placeholder={recording ? `parlez en ${lang.name.toLowerCase()}…` : `écrivez ou dictez à ${avatar.name}…`}
+            <textarea ref={textareaRef} value={displayText}
+              onChange={(e) => { setText(e.target.value); accumulatedRef.current = e.target.value; }}
+              onKeyDown={handleKey} rows={1} disabled={disabled}
+              placeholder={recording
+                ? `parlez en ${lang.name.toLowerCase()}…`
+                : autoListen
+                  ? `parlez ou écrivez à ${avatar.name}…`
+                  : `écrivez à ${avatar.name}…`}
               className="w-full resize-none border-2 border-stone-900 px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-700/40 disabled:opacity-50 text-base"
               style={{ fontFamily:'Spectral, serif', maxHeight:120, direction: lang.rtl ? 'rtl' : 'ltr' }} />
           </div>
-          <button onClick={submit} disabled={disabled || !(text || interim).trim()}
+          <button onClick={submitFromButton} disabled={disabled || !((text || interim).trim())}
             className="shrink-0 w-11 h-11 grid place-items-center text-stone-50 disabled:opacity-30 transition-all"
             style={{ backgroundColor: avatar.color }} aria-label="envoyer">
             {disabled ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
@@ -1221,12 +1335,22 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [autoListen, setAutoListen] = useState(() => {
+    // Default: auto-listen ON, but respect user's saved preference
+    const saved = storage.get('pref:autoListen');
+    return saved === null ? true : saved === 'true';
+  });
   const [resumedFrom, setResumedFrom] = useState(null);
   const [voiceURI, setVoiceURI] = useState(null);
   const [showVoicePicker, setShowVoicePicker] = useState(false);
   const { speak, stop, speakingText, voices } = useSpeech();
   const endRef = useRef(null);
   const initDone = useRef(false);
+
+  // Persist autoListen pref
+  useEffect(() => {
+    storage.set('pref:autoListen', String(autoListen));
+  }, [autoListen]);
 
   // Load voice preference for this avatar
   useEffect(() => {
@@ -1346,6 +1470,9 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
             <span className="text-[10px] font-bold" style={{ fontFamily:'JetBrains Mono, monospace' }}>A♪</span>
             {voiceURI && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-700 rounded-full" />}
           </button>
+          <button onClick={() => setAutoListen(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoListen ? 'bg-stone-900 text-stone-50 border-stone-900' : 'border-stone-900 hover:bg-stone-100'}`} title={autoListen ? "conversation mains-libres activée" : "conversation mains-libres désactivée"}>
+            <Mic size={14} />
+          </button>
           <button onClick={() => setAutoSpeak(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoSpeak ? 'bg-stone-900 text-stone-50 border-stone-900' : 'border-stone-900 hover:bg-stone-100'}`} title="lecture auto">
             <Volume2 size={14} />
           </button>
@@ -1374,7 +1501,8 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
         </div>
       </div>
 
-      <ChatInput onSend={sendMessage} disabled={loading} avatar={avatar} lang={lang} />
+      <ChatInput onSend={sendMessage} disabled={loading} avatar={avatar} lang={lang}
+        autoListen={autoListen} avatarIsSpeaking={!!speakingText} />
 
       {showVoicePicker && (
         <VoicePicker voices={voices} lang={lang} avatar={avatar} currentURI={voiceURI}

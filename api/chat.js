@@ -1,6 +1,10 @@
 // Vercel serverless function.
-// Receives { system, messages } from the client, forwards to Anthropic.
+// Forwards to Anthropic; supports streaming when `stream: true` is set.
 // The API key stays on the server (env var ANTHROPIC_API_KEY).
+
+export const config = {
+  maxDuration: 60,
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,7 +19,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { system, messages, model = 'claude-sonnet-4-20250514', max_tokens = 1000 } = req.body || {};
+    const {
+      system,
+      messages,
+      model = 'claude-sonnet-4-20250514',
+      max_tokens = 1000,
+      stream = false,
+    } = req.body || {};
 
     if (!messages || !Array.isArray(messages)) {
       res.status(400).json({ error: 'Missing messages array' });
@@ -29,17 +39,43 @@ export default async function handler(req, res) {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({ model, max_tokens, system, messages }),
+      body: JSON.stringify({ model, max_tokens, system, messages, stream }),
     });
 
-    const data = await anthropicRes.json();
     if (!anthropicRes.ok) {
-      res.status(anthropicRes.status).json(data);
+      const errorText = await anthropicRes.text();
+      let errorData;
+      try { errorData = JSON.parse(errorText); } catch { errorData = { error: errorText }; }
+      res.status(anthropicRes.status).json(errorData);
       return;
     }
 
+    if (stream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+
+      const reader = anthropicRes.body.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(value);
+        }
+      } finally {
+        res.end();
+      }
+      return;
+    }
+
+    const data = await anthropicRes.json();
     res.status(200).json(data);
   } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) });
+    if (!res.headersSent) {
+      res.status(500).json({ error: String(err?.message || err) });
+    } else {
+      try { res.end(); } catch {}
+    }
   }
 }

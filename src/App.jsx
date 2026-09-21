@@ -973,7 +973,41 @@ function CorrectionsPanel({ corrections }) {
 
 // ─── CLICKABLE WORDS + EXPLAIN POPUP ─────────────────────────────────────────
 
-// Fetch a word explanation via our API, returning { translation, explanation, example }
+// Attempts a request with a fast model first, then falls back to a reliable one.
+async function chatWithFallback({ system, messages, maxTokens = 500 }) {
+  const models = [
+    'claude-haiku-4-5',           // fastest
+    'claude-3-5-haiku-latest',    // fast, widely available fallback
+    'claude-sonnet-4-20250514',   // reliable last resort
+  ];
+  let lastError = null;
+  for (const model of models) {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+      // 400 usually means "model not found" — try next
+      if (response.status === 400 || response.status === 404) {
+        lastError = new Error(`Model ${model} unavailable`);
+        continue;
+      }
+      // Other errors (401, 429, 500) — stop and report
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || `HTTP ${response.status}`);
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError || new Error('All models failed');
+}
+
+// Fetch a word explanation via our API
 async function explainWord(word, context, lang) {
   const systemPrompt = `You are a language tutor helping a French speaker learn ${lang.nativeName} (${lang.name} in French).
 The user just clicked on the word "${word}" appearing in this sentence: "${context}".
@@ -992,19 +1026,11 @@ Respond ONLY with a JSON object, no code fences:
   }
 }`;
 
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      // Haiku for speed — word explanations don't need Sonnet's depth
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: `Explain the word "${word}".` }],
-    }),
+  const data = await chatWithFallback({
+    system: systemPrompt,
+    messages: [{ role: 'user', content: `Explain the word "${word}".` }],
+    maxTokens: 300,
   });
-  if (!response.ok) throw new Error('API error');
-  const data = await response.json();
   const textOut = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
   const cleaned = textOut.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
   const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
@@ -1711,7 +1737,7 @@ const READER_TOPICS = [
   { id: 'story',    label: 'Petite histoire',       icon: '📖' },
 ];
 
-async function generateReaderText(lang, level, topic) {
+async function generateReaderText(lang, level, topic, { onPartial } = {}) {
   const lengthByLevel = {
     beginner: '4 short simple sentences (10-12 words max each)',
     intermediate: '5-6 sentences with varied structure',
@@ -1726,29 +1752,107 @@ Write a self-contained passage in ${lang.nativeName}${lang.code === 'mfe' ? ' (K
 Also provide the full French translation.
 Give the passage a short title (in ${lang.nativeName}).
 
-Respond ONLY with JSON, no code fences:
+Respond ONLY with JSON, no code fences. Emit fields IN THIS ORDER — title first, then text, then translation:
 {
   "title": "<short title in target language>",
   "text": "<the reading passage in target language, plain text>",
   "translation": "<full French translation>"
 }`;
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      // Haiku is ~5-10x faster than Sonnet, plenty good enough for short passages
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 700,
+
+  // Try streaming with Haiku models first, then non-streaming Sonnet as last resort.
+  const streamingModels = ['claude-haiku-4-5', 'claude-3-5-haiku-latest'];
+  let accumulated = '';
+  let streamSucceeded = false;
+
+  for (const model of streamingModels) {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model, max_tokens: 800, system,
+          messages: [{ role: 'user', content: `Give me a new passage about "${topic.label}".` }],
+          stream: true,
+        }),
+      });
+      if (!response.ok || !response.body) {
+        if (response.status === 400 || response.status === 404) continue;
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      accumulated = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || '';
+        for (const evt of events) {
+          for (const line of evt.split('\n')) {
+            if (!line.startsWith('data: ')) continue;
+            const dataStr = line.slice(6);
+            try {
+              const evtData = JSON.parse(dataStr);
+              if (evtData.type === 'content_block_delta' && evtData.delta?.text) {
+                accumulated += evtData.delta.text;
+                if (onPartial) {
+                  const partial = extractPartialJson(accumulated);
+                  if (partial) onPartial(partial);
+                }
+              }
+            } catch { /* skip */ }
+          }
+        }
+      }
+      streamSucceeded = true;
+      break;
+    } catch (e) {
+      // Try next model
+    }
+  }
+
+  // Fallback: non-streaming call via chatWithFallback
+  if (!streamSucceeded) {
+    const data = await chatWithFallback({
       system,
       messages: [{ role: 'user', content: `Give me a new passage about "${topic.label}".` }],
-    }),
-  });
-  if (!response.ok) throw new Error('API error');
-  const data = await response.json();
-  const textOut = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  const cleaned = textOut.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+      maxTokens: 800,
+    });
+    accumulated = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  }
+
+  const cleaned = accumulated.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
   const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
   return JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+}
+
+// Given a partial JSON string (still streaming), extract already-completed fields.
+function extractPartialJson(raw) {
+  const start = raw.indexOf('{');
+  if (start === -1) return null;
+  const inner = raw.slice(start);
+  const out = {};
+  const grab = (key) => {
+    const re = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)`, 's');
+    const m = inner.match(re);
+    if (!m) return null;
+    return m[1]
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '\t')
+      .replace(/\\\\/g, '\\');
+  };
+  const t = grab('title');
+  const tx = grab('text');
+  const tr = grab('translation');
+  if (t !== null) out.title = t;
+  if (tx !== null) out.text = tx;
+  if (tr !== null) out.translation = tr;
+  return (out.title || out.text || out.translation) ? out : null;
 }
 
 function ReaderScreen({ lang, level, onBack }) {
@@ -1775,30 +1879,26 @@ function ReaderScreen({ lang, level, onBack }) {
     }
 
     setLoading(true); setError(null); setPassage(null); setShowFr(false);
-
-    // Rotating hints so the user sees something moving
-    const hints = [
-      'préparation du texte…',
-      "choix d'un vocabulaire adapté…",
-      'ajustement au niveau…',
-      'traduction…',
-      'presque prêt…',
-    ];
-    let hintIdx = 0;
-    setLoadingHint(hints[0]);
-    const hintTimer = setInterval(() => {
-      hintIdx = (hintIdx + 1) % hints.length;
-      setLoadingHint(hints[hintIdx]);
-    }, 1500);
+    setLoadingHint('génération…');
 
     try {
-      const data = await generateReaderText(lang, level, t);
+      // Streaming: the passage state updates as tokens arrive.
+      const data = await generateReaderText(lang, level, t, {
+        onPartial: (partial) => {
+          setPassage(prev => ({
+            title: partial.title || prev?.title || '',
+            text: partial.text || prev?.text || '',
+            translation: partial.translation || prev?.translation || '',
+          }));
+          // Once we start receiving text, we can hide the loading state
+          if (partial.text) setLoading(false);
+        },
+      });
       cacheRef.current[cacheKey] = data;
       setPassage(data);
     } catch (e) {
       setError(true);
     } finally {
-      clearInterval(hintTimer);
       setLoading(false);
     }
   };
@@ -1857,7 +1957,7 @@ function ReaderScreen({ lang, level, onBack }) {
             </div>
           </div>
 
-          {loading && (
+          {loading && !passage && (
             <div className="border-2 border-stone-900 bg-stone-50 p-5 sm:p-8 relative">
               <div className="flex items-center gap-3 pb-4 mb-4 border-b border-stone-300">
                 <div className="w-9 h-9 grid place-items-center bg-stone-100 border border-stone-300">
@@ -1872,7 +1972,6 @@ function ReaderScreen({ lang, level, onBack }) {
                   </div>
                 </div>
               </div>
-              {/* Skeleton lines */}
               <div className="space-y-3">
                 {[100, 92, 85, 96, 78].map((w, i) => (
                   <div key={i} className="h-4 bg-stone-200 animate-pulse" style={{ width: `${w}%`, animationDelay: `${i * 100}ms` }} />
@@ -1887,26 +1986,27 @@ function ReaderScreen({ lang, level, onBack }) {
             </div>
           )}
 
-          {passage && !loading && (
+          {passage && (
             <div className="border-2 border-stone-900 bg-stone-50 p-5 sm:p-8 relative"
                  style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.04) 31px, rgba(0,0,0,0.04) 32px)' }}>
               <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-stone-300">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] uppercase tracking-widest text-stone-500" style={{ fontFamily:'JetBrains Mono, monospace' }}>
-                    {topic.icon} {topic.label}
+                  <div className="text-[10px] uppercase tracking-widest text-stone-500 flex items-center gap-2" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                    <span>{topic.icon} {topic.label}</span>
+                    {loading && <Loader2 size={10} className="animate-spin" />}
                   </div>
                   <h2 style={{ fontFamily:'Fraunces, serif' }} className="text-2xl sm:text-3xl font-medium leading-tight mt-1 italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
-                    {passage.title}
+                    {passage.title || <span className="text-stone-400">…</span>}
                   </h2>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={speakPassage}
-                    className={`w-9 h-9 grid place-items-center transition-colors ${speakingText === passage.text ? 'bg-amber-700 text-stone-50 animate-pulse' : 'bg-stone-900 text-stone-50 hover:bg-stone-700'}`}
+                  <button onClick={speakPassage} disabled={loading || !passage.text}
+                    className={`w-9 h-9 grid place-items-center transition-colors disabled:opacity-30 ${speakingText === passage.text ? 'bg-amber-700 text-stone-50 animate-pulse' : 'bg-stone-900 text-stone-50 hover:bg-stone-700'}`}
                     title="écouter le texte">
                     <Volume2 size={14} />
                   </button>
-                  <button onClick={() => setShowFr(s => !s)}
-                    className={`px-2 py-1 text-[10px] uppercase tracking-widest border ${showFr ? 'bg-stone-900 text-stone-50 border-stone-900' : 'border-stone-900 hover:bg-stone-100'}`}
+                  <button onClick={() => setShowFr(s => !s)} disabled={!passage.translation}
+                    className={`px-2 py-1 text-[10px] uppercase tracking-widest border disabled:opacity-30 ${showFr ? 'bg-stone-900 text-stone-50 border-stone-900' : 'border-stone-900 hover:bg-stone-100'}`}
                     style={{ fontFamily:'JetBrains Mono, monospace' }}>
                     fr
                   </button>
@@ -1914,10 +2014,13 @@ function ReaderScreen({ lang, level, onBack }) {
               </div>
 
               <div style={{ fontFamily:'Spectral, serif' }} className="text-lg leading-relaxed text-stone-900" dir={lang.rtl ? 'rtl' : 'ltr'}>
-                <ClickableText text={passage.text} onWordClick={(w, ctx) => setWordPopup({ word: w, context: ctx })} rtl={lang.rtl} />
+                <ClickableText text={passage.text || ''} onWordClick={(w, ctx) => setWordPopup({ word: w, context: ctx })} rtl={lang.rtl} />
+                {loading && (
+                  <span className="inline-block w-0.5 h-5 bg-stone-900 ml-0.5 align-middle" style={{ animation: 'cursor-blink 0.9s steps(2) infinite' }} />
+                )}
               </div>
 
-              {showFr && (
+              {showFr && passage.translation && (
                 <div className="mt-5 pt-4 border-t border-stone-300">
                   <div className="text-[10px] uppercase tracking-widest text-stone-500 mb-2" style={{ fontFamily:'JetBrains Mono, monospace' }}>traduction française</div>
                   <div style={{ fontFamily:'Spectral, serif' }} className="text-stone-700 leading-relaxed italic">
@@ -1926,9 +2029,11 @@ function ReaderScreen({ lang, level, onBack }) {
                 </div>
               )}
 
-              <div className="mt-6 text-[10px] uppercase tracking-widest text-stone-400 text-center" style={{ fontFamily:'JetBrains Mono, monospace' }}>
-                ↳ touchez un mot pour sa traduction et son explication
-              </div>
+              {!loading && (
+                <div className="mt-6 text-[10px] uppercase tracking-widest text-stone-400 text-center" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                  ↳ touchez un mot pour sa traduction et son explication
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2010,6 +2115,10 @@ export default function App() {
       @keyframes avatar-ping {
         0% { transform: scale(1); opacity: 0.4; }
         80%, 100% { transform: scale(1.5); opacity: 0; }
+      }
+      @keyframes cursor-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
       }
     `;
     document.head.appendChild(style);

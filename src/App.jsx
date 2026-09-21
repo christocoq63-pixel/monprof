@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff } from 'lucide-react';
+import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle } from 'lucide-react';
 
 // ─── LANGUAGES & AVATARS ──────────────────────────────────────────────────────
 
@@ -811,7 +811,7 @@ function LanguagePicker({ onSelect, onResumeLast }) {
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'#F5F0E6' }}>
       <div className="max-w-3xl mx-auto">
-        <StepHeader step={1} total={3} label="langue" />
+        <StepHeader step={1} total={4} label="langue" />
         <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, serif' }}>
           Quelle <em>langue</em> voulez-vous apprendre ?
         </h1>
@@ -866,7 +866,7 @@ function LevelPicker({ language, onSelect, onBack }) {
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'#F5F0E6' }}>
       <div className="max-w-3xl mx-auto">
-        <StepHeader step={2} total={3} label="niveau" onBack={onBack} />
+        <StepHeader step={2} total={4} label="niveau" onBack={onBack} />
         <div className="flex items-baseline gap-3 flex-wrap">
           <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, serif' }}>
             Votre <em>niveau</em> en
@@ -912,7 +912,7 @@ function AvatarPicker({ language, level, onSelect, onBack }) {
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'#F5F0E6' }}>
       <div className="max-w-3xl mx-auto">
-        <StepHeader step={3} total={3} label="interlocuteur" onBack={onBack} />
+        <StepHeader step={4} total={4} label="interlocuteur" onBack={onBack} />
         <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, serif' }}>
           Avec <em>qui</em> ?
         </h1>
@@ -971,6 +971,162 @@ function CorrectionsPanel({ corrections }) {
   );
 }
 
+// ─── CLICKABLE WORDS + EXPLAIN POPUP ─────────────────────────────────────────
+
+// Fetch a word explanation via our API, returning { translation, explanation, example }
+async function explainWord(word, context, lang) {
+  const systemPrompt = `You are a language tutor helping a French speaker learn ${lang.nativeName} (${lang.name} in French).
+The user just clicked on the word "${word}" appearing in this sentence: "${context}".
+Give:
+- Its French translation IN THIS CONTEXT
+- A short French explanation (nature: nom/verbe/adjectif/etc, grammar note, nuance, or false friend warning)
+- A short example sentence in ${lang.nativeName} using this word, with its French translation
+
+Respond ONLY with a JSON object, no code fences:
+{
+  "translation": "<French translation of the word in this context>",
+  "explanation": "<short French explanation, 1-2 sentences>",
+  "example": {
+    "text": "<short example sentence in ${lang.nativeName}>",
+    "fr": "<French translation of the example>"
+  }
+}`;
+
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 400,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: `Explain the word "${word}".` }],
+    }),
+  });
+  if (!response.ok) throw new Error('API error');
+  const data = await response.json();
+  const textOut = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  const cleaned = textOut.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
+  return JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+}
+
+function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    setData(null); setError(null);
+    explainWord(word, context, lang)
+      .then(d => { if (alive) setData(d); })
+      .catch(() => { if (alive) setError(true); });
+    return () => { alive = false; };
+  }, [word, context, lang.code]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-stone-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4"
+         onClick={onClose}>
+      <div className="w-full sm:max-w-md bg-stone-50 border-2 border-stone-900 max-h-[85vh] flex flex-col"
+           onClick={(e) => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b-2 border-stone-900 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase tracking-widest text-stone-500" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+              mot · {lang.name.toLowerCase()}
+            </div>
+            <div style={{ fontFamily:'Fraunces, serif' }} className="text-2xl font-medium leading-none mt-0.5 italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
+              {word}
+            </div>
+          </div>
+          <button onClick={() => onSpeak(word)} className="w-9 h-9 grid place-items-center bg-stone-900 text-stone-50 hover:bg-stone-700" title="écouter">
+            <Volume2 size={14} />
+          </button>
+          <button onClick={onClose} className="w-9 h-9 grid place-items-center border border-stone-900 hover:bg-stone-100">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-4">
+          {!data && !error && (
+            <div className="flex items-center gap-2 text-stone-500 text-sm" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+              <Loader2 size={14} className="animate-spin" />
+              <span>recherche…</span>
+            </div>
+          )}
+          {error && (
+            <div className="text-sm text-amber-800" style={{ fontFamily:'Spectral, serif' }}>
+              Impossible de récupérer l'explication. Vérifiez votre connexion.
+            </div>
+          )}
+          {data && (
+            <div className="space-y-4">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-stone-500 mb-1" style={{ fontFamily:'JetBrains Mono, monospace' }}>traduction</div>
+                <div style={{ fontFamily:'Fraunces, serif' }} className="text-xl text-stone-900 italic">
+                  {data.translation}
+                </div>
+              </div>
+              {data.explanation && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-stone-500 mb-1" style={{ fontFamily:'JetBrains Mono, monospace' }}>explication</div>
+                  <div style={{ fontFamily:'Spectral, serif' }} className="text-stone-800 text-sm leading-relaxed">
+                    {data.explanation}
+                  </div>
+                </div>
+              )}
+              {data.example && data.example.text && (
+                <div className="border-l-4 border-amber-700 pl-3 py-1 bg-amber-50/60">
+                  <div className="text-[10px] uppercase tracking-widest text-amber-900 mb-1" style={{ fontFamily:'JetBrains Mono, monospace' }}>exemple</div>
+                  <div className="flex items-start gap-2">
+                    <button onClick={() => onSpeak(data.example.text)} className="mt-0.5 shrink-0 text-stone-600 hover:text-stone-900" title="écouter">
+                      <Volume2 size={12} />
+                    </button>
+                    <div className="flex-1">
+                      <div style={{ fontFamily:'Fraunces, serif' }} className="text-stone-900 italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
+                        « {data.example.text} »
+                      </div>
+                      <div style={{ fontFamily:'Spectral, serif' }} className="text-stone-600 text-sm mt-1 italic">
+                        {data.example.fr}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Splits text into clickable word tokens.
+// Non-word characters (punctuation, spaces) are rendered as static spans.
+function ClickableText({ text, onWordClick, rtl = false }) {
+  if (!text) return null;
+  // Match word chunks (letters incl. accents & CJK) vs non-word chunks
+  const parts = text.split(/(\s+|[.,;:!?¿¡«»"'()\[\]{}—–…])/g);
+  return (
+    <span style={{ direction: rtl ? 'rtl' : 'ltr' }}>
+      {parts.map((part, i) => {
+        if (!part) return null;
+        // Words: at least one letter (any script)
+        const isWord = /[\p{L}]/u.test(part) && !/^\s+$/.test(part);
+        if (!isWord) return <span key={i}>{part}</span>;
+        return (
+          <button
+            key={i}
+            onClick={(e) => { e.stopPropagation(); onWordClick(part.trim(), text); }}
+            className="inline hover:bg-amber-200 hover:underline decoration-dotted underline-offset-2 rounded-sm transition-colors cursor-pointer"
+            style={{ padding: '0 1px' }}
+          >
+            {part}
+          </button>
+        );
+      })}
+    </span>
+  );
+}
+
 // ─── BUBBLES ──────────────────────────────────────────────────────────────────
 
 function UserMessage({ message, rtl }) {
@@ -987,7 +1143,7 @@ function UserMessage({ message, rtl }) {
   );
 }
 
-function AssistantMessage({ message, avatar, lang, onSpeak, speaking }) {
+function AssistantMessage({ message, avatar, lang, onSpeak, speaking, onWordClick }) {
   const [showFr, setShowFr] = useState(false);
   return (
     <div className="flex gap-3 mb-4 items-start">
@@ -1001,7 +1157,9 @@ function AssistantMessage({ message, avatar, lang, onSpeak, speaking }) {
               <button onClick={() => setShowFr(s => !s)} className="text-[10px] uppercase tracking-widest text-stone-600 hover:text-stone-900 px-1.5 border border-stone-400" style={{ fontFamily:'JetBrains Mono, monospace' }}>fr</button>
             </div>
           </div>
-          <div className="text-stone-900 leading-relaxed" style={{ direction: lang.rtl ? 'rtl' : 'ltr' }}>{message.reply}</div>
+          <div className="text-stone-900 leading-relaxed">
+            <ClickableText text={message.reply} onWordClick={onWordClick} rtl={lang.rtl} />
+          </div>
           {showFr && message.translation && (
             <div className="mt-2 pt-2 border-t border-stone-400/40 text-sm text-stone-700 italic">{message.translation}</div>
           )}
@@ -1362,6 +1520,7 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
   const [resumedFrom, setResumedFrom] = useState(null);
   const [voiceURI, setVoiceURI] = useState(null);
   const [showVoicePicker, setShowVoicePicker] = useState(false);
+  const [wordPopup, setWordPopup] = useState(null);
   const { speak, stop, speakingText, voices } = useSpeech();
   const endRef = useRef(null);
   const initDone = useRef(false);
@@ -1513,7 +1672,8 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
             ? <UserMessage key={i} message={m} rtl={lang.rtl} />
             : <AssistantMessage key={i} message={m} avatar={avatar} lang={lang}
                 onSpeak={() => speakFor(m.reply)}
-                speaking={speakingText === m.reply} />
+                speaking={speakingText === m.reply}
+                onWordClick={(w, ctx) => setWordPopup({ word: w, context: ctx })} />
           )}
           {loading && <TypingIndicator avatar={avatar} />}
           <div ref={endRef} />
@@ -1528,6 +1688,246 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
           onChoose={handleChooseVoice} onPreview={handlePreviewVoice}
           onClose={() => setShowVoicePicker(false)} />
       )}
+      {wordPopup && (
+        <WordExplainPopup word={wordPopup.word} context={wordPopup.context} lang={lang}
+          onClose={() => setWordPopup(null)}
+          onSpeak={(t) => speakFor(t)} />
+      )}
+    </div>
+  );
+}
+
+// ─── READER MODE ──────────────────────────────────────────────────────────────
+
+const READER_TOPICS = [
+  { id: 'daily',    label: 'Vie quotidienne',       icon: '☕' },
+  { id: 'travel',   label: 'Voyage & culture',      icon: '✈️' },
+  { id: 'work',     label: 'Travail & bureau',      icon: '💼' },
+  { id: 'tech',     label: 'Technologie',           icon: '💻' },
+  { id: 'food',     label: 'Cuisine',               icon: '🍜' },
+  { id: 'news',     label: 'Actualité',             icon: '📰' },
+  { id: 'science',  label: 'Sciences',              icon: '🔬' },
+  { id: 'story',    label: 'Petite histoire',       icon: '📖' },
+];
+
+async function generateReaderText(lang, level, topic) {
+  const lengthByLevel = {
+    beginner: '4-6 short simple sentences (10-15 words max each)',
+    intermediate: '6-8 sentences with varied structure',
+    advanced: '8-10 sentences, rich vocabulary and natural flow',
+  };
+  const system = `You write short reading passages for French speakers learning ${lang.nativeName} (${lang.name}).
+Level: ${level.prompt}
+Length: ${lengthByLevel[level.id]}
+Topic: ${topic.label}.
+
+Write a self-contained passage in ${lang.nativeName}${lang.code === 'mfe' ? ' (Kreol Morisien, authentic Mauritian Creole)' : ''}, engaging and useful for a learner.
+Also provide the full French translation.
+Give the passage a short title (in ${lang.nativeName}).
+
+Respond ONLY with JSON, no code fences:
+{
+  "title": "<short title in target language>",
+  "text": "<the reading passage in target language, plain text, sentences separated normally>",
+  "translation": "<full French translation of the passage>"
+}`;
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system,
+      messages: [{ role: 'user', content: `Give me a new passage about "${topic.label}".` }],
+    }),
+  });
+  if (!response.ok) throw new Error('API error');
+  const data = await response.json();
+  const textOut = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  const cleaned = textOut.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
+  return JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+}
+
+function ReaderScreen({ lang, level, onBack }) {
+  const [topic, setTopic] = useState(READER_TOPICS[0]);
+  const [passage, setPassage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showFr, setShowFr] = useState(false);
+  const [wordPopup, setWordPopup] = useState(null);
+  const { speak, stop, speakingText } = useSpeech();
+
+  const load = async (t) => {
+    setLoading(true); setError(null); setPassage(null); setShowFr(false);
+    try {
+      const data = await generateReaderText(lang, level, t);
+      setPassage(data);
+    } catch (e) {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(topic); return () => stop();
+    // eslint-disable-next-line
+  }, [topic.id, lang.code, level.id]);
+
+  const speakPassage = () => {
+    if (passage) speak(passage.text, null, lang);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor:'#F5F0E6' }}>
+      <div className="border-b-2 border-stone-900 bg-stone-50 sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-3 sm:px-5 py-3 flex items-center gap-3">
+          <button onClick={onBack} className="w-9 h-9 grid place-items-center border border-stone-900 hover:bg-stone-900 hover:text-stone-50 transition-colors" title="retour">
+            <ArrowLeft size={16} />
+          </button>
+          <div className="w-11 h-11 grid place-items-center text-stone-50 shrink-0" style={{ backgroundColor: lang.accent }}>
+            <BookText size={20} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div style={{ fontFamily:'Fraunces, serif' }} className="text-lg font-medium leading-none">Lecture</div>
+            <div className="text-[10px] uppercase tracking-widest text-stone-500 mt-0.5 truncate" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+              {lang.name} · {level.label.toLowerCase()}
+            </div>
+          </div>
+          <button onClick={() => load(topic)} disabled={loading}
+            className="w-9 h-9 grid place-items-center border border-stone-900 hover:bg-stone-100 disabled:opacity-30" title="nouveau texte">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-3 sm:px-5 py-5">
+          {/* Topic pills */}
+          <div className="mb-5">
+            <div className="text-[10px] uppercase tracking-widest text-stone-500 mb-2" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+              sujet
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {READER_TOPICS.map(t => (
+                <button key={t.id} onClick={() => setTopic(t)}
+                  className={`px-3 py-1.5 text-xs uppercase tracking-wider border transition-all flex items-center gap-1.5 ${
+                    topic.id === t.id
+                      ? 'bg-stone-900 text-stone-50 border-stone-900'
+                      : 'bg-stone-50 border-stone-300 hover:border-stone-900'
+                  }`}
+                  style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                  <span>{t.icon}</span>
+                  <span>{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {loading && (
+            <div className="flex items-center justify-center gap-2 text-stone-500 py-16" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+              <Loader2 size={16} className="animate-spin" />
+              <span className="text-sm uppercase tracking-widest">génération du texte…</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="border-2 border-amber-700 bg-amber-50 p-4 text-amber-900" style={{ fontFamily:'Spectral, serif' }}>
+              Impossible de générer un texte. Vérifiez votre connexion et réessayez.
+            </div>
+          )}
+
+          {passage && !loading && (
+            <div className="border-2 border-stone-900 bg-stone-50 p-5 sm:p-8 relative"
+                 style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.04) 31px, rgba(0,0,0,0.04) 32px)' }}>
+              <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-stone-300">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] uppercase tracking-widest text-stone-500" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                    {topic.icon} {topic.label}
+                  </div>
+                  <h2 style={{ fontFamily:'Fraunces, serif' }} className="text-2xl sm:text-3xl font-medium leading-tight mt-1 italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
+                    {passage.title}
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={speakPassage}
+                    className={`w-9 h-9 grid place-items-center transition-colors ${speakingText === passage.text ? 'bg-amber-700 text-stone-50 animate-pulse' : 'bg-stone-900 text-stone-50 hover:bg-stone-700'}`}
+                    title="écouter le texte">
+                    <Volume2 size={14} />
+                  </button>
+                  <button onClick={() => setShowFr(s => !s)}
+                    className={`px-2 py-1 text-[10px] uppercase tracking-widest border ${showFr ? 'bg-stone-900 text-stone-50 border-stone-900' : 'border-stone-900 hover:bg-stone-100'}`}
+                    style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                    fr
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ fontFamily:'Spectral, serif' }} className="text-lg leading-relaxed text-stone-900" dir={lang.rtl ? 'rtl' : 'ltr'}>
+                <ClickableText text={passage.text} onWordClick={(w, ctx) => setWordPopup({ word: w, context: ctx })} rtl={lang.rtl} />
+              </div>
+
+              {showFr && (
+                <div className="mt-5 pt-4 border-t border-stone-300">
+                  <div className="text-[10px] uppercase tracking-widest text-stone-500 mb-2" style={{ fontFamily:'JetBrains Mono, monospace' }}>traduction française</div>
+                  <div style={{ fontFamily:'Spectral, serif' }} className="text-stone-700 leading-relaxed italic">
+                    {passage.translation}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 text-[10px] uppercase tracking-widest text-stone-400 text-center" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                ↳ touchez un mot pour sa traduction et son explication
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {wordPopup && (
+        <WordExplainPopup word={wordPopup.word} context={wordPopup.context} lang={lang}
+          onClose={() => setWordPopup(null)}
+          onSpeak={(t) => speak(t, null, lang)} />
+      )}
+    </div>
+  );
+}
+
+// ─── STEP 2.5: MODE PICKER ────────────────────────────────────────────────────
+
+function ModePicker({ language, level, onSelect, onBack }) {
+  const modes = [
+    { id: 'chat',   label: 'Discuter',  icon: MessageCircle,
+      desc: "Conversation vocale avec un interlocuteur virtuel. Il vous répond, corrige vos erreurs et explique." },
+    { id: 'reader', label: 'Lire',      icon: BookText,
+      desc: "Textes générés à votre niveau, sur le sujet de votre choix. Touchez chaque mot pour sa traduction et son explication." },
+  ];
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'#F5F0E6' }}>
+      <div className="max-w-3xl mx-auto">
+        <StepHeader step={3} total={4} label="mode" onBack={onBack} />
+        <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, serif' }}>
+          <em>Comment</em> apprendre ?
+        </h1>
+        <p className="mt-3 text-stone-600 max-w-xl" style={{ fontFamily:'Spectral, serif' }}>
+          {language.name} · {level.label.toLowerCase()} — choisissez votre mode
+        </p>
+        <div className="mt-6 grid sm:grid-cols-2 gap-3">
+          {modes.map(m => {
+            const Icon = m.icon;
+            return (
+              <button key={m.id} onClick={() => onSelect(m.id)}
+                className="text-left border-2 border-stone-900 bg-stone-50 hover:bg-white hover:-translate-y-0.5 hover:shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition-all p-5 flex flex-col gap-3 items-start">
+                <div className="w-14 h-14 grid place-items-center text-stone-50" style={{ backgroundColor: language.accent }}>
+                  <Icon size={26} />
+                </div>
+                <h3 style={{ fontFamily:'Fraunces, serif' }} className="text-2xl font-medium leading-none">{m.label}</h3>
+                <p style={{ fontFamily:'Spectral, serif' }} className="text-sm text-stone-700 leading-relaxed">{m.desc}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1572,7 +1972,11 @@ export default function App() {
     onSelect={(l) => { setLanguage(l); setStep('level'); }}
     onResumeLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar); setStep('chat'); }}
   />;
-  if (step === 'level')    return <LevelPicker language={language} onSelect={(lv) => { setLevel(lv); setStep('avatar'); }} onBack={() => setStep('language')} />;
-  if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('level')} />;
+  if (step === 'level')    return <LevelPicker language={language} onSelect={(lv) => { setLevel(lv); setStep('mode'); }} onBack={() => setStep('language')} />;
+  if (step === 'mode')     return <ModePicker language={language} level={level}
+    onSelect={(m) => setStep(m === 'chat' ? 'avatar' : 'reader')}
+    onBack={() => setStep('level')} />;
+  if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
+  if (step === 'reader')   return <ReaderScreen lang={language} level={level} onBack={() => setStep('mode')} />;
   return <ChatScreen lang={language} level={level} avatar={avatar} onChangeAvatar={() => setStep('avatar')} />;
 }

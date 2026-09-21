@@ -996,8 +996,9 @@ Respond ONLY with a JSON object, no code fences:
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 400,
+      // Haiku for speed — word explanations don't need Sonnet's depth
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Explain the word "${word}".` }],
     }),
@@ -1712,31 +1713,32 @@ const READER_TOPICS = [
 
 async function generateReaderText(lang, level, topic) {
   const lengthByLevel = {
-    beginner: '4-6 short simple sentences (10-15 words max each)',
-    intermediate: '6-8 sentences with varied structure',
-    advanced: '8-10 sentences, rich vocabulary and natural flow',
+    beginner: '4 short simple sentences (10-12 words max each)',
+    intermediate: '5-6 sentences with varied structure',
+    advanced: '6-7 sentences, rich vocabulary',
   };
   const system = `You write short reading passages for French speakers learning ${lang.nativeName} (${lang.name}).
 Level: ${level.prompt}
-Length: ${lengthByLevel[level.id]}
+Length: ${lengthByLevel[level.id]}. KEEP IT SHORT.
 Topic: ${topic.label}.
 
-Write a self-contained passage in ${lang.nativeName}${lang.code === 'mfe' ? ' (Kreol Morisien, authentic Mauritian Creole)' : ''}, engaging and useful for a learner.
+Write a self-contained passage in ${lang.nativeName}${lang.code === 'mfe' ? ' (Kreol Morisien, authentic Mauritian Creole)' : ''}.
 Also provide the full French translation.
 Give the passage a short title (in ${lang.nativeName}).
 
 Respond ONLY with JSON, no code fences:
 {
   "title": "<short title in target language>",
-  "text": "<the reading passage in target language, plain text, sentences separated normally>",
-  "translation": "<full French translation of the passage>"
+  "text": "<the reading passage in target language, plain text>",
+  "translation": "<full French translation>"
 }`;
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      // Haiku is ~5-10x faster than Sonnet, plenty good enough for short passages
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 700,
       system,
       messages: [{ role: 'user', content: `Give me a new passage about "${topic.label}".` }],
     }),
@@ -1753,19 +1755,50 @@ function ReaderScreen({ lang, level, onBack }) {
   const [topic, setTopic] = useState(READER_TOPICS[0]);
   const [passage, setPassage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingHint, setLoadingHint] = useState('');
   const [error, setError] = useState(null);
   const [showFr, setShowFr] = useState(false);
   const [wordPopup, setWordPopup] = useState(null);
   const { speak, stop, speakingText } = useSpeech();
 
-  const load = async (t) => {
+  // Cache: keep the last passage per topic in memory for instant re-display
+  const cacheRef = useRef({});
+
+  const load = async (t, forceNew = false) => {
+    // Instant display from cache if available and not forcing new
+    const cacheKey = `${lang.code}:${level.id}:${t.id}`;
+    if (!forceNew && cacheRef.current[cacheKey]) {
+      setPassage(cacheRef.current[cacheKey]);
+      setShowFr(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true); setError(null); setPassage(null); setShowFr(false);
+
+    // Rotating hints so the user sees something moving
+    const hints = [
+      'préparation du texte…',
+      "choix d'un vocabulaire adapté…",
+      'ajustement au niveau…',
+      'traduction…',
+      'presque prêt…',
+    ];
+    let hintIdx = 0;
+    setLoadingHint(hints[0]);
+    const hintTimer = setInterval(() => {
+      hintIdx = (hintIdx + 1) % hints.length;
+      setLoadingHint(hints[hintIdx]);
+    }, 1500);
+
     try {
       const data = await generateReaderText(lang, level, t);
+      cacheRef.current[cacheKey] = data;
       setPassage(data);
     } catch (e) {
       setError(true);
     } finally {
+      clearInterval(hintTimer);
       setLoading(false);
     }
   };
@@ -1794,7 +1827,7 @@ function ReaderScreen({ lang, level, onBack }) {
               {lang.name} · {level.label.toLowerCase()}
             </div>
           </div>
-          <button onClick={() => load(topic)} disabled={loading}
+          <button onClick={() => load(topic, true)} disabled={loading}
             className="w-9 h-9 grid place-items-center border border-stone-900 hover:bg-stone-100 disabled:opacity-30" title="nouveau texte">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -1825,9 +1858,26 @@ function ReaderScreen({ lang, level, onBack }) {
           </div>
 
           {loading && (
-            <div className="flex items-center justify-center gap-2 text-stone-500 py-16" style={{ fontFamily:'JetBrains Mono, monospace' }}>
-              <Loader2 size={16} className="animate-spin" />
-              <span className="text-sm uppercase tracking-widest">génération du texte…</span>
+            <div className="border-2 border-stone-900 bg-stone-50 p-5 sm:p-8 relative">
+              <div className="flex items-center gap-3 pb-4 mb-4 border-b border-stone-300">
+                <div className="w-9 h-9 grid place-items-center bg-stone-100 border border-stone-300">
+                  <Loader2 size={14} className="animate-spin text-stone-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] uppercase tracking-widest text-stone-500" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                    {topic.icon} {topic.label}
+                  </div>
+                  <div className="text-sm text-stone-700 mt-1" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                    {loadingHint || 'préparation…'}
+                  </div>
+                </div>
+              </div>
+              {/* Skeleton lines */}
+              <div className="space-y-3">
+                {[100, 92, 85, 96, 78].map((w, i) => (
+                  <div key={i} className="h-4 bg-stone-200 animate-pulse" style={{ width: `${w}%`, animationDelay: `${i * 100}ms` }} />
+                ))}
+              </div>
             </div>
           )}
 

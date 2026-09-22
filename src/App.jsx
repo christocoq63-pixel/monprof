@@ -9,42 +9,42 @@ const LANGUAGES = {
     ttsLocale: 'en-US', srLocale: 'en-US', srSupported: true,
     accent: '#B85B3F',
     avatars: [
-      { id:'emma', name:'Emma', age:28, location:'Manchester, UK', role:'Amie de café',
+      { id:'emma', gender:'female', name:'Emma', age:28, location:'Manchester, UK', role:'Amie de café',
         tagline:'Détendue, vie quotidienne, séries, week-end',
         persona:'casual, warm British English, uses colloquial expressions',
         color:'#B85B3F', soft:'#F6E2D4', pattern:'circles',
         voiceHint:['samantha','kate','serena','female','martha','amelie'],
         greetings:[{t:"Hey! How's it going today?", fr:"Salut ! Comment ça va aujourd'hui ?"},
                    {t:"Hi there! What've you been up to?", fr:"Coucou ! Qu'est-ce que tu as fait de beau ?"}]},
-      { id:'marcus', name:'Marcus', age:35, location:'San Francisco, USA', role:'Ingénieur logiciel',
+      { id:'marcus', gender:'male', name:'Marcus', age:35, location:'San Francisco, USA', role:'Ingénieur logiciel',
         tagline:'Tech, boulot, projets, idées',
         persona:'direct, professional American English, brings up technical topics naturally',
         color:'#2D5F8A', soft:'#D5E2EF', pattern:'grid',
         voiceHint:['daniel','alex','fred','tom','aaron','male'],
         greetings:[{t:"Hey, nice to meet you. What kind of work do you do?", fr:"Hé, ravi de te rencontrer. Tu fais quoi comme boulot ?"},
                    {t:"Hi! Working on anything fun lately?", fr:"Salut ! Tu bosses sur des trucs sympas ?"}]},
-      { id:'hannah', name:'Hannah', age:32, location:'Dublin, Ireland', role:"Professeure d'anglais",
+      { id:'hannah', gender:'female', name:'Hannah', age:32, location:'Dublin, Ireland', role:"Professeure d'anglais",
         tagline:'Patiente, claire, parle doucement',
         persona:'gentle, clear, slightly slower English, very reassuring',
         color:'#3F6B4E', soft:'#DCE8DF', pattern:'lines',
         voiceHint:['fiona','moira','karen','tessa','female'],
         greetings:[{t:"Hello! Take your time. What would you like to chat about?", fr:"Bonjour ! Prends ton temps. De quoi veux-tu parler ?"},
                    {t:"Hi! Tell me a bit about yourself.", fr:"Salut ! Parle-moi un peu de toi."}]},
-      { id:'oliver', name:'Oliver', age:47, location:'Oxford, UK', role:'Universitaire',
+      { id:'oliver', gender:'male', name:'Oliver', age:47, location:'Oxford, UK', role:'Universitaire',
         tagline:'Cultivé, humour pince-sans-rire, sujets de fond',
         persona:'formal, witty, intellectual British English, dry humor',
         color:'#7A4A2F', soft:'#EBD7C5', pattern:'dots',
         voiceHint:['daniel','oliver','arthur','gordon','male'],
         greetings:[{t:"Good day. What's been on your mind recently?", fr:"Bonjour. Qu'est-ce qui vous occupe l'esprit ces temps-ci ?"},
                    {t:"Hello there. Care for an interesting conversation?", fr:"Bonjour. Envie d'une discussion intéressante ?"}]},
-      { id:'priya', name:'Priya', age:31, location:'Bangalore, India', role:'Développeuse logicielle',
+      { id:'priya', gender:'female', name:'Priya', age:31, location:'Bangalore, India', role:'Développeuse logicielle',
         tagline:'Anglais indien, tech, voyages, cuisine',
         persona:'Indian English (educated Bangalore accent), warm and articulate. Occasionally uses Hinglish expressions like "yaar", "actually", or sentence-final "no?" naturally. Brings up tech and travel topics.',
         color:'#A16207', soft:'#EFE0C7', pattern:'dots',
         voiceHint:['veena','rishi','raveena','lekha','heera','female'],
         greetings:[{t:"Hi! Nice to meet you. So tell me, what do you do?", fr:"Salut ! Ravi de te rencontrer. Dis-moi, tu fais quoi ?"},
                    {t:"Hello, how is your day going? Working on something interesting?", fr:"Bonjour, comment se passe ta journée ? Tu travailles sur quelque chose d'intéressant ?"}]},
-      { id:'karim', name:'Karim', age:41, location:'Dubaï, EAU', role:'Ingénieur',
+      { id:'karim', gender:'male', name:'Karim', age:41, location:'Dubaï, EAU', role:'Ingénieur',
         tagline:'Anglais arabe, business, ingénierie',
         persona:'Gulf-Arab-accented professional English, warm and polite. Occasionally uses Arabic expressions like "Inshallah" or "Mashallah" naturally. Focus on engineering, business and culture.',
         color:'#1E3A5F', soft:'#D0DAE5', pattern:'grid',
@@ -58,21 +58,21 @@ const LANGUAGES = {
     ttsLocale: 'es-ES', srLocale: 'es-ES', srSupported: true,
     accent: '#C2410C',
     avatars: [
-      { id:'lucia', name:'Lucía', age:27, location:'Madrid, España', role:'Amie de café',
+      { id:'lucia', gender:'female', name:'Lucía', age:27, location:'Madrid, España', role:'Amie de café',
         tagline:'Castillan moderne, sorties, ciné, food',
         persona:'casual Castilian Spanish from Madrid, friendly and energetic',
         color:'#C2410C', soft:'#FBE4D2', pattern:'circles',
         voiceHint:['monica','marisol','paulina','female'],
         greetings:[{t:"¡Hola! ¿Qué tal te va el día?", fr:"Salut ! Comment se passe ta journée ?"},
                    {t:"¿Qué tal? Cuéntame algo.", fr:"Ça va ? Raconte-moi quelque chose."}]},
-      { id:'diego', name:'Diego', age:34, location:'Buenos Aires, Argentina', role:'Designer',
+      { id:'diego', gender:'male', name:'Diego', age:34, location:'Buenos Aires, Argentina', role:'Designer',
         tagline:'Espagnol argentin, créativité, voyages',
         persona:'Argentine Spanish (rioplatense), uses "vos" and "che", warm and chatty',
         color:'#6B4D9B', soft:'#E1D8EE', pattern:'lines',
         voiceHint:['jorge','diego','juan','carlos','male'],
         greetings:[{t:"¡Che, qué bueno conocerte! ¿De dónde sos?", fr:"Hé, content de te connaître ! D'où tu viens ?"},
                    {t:"Hola, ¿qué onda? ¿Cómo estás?", fr:"Salut, ça roule ? Comment ça va ?"}]},
-      { id:'carmen', name:'Carmen', age:42, location:'Ciudad de México', role:"Professeure d'espagnol",
+      { id:'carmen', gender:'female', name:'Carmen', age:42, location:'Ciudad de México', role:"Professeure d'espagnol",
         tagline:'Espagnol mexicain, claire et patiente',
         persona:'Mexican Spanish, very patient teacher, speaks clearly and slowly',
         color:'#4A7C59', soft:'#DCE8DF', pattern:'dots',
@@ -86,21 +86,21 @@ const LANGUAGES = {
     ttsLocale: 'de-DE', srLocale: 'de-DE', srSupported: true,
     accent: '#374151',
     avatars: [
-      { id:'lena', name:'Lena', age:26, location:'Berlin, Deutschland', role:'Amie créative',
+      { id:'lena', gender:'female', name:'Lena', age:26, location:'Berlin, Deutschland', role:'Amie créative',
         tagline:'Berlinois moderne, culture, sorties',
         persona:'casual Berliner German, hip and modern',
         color:'#5B6CB8', soft:'#DDE2F0', pattern:'lines',
         voiceHint:['anna','helena','steffi','female'],
         greetings:[{t:"Hi! Wie läuft's bei dir?", fr:"Salut ! Comment ça se passe pour toi ?"},
                    {t:"Hallo! Was machst du so?", fr:"Salut ! Tu fais quoi de beau ?"}]},
-      { id:'klaus', name:'Klaus', age:48, location:'München, Deutschland', role:'Ingénieur',
+      { id:'klaus', gender:'male', name:'Klaus', age:48, location:'München, Deutschland', role:'Ingénieur',
         tagline:'Précis, technique, sujets de fond',
         persona:'precise, structured German, professional',
         color:'#374151', soft:'#D6DAE0', pattern:'grid',
         voiceHint:['markus','stefan','yannick','male'],
         greetings:[{t:"Guten Tag. Womit beschäftigen Sie sich beruflich?", fr:"Bonjour. Que faites-vous comme métier ?"},
                    {t:"Hallo. Worüber möchten Sie sprechen?", fr:"Bonjour. De quoi souhaitez-vous parler ?"}]},
-      { id:'anja', name:'Anja', age:38, location:'Wien, Österreich', role:"Professeure d'allemand",
+      { id:'anja', gender:'female', name:'Anja', age:38, location:'Wien, Österreich', role:"Professeure d'allemand",
         tagline:'Autrichienne, douce, parle clairement',
         persona:'Austrian German (softer accent), patient and clear',
         color:'#6B7A3F', soft:'#E2E6D3', pattern:'dots',
@@ -114,21 +114,21 @@ const LANGUAGES = {
     ttsLocale: 'it-IT', srLocale: 'it-IT', srSupported: true,
     accent: '#9A3412',
     avatars: [
-      { id:'giulia', name:'Giulia', age:30, location:'Roma, Italia', role:'Amie de café',
+      { id:'giulia', gender:'female', name:'Giulia', age:30, location:'Roma, Italia', role:'Amie de café',
         tagline:'Romaine, expressive, food et dolce vita',
         persona:'expressive Roman Italian, warm and lively',
         color:'#B85B3F', soft:'#F6E2D4', pattern:'circles',
         voiceHint:['alice','silvia','federica','female'],
         greetings:[{t:"Ciao! Come va oggi?", fr:"Salut ! Comment ça va aujourd'hui ?"},
                    {t:"Ehi, ciao! Raccontami qualcosa di te.", fr:"Hé, salut ! Raconte-moi quelque chose sur toi."}]},
-      { id:'marco', name:'Marco', age:42, location:'Milano, Italia', role:'Designer',
+      { id:'marco', gender:'male', name:'Marco', age:42, location:'Milano, Italia', role:'Designer',
         tagline:'Italien du Nord, raffiné, design',
         persona:'refined Northern Italian (Milanese), elegant and professional',
         color:'#1E3A5F', soft:'#D0DAE5', pattern:'grid',
         voiceHint:['luca','paolo','marco','male'],
         greetings:[{t:"Buongiorno. Di cosa ti occupi?", fr:"Bonjour. De quoi t'occupes-tu ?"},
                    {t:"Ciao, piacere. Cosa ti porta qui?", fr:"Salut, enchanté. Qu'est-ce qui t'amène ?"}]},
-      { id:'sofia', name:'Sofia', age:55, location:'Firenze, Italia', role:"Professeure d'italien",
+      { id:'sofia', gender:'female', name:'Sofia', age:55, location:'Firenze, Italia', role:"Professeure d'italien",
         tagline:'Toscane, claire, patiente, classique',
         persona:'classic Tuscan Italian, very clear and patient teacher',
         color:'#7A4A2F', soft:'#EBD7C5', pattern:'dots',
@@ -142,21 +142,21 @@ const LANGUAGES = {
     ttsLocale: 'pt-BR', srLocale: 'pt-BR', srSupported: true,
     accent: '#15803D',
     avatars: [
-      { id:'rafael', name:'Rafael', age:32, location:'Rio de Janeiro, Brasil', role:'Ami carioca',
+      { id:'rafael', gender:'male', name:'Rafael', age:32, location:'Rio de Janeiro, Brasil', role:'Ami carioca',
         tagline:'Portugais brésilien, plage, musique, foot',
         persona:'casual Brazilian Portuguese (carioca), relaxed and warm',
         color:'#15803D', soft:'#D5E8D9', pattern:'circles',
         voiceHint:['felipe','luciana','male'],
         greetings:[{t:"E aí, beleza? Tudo bem com você?", fr:"Salut, ça va ? Tout va bien ?"},
                    {t:"Oi! O que você anda fazendo?", fr:"Salut ! Qu'est-ce que tu fais en ce moment ?"}]},
-      { id:'beatriz', name:'Beatriz', age:34, location:'Lisboa, Portugal', role:'Amie lisboète',
+      { id:'beatriz', gender:'female', name:'Beatriz', age:34, location:'Lisboa, Portugal', role:'Amie lisboète',
         tagline:'Portugais européen, calme, culture',
         persona:'European Portuguese (Lisbon), elegant and clear pronunciation',
         color:'#2D5F8A', soft:'#D5E2EF', pattern:'lines',
         voiceHint:['joana','catarina','female'],
         greetings:[{t:"Olá, tudo bem? Como tem passado?", fr:"Bonjour, ça va ? Comment vous portez-vous ?"},
                    {t:"Boa tarde. De onde é?", fr:"Bonjour. D'où venez-vous ?"}]},
-      { id:'joao', name:'João', age:45, location:'São Paulo, Brasil', role:"Professeur de portugais",
+      { id:'joao', gender:'male', name:'João', age:45, location:'São Paulo, Brasil', role:"Professeur de portugais",
         tagline:'Patient, clair, brésilien standard',
         persona:'standard Brazilian Portuguese, patient teacher',
         color:'#6B4D9B', soft:'#E1D8EE', pattern:'dots',
@@ -170,21 +170,21 @@ const LANGUAGES = {
     ttsLocale: 'ja-JP', srLocale: 'ja-JP', srSupported: true,
     accent: '#9D174D',
     avatars: [
-      { id:'yuki', name:'Yuki', age:26, location:'東京 (Tokyo)', role:'Amie tokyoïte',
+      { id:'yuki', gender:'female', name:'Yuki', age:26, location:'東京 (Tokyo)', role:'Amie tokyoïte',
         tagline:'Décontractée, pop culture, café',
         persona:'casual modern Tokyo Japanese, friendly and conversational',
         color:'#9D174D', soft:'#F0D5DE', pattern:'circles',
         voiceHint:['kyoko','haruka','female'],
         greetings:[{t:"こんにちは！元気ですか？", fr:"Bonjour ! Comment vas-tu ?"},
                    {t:"やあ、最近どうしてた？", fr:"Hé, qu'est-ce que tu deviens ?"}]},
-      { id:'takeshi', name:'Takeshi', age:54, location:'京都 (Kyoto)', role:'Professeur',
+      { id:'takeshi', gender:'male', name:'Takeshi', age:54, location:'京都 (Kyoto)', role:'Professeur',
         tagline:'Japonais soutenu, patient',
         persona:'polite, classical Kyoto Japanese, very patient with learners',
         color:'#3F2A1F', soft:'#E5DBD0', pattern:'dots',
         voiceHint:['otoya','hattori','male'],
         greetings:[{t:"こんにちは。お名前は何ですか？", fr:"Bonjour. Comment vous appelez-vous ?"},
                    {t:"はじめまして。何について話したいですか？", fr:"Enchanté. De quoi voulez-vous parler ?"}]},
-      { id:'aiko', name:'Aiko', age:33, location:'大阪 (Osaka)', role:"Professeure de japonais",
+      { id:'aiko', gender:'female', name:'Aiko', age:33, location:'大阪 (Osaka)', role:"Professeure de japonais",
         tagline:'Kansai, chaleureuse, claire',
         persona:'Kansai (Osaka) Japanese, warm and friendly teacher',
         color:'#5B6CB8', soft:'#DDE2F0', pattern:'lines',
@@ -198,21 +198,21 @@ const LANGUAGES = {
     ttsLocale: 'zh-CN', srLocale: 'zh-CN', srSupported: true,
     accent: '#B91C1C',
     avatars: [
-      { id:'mei', name:'Mei', age:28, location:'上海 (Shanghai)', role:'Amie',
+      { id:'mei', gender:'female', name:'Mei', age:28, location:'上海 (Shanghai)', role:'Amie',
         tagline:'Mandarin moderne, vie urbaine',
         persona:'modern Mandarin from Shanghai, casual and friendly',
         color:'#B91C1C', soft:'#F4D5D5', pattern:'circles',
         voiceHint:['tingting','meijia','female'],
         greetings:[{t:"你好！今天怎么样？", fr:"Salut ! Comment ça va aujourd'hui ?"},
                    {t:"嗨，最近忙吗？", fr:"Coucou, occupé ces temps-ci ?"}]},
-      { id:'wei', name:'Wei', age:45, location:'北京 (Beijing)', role:'Professeur de mandarin',
+      { id:'wei', gender:'male', name:'Wei', age:45, location:'北京 (Beijing)', role:'Professeur de mandarin',
         tagline:'Mandarin standard, patient, clair',
         persona:'standard Beijing Mandarin, patient teacher with clear pronunciation',
         color:'#A16207', soft:'#EFE0C7', pattern:'dots',
         voiceHint:['tian-tian','male'],
         greetings:[{t:"你好。你叫什么名字？", fr:"Bonjour. Comment vous appelez-vous ?"},
                    {t:"欢迎！你想聊什么？", fr:"Bienvenue ! De quoi voulez-vous parler ?"}]},
-      { id:'lin', name:'Lin', age:31, location:'台北 (Taipei)', role:'Designer',
+      { id:'lin', gender:'female', name:'Lin', age:31, location:'台北 (Taipei)', role:'Designer',
         tagline:'Mandarin taïwanais, créative',
         persona:'Taiwanese Mandarin, soft-spoken and creative',
         color:'#4D7C0F', soft:'#DEEAC8', pattern:'lines',
@@ -226,14 +226,14 @@ const LANGUAGES = {
     ttsLocale: 'ar-SA', srLocale: 'ar-SA', srSupported: true, rtl: true,
     accent: '#1E40AF',
     avatars: [
-      { id:'layla', name:'Layla', age:32, location:'Beyrouth, Liban', role:'Journaliste',
+      { id:'layla', gender:'female', name:'Layla', age:32, location:'Beyrouth, Liban', role:'Journaliste',
         tagline:'Arabe levantin, culture, actualité',
         persona:'Levantine Arabic (Lebanese), educated and culturally engaged',
         color:'#1E40AF', soft:'#D6DEF2', pattern:'circles',
         voiceHint:['laila','majed','female'],
         greetings:[{t:"مرحبا! كيف حالك اليوم؟", fr:"Bonjour ! Comment vas-tu aujourd'hui ?"},
                    {t:"أهلا. عن أي موضوع تحب أن نتكلم؟", fr:"Salut. De quel sujet aimerais-tu qu'on parle ?"}]},
-      { id:'omar', name:'Omar', age:44, location:'القاهرة (Le Caire)', role:'Professeur',
+      { id:'omar', gender:'male', name:'Omar', age:44, location:'القاهرة (Le Caire)', role:'Professeur',
         tagline:'Arabe standard moderne, patient',
         persona:'Modern Standard Arabic (MSA), patient Egyptian teacher',
         color:'#A16207', soft:'#EFE0C7', pattern:'dots',
@@ -247,7 +247,7 @@ const LANGUAGES = {
     ttsLocale: 'fr-FR', srLocale: 'fr-FR', srSupported: false,
     accent: '#0F766E',
     avatars: [
-      { id:'anais', name:'Anaïs', age:30, location:'Port-Louis, Maurice', role:'Amie',
+      { id:'anais', gender:'female', name:'Anaïs', age:30, location:'Port-Louis, Maurice', role:'Amie',
         tagline:'Décontractée, plage, lagon, séga',
         persona:`casual Mauritian Creole, warm and lively.
 - Use authentic Mauritian expressions constantly: "Ki manyer", "Bonzour", "Korek", "Zenfan", "Mo bro", "Mo ser", "Ala", "Samem sa", "Ayo", "Mo bon", "Bonpe", "Ti-mama", "Ki nouvel", "Kot to ete", "Pa gagn traka", "Kontan trouv twa".
@@ -261,7 +261,7 @@ const LANGUAGES = {
         rate: 0.82, pitch: 1.05,
         greetings:[{t:"Bonzour mo ser ! Ki manyer azordi, korek ?", fr:"Bonjour ma sœur ! Comment ça va aujourd'hui, tout va bien ?"},
                    {t:"Eh salu ! Ki to pe fer ? Mo kontan trouv twa.", fr:"Hé salut ! Qu'est-ce que tu fais ? Je suis contente de te voir."}]},
-      { id:'ravi', name:'Ravi', age:42, location:'Curepipe, Maurice', role:'Ingénieur',
+      { id:'ravi', gender:'male', name:'Ravi', age:42, location:'Curepipe, Maurice', role:'Ingénieur',
         tagline:'Pragmatique, parle boulot, projets',
         persona:`professional Mauritian Creole.
 - Mixes Creole with French and English words as is natural for Mauritian professionals (e.g. "mo pe travay lor enn projet interesan").
@@ -273,7 +273,7 @@ const LANGUAGES = {
         rate: 0.85, pitch: 0.95,
         greetings:[{t:"Bonzour mo bro. Ki manyer ? To travay dan ki domenn ?", fr:"Bonjour mon ami. Comment ça va ? Tu travailles dans quel domaine ?"},
                    {t:"Salam, ki nouvel ? Ki to pe fer sa lasemenn la ?", fr:"Salut, quelles nouvelles ? Qu'est-ce que tu fais cette semaine ?"}]},
-      { id:'marie', name:'Marie', age:48, location:'Beau Bassin, Maurice', role:'Professeure',
+      { id:'marie', gender:'female', name:'Marie', age:48, location:'Beau Bassin, Maurice', role:'Professeure',
         tagline:'Patiente, explique tout, créole standard',
         persona:`standard Mauritian Creole teacher, patient and clear.
 - Speaks slowly and repeats important words.
@@ -498,6 +498,32 @@ If no errors, return "corrections": []. Never wrap the JSON in backticks. Never 
 
 // ─── HOOKS ────────────────────────────────────────────────────────────────────
 
+// Heuristic: guess a voice's gender from its name.
+// Returns 'female', 'male', or null (unknown).
+function guessVoiceGender(voiceName) {
+  const n = voiceName.toLowerCase();
+  // Explicit markers
+  if (/\bfemale\b|femme|frau|donna|mujer|mulher|女性|امرأة/.test(n)) return 'female';
+  if (/\bmale\b|homme|mann|uomo|hombre|homem|男性|رجل/.test(n)) return 'male';
+  // Common female voice names across systems
+  const femaleNames = [
+    // Windows / Azure
+    'zira','hazel','susan','heera','catherine','linda','jenny','aria','ana','emma','michelle','clara','nanami','ayumi','xiaoxiao','xiaoyou','hortense','julie','denise','katja','elsa','isabella','francisca','helena','sabina','alicja','joanna','maja',
+    // Apple
+    'samantha','victoria','allison','ava','kate','serena','fiona','moira','tessa','karen','veena','rishi','martha','amelie','audrey','virginie','marie','anna','helena','alice','silvia','federica','joana','catarina','luciana','paulina','esperanza','monica','marisol','laila','kyoko','haruka','sayaka','tingting','meijia','sin-ji',
+    // Google
+    'wavenet-a','wavenet-c','wavenet-e','wavenet-f','wavenet-h',
+    // Miscellaneous common female French names used in TTS
+    'petra','greta','laura','nadia','sarah','sophia','olivia'
+  ];
+  const maleNames = [
+    'david','mark','richard','george','james','guy','ryan','tony','christopher','william','brandon','eric','jacob','matthew','antonio','marco','luca','felipe','ricardo','daniel','thomas','nicolas','markus','stefan','yannick','jorge','diego','juan','carlos','majed','tarik','otoya','hattori','alex','fred','tom','aaron','arthur','gordon','oliver','bruce','henri','jean','pierre','paul','claude','sean','declan','angus'
+  ];
+  if (femaleNames.some(name => n.includes(name))) return 'female';
+  if (maleNames.some(name => n.includes(name))) return 'male';
+  return null;
+}
+
 function useSpeech() {
   const [voices, setVoices] = useState([]);
   const [speakingText, setSpeakingText] = useState(null);
@@ -514,7 +540,7 @@ function useSpeech() {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang?.ttsLocale || 'en-US';
-    // Per-avatar rate/pitch override if defined (used e.g. for Mauritian Creole)
+    // Per-avatar rate/pitch override if defined
     u.rate = avatar?.rate ?? 0.9;
     u.pitch = avatar?.pitch ?? 1;
     u.onstart = () => setSpeakingText(text);
@@ -522,30 +548,51 @@ function useSpeech() {
     u.onerror = () => setSpeakingText(null);
     if (voices.length) {
       let chosen = null;
-      // 1) Explicit preferred voice
       if (preferredVoiceURI) {
         chosen = voices.find(v => v.voiceURI === preferredVoiceURI);
       }
-      // 2) Auto-pick: prefer natural/premium/enhanced voices matching the locale
       if (!chosen) {
         const base = (lang?.ttsLocale || 'en-US').split('-')[0];
         const langPool = voices.filter(v => v.lang.startsWith(base));
         const exactPool = langPool.filter(v => v.lang === (lang?.ttsLocale || 'en-US'));
         const pool = exactPool.length ? exactPool : langPool;
-        // Prioritize higher-quality voices AND per-avatar hints
+
+        // Determine target gender from avatar
+        const targetGender = avatar?.gender || null;
+
         const scored = pool.map(v => {
           let score = 0;
           const n = v.name.toLowerCase();
           if (/natural|premium|enhanced|neural|wavenet|studio/.test(n)) score += 100;
           if (/google/.test(n)) score += 60;
           if (/microsoft/.test(n) && /online|natural/.test(n)) score += 40;
-          // Boost avatar-specific voice preferences a lot — they matter more than generic Google
           if (avatar && avatar.voiceHint.some(h => n.includes(h))) score += 80;
           if (v.localService === false) score += 5;
+
+          // Gender matching: HUGE boost when it matches, big penalty otherwise
+          if (targetGender) {
+            const voiceGender = guessVoiceGender(v.name);
+            if (voiceGender === targetGender) score += 500;
+            else if (voiceGender && voiceGender !== targetGender) score -= 300;
+          }
           return { v, score };
         });
         scored.sort((a, b) => b.score - a.score);
         chosen = scored[0]?.v || pool[0];
+
+        // Fallback: if the chosen voice's gender doesn't match, modulate pitch
+        // to make male vs female audibly distinct even with the same underlying voice.
+        if (targetGender && chosen) {
+          const chosenGender = guessVoiceGender(chosen.name);
+          if (chosenGender !== targetGender) {
+            // No matching gender available → shift pitch to fake it
+            if (targetGender === 'male' && (chosenGender === 'female' || chosenGender === null)) {
+              u.pitch = Math.max(0.5, (avatar?.pitch ?? 1) - 0.35);
+            } else if (targetGender === 'female' && (chosenGender === 'male' || chosenGender === null)) {
+              u.pitch = Math.min(2.0, (avatar?.pitch ?? 1) + 0.35);
+            }
+          }
+        }
       }
       if (chosen) u.voice = chosen;
     }
@@ -1489,6 +1536,7 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
               {filtered.map((v) => {
                 const isNatural = /natural|premium|enhanced|neural|wavenet/i.test(v.name);
                 const isGoogle = /google/i.test(v.name);
+                const gender = guessVoiceGender(v.name);
                 const isSelected = currentURI === v.voiceURI;
                 return (
                   <div key={v.voiceURI} className={`px-4 py-3 border-b border-stone-200 flex items-center gap-2 ${isSelected ? 'bg-amber-50' : 'hover:bg-white'}`}>
@@ -1502,6 +1550,16 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
                         <span style={{ fontFamily:'Fraunces, serif' }} className="font-medium truncate">
                           {v.name}
                         </span>
+                        {gender === 'female' && (
+                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-rose-600 text-stone-50" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                            ♀ f
+                          </span>
+                        )}
+                        {gender === 'male' && (
+                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-sky-700 text-stone-50" style={{ fontFamily:'JetBrains Mono, monospace' }}>
+                            ♂ h
+                          </span>
+                        )}
                         {isNatural && (
                           <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-emerald-700 text-stone-50" style={{ fontFamily:'JetBrains Mono, monospace' }}>
                             naturelle

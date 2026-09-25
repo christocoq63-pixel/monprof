@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle, LogOut, Mail, Lock, User } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js'; 
 
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 

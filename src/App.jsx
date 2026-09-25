@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle } from 'lucide-react';
+import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle, LogOut, Mail, Lock, User } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+// ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+// Supports both the new PUBLISHABLE_KEY name (2025+) and the legacy ANON_KEY
+const SUPABASE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = (SUPABASE_URL && SUPABASE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
 
 // ─── LANGUAGES & AVATARS ──────────────────────────────────────────────────────
 
@@ -840,7 +852,7 @@ function StepHeader({ step, total, label, onBack }) {
 
 // ─── STEP 1: LANGUAGE ─────────────────────────────────────────────────────────
 
-function LanguagePicker({ onSelect, onResumeLast }) {
+function LanguagePicker({ onSelect, onResumeLast, profile, signOut }) {
   const [lastSession, setLastSession] = useState(null);
 
   useEffect(() => {
@@ -858,6 +870,18 @@ function LanguagePicker({ onSelect, onResumeLast }) {
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
       <div className="max-w-3xl mx-auto">
+        {/* Top user bar */}
+        {profile && (
+          <div className="flex items-center justify-between mb-4 pb-3 mp-dashed-bottom">
+            <span className="text-[15px] italic" style={{ fontFamily: 'Caveat, cursive', color: 'var(--sepia)' }}>
+              bonjour, {profile.first_name} ·
+            </span>
+            <button onClick={signOut}
+              className="mp-meta flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+              <LogOut size={11} /> se déconnecter
+            </button>
+          </div>
+        )}
         <StepHeader step={1} total={4} label="langue" />
         <span className="mp-kicker text-[22px] mb-1">bonjour !</span>
         <h1 className="text-3xl sm:text-[46px] font-medium tracking-tight leading-none mt-1" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
@@ -2153,7 +2177,335 @@ function ModePicker({ language, level, onSelect, onBack }) {
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 
-export default function App() {
+// ─── AUTH HOOK ────────────────────────────────────────────────────────────────
+
+function useAuth() {
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) { setLoading(false); return; }
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      if (data.session) loadProfile(data.session.user.id);
+      else setLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_ev, sess) => {
+      setSession(sess);
+      if (sess) loadProfile(sess.user.id);
+      else { setProfile(null); setLoading(false); }
+    });
+    return () => sub?.subscription?.unsubscribe();
+  }, []);
+
+  const loadProfile = async (userId) => {
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      setProfile(data);
+    } catch (e) {}
+    setLoading(false);
+  };
+
+  const signOut = async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setSession(null); setProfile(null);
+  };
+
+  return { session, profile, loading, signOut };
+}
+
+// ─── AUTH SCREENS ─────────────────────────────────────────────────────────────
+
+function WelcomeScreen({ onLogin, onSignup }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6 py-10" style={{ backgroundColor: 'transparent' }}>
+      <div className="max-w-md w-full text-center">
+        <div className="mp-splash mx-auto w-24 h-24 text-4xl mb-6"
+             style={{ background: 'radial-gradient(circle at 30% 30%, #2D5F8A, #0F2340)', backgroundColor: '#1E3A5F' }}>
+          <span style={{ fontFamily: 'Cormorant Garamond, serif' }}>MP</span>
+        </div>
+        <span className="mp-kicker text-[24px]">bienvenue !</span>
+        <h1 className="text-4xl sm:text-5xl font-medium tracking-tight leading-none mt-2"
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+          <span className="mp-underline">MonProf</span>
+        </h1>
+        <p className="mt-4 text-[17px] italic max-w-sm mx-auto"
+           style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre-doux)' }}>
+          Apprenez les langues en conversation. Un professeur virtuel à vos côtés, jour après jour.
+        </p>
+
+        <div className="mt-10 flex flex-col gap-3">
+          <button onClick={onLogin}
+            className="mp-btn-ink w-full py-3 text-lg rounded"
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+            Se connecter
+          </button>
+          <button onClick={onSignup}
+            className="mp-paper-card w-full py-3 text-lg hover:-translate-y-0.5 transition-all"
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre)' }}>
+            Créer un compte
+          </button>
+        </div>
+
+        <p className="mp-meta mt-8" style={{ letterSpacing: '0.15em' }}>
+          · 9 langues · voix · lecture · conversation ·
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function AuthField({ icon: Icon, type, placeholder, value, onChange, autoComplete }) {
+  return (
+    <div className="flex items-center gap-3 mp-paper-card px-3 py-2.5">
+      <Icon size={16} style={{ color: 'var(--encre-doux)' }} />
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        autoComplete={autoComplete}
+        className="flex-1 bg-transparent focus:outline-none text-base"
+        style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre)' }}
+      />
+    </div>
+  );
+}
+
+function LoginForm({ onBack, onSuccess, onGoSignup }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!supabase) { setError('Service non configuré.'); return; }
+    setLoading(true); setError(null);
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (err) {
+      if (err.message?.includes('Email not confirmed')) {
+        setError('Confirmez d\'abord votre email (regardez votre boîte de réception).');
+      } else if (err.message?.includes('Invalid')) {
+        setError('Email ou mot de passe incorrect.');
+      } else {
+        setError(err.message);
+      }
+    } else if (onSuccess) onSuccess();
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6 py-10" style={{ backgroundColor: 'transparent' }}>
+      <div className="max-w-md w-full">
+        <button onClick={onBack} className="mp-meta flex items-center gap-1 mb-6 hover:opacity-70">
+          <ArrowLeft size={12} /> retour
+        </button>
+
+        <span className="mp-kicker text-[22px]">content de vous revoir !</span>
+        <h1 className="text-3xl sm:text-4xl font-medium tracking-tight leading-none mt-2"
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+          <span className="mp-underline">Connexion</span>
+        </h1>
+
+        <form onSubmit={submit} className="mt-8 flex flex-col gap-3">
+          <AuthField icon={Mail} type="email" placeholder="votre email"
+            value={email} onChange={setEmail} autoComplete="email" />
+          <AuthField icon={Lock} type="password" placeholder="mot de passe"
+            value={password} onChange={setPassword} autoComplete="current-password" />
+
+          {error && (
+            <div className="mp-paper-card px-3 py-2 text-sm italic"
+                 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--sanguine)', borderColor: 'var(--sanguine)' }}>
+              {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading || !email || !password}
+            className="mp-btn-ink w-full py-3 text-lg mt-2 rounded disabled:opacity-40 flex items-center justify-center gap-2"
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+            {loading && <Loader2 size={16} className="animate-spin" />}
+            {loading ? 'connexion…' : 'Se connecter'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <span className="mp-meta">pas encore de compte ?</span>{' '}
+          <button onClick={onGoSignup}
+            className="text-[13px] italic hover:opacity-70"
+            style={{ fontFamily: 'Caveat, cursive', color: 'var(--sanguine)', fontSize: '16px' }}>
+            créez-en un →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SignupForm({ onBack, onSuccess, onGoLogin }) {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [done, setDone] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!supabase) { setError('Service non configuré.'); return; }
+    if (password.length < 6) { setError('Le mot de passe doit faire au moins 6 caractères.'); return; }
+    setLoading(true); setError(null);
+
+    const { data, error: err } = await supabase.auth.signUp({
+      email, password,
+      options: {
+        data: { first_name: firstName, last_name: lastName },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (err) { setLoading(false); setError(err.message); return; }
+
+    // Create profile row
+    if (data.user) {
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        first_name: firstName,
+        last_name: lastName,
+        email,
+      });
+    }
+    setLoading(false);
+    setDone(true);
+  };
+
+  if (done) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 py-10">
+        <div className="max-w-md w-full text-center">
+          <div className="mp-splash mx-auto w-20 h-20 text-4xl mb-6"
+               style={{ background: 'radial-gradient(circle at 30% 30%, #4A9086, #1F5A54)', backgroundColor: '#0F766E' }}>
+            ✓
+          </div>
+          <span className="mp-kicker text-[22px]">bienvenue à bord !</span>
+          <h1 className="text-3xl font-medium tracking-tight leading-none mt-2"
+              style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+            <span className="mp-underline">Vérifiez votre email</span>
+          </h1>
+          <p className="mt-5 text-[17px] italic"
+             style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre-doux)' }}>
+            Un email vient d'être envoyé à <strong style={{ color: 'var(--encre)' }}>{email}</strong>.<br/>
+            Cliquez sur le lien qu'il contient pour activer votre compte, puis revenez ici pour vous connecter.
+          </p>
+          <button onClick={onGoLogin}
+            className="mp-btn-ink mt-8 px-8 py-3 rounded"
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+            Aller à la connexion
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6 py-10" style={{ backgroundColor: 'transparent' }}>
+      <div className="max-w-md w-full">
+        <button onClick={onBack} className="mp-meta flex items-center gap-1 mb-6 hover:opacity-70">
+          <ArrowLeft size={12} /> retour
+        </button>
+
+        <span className="mp-kicker text-[22px]">enchanté !</span>
+        <h1 className="text-3xl sm:text-4xl font-medium tracking-tight leading-none mt-2"
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+          <span className="mp-underline">Créer un compte</span>
+        </h1>
+        <p className="mt-3 text-[15px] italic"
+           style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre-doux)' }}>
+          Quelques infos pour personnaliser votre parcours.
+        </p>
+
+        <form onSubmit={submit} className="mt-6 flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <AuthField icon={User} type="text" placeholder="prénom"
+              value={firstName} onChange={setFirstName} autoComplete="given-name" />
+            <AuthField icon={User} type="text" placeholder="nom"
+              value={lastName} onChange={setLastName} autoComplete="family-name" />
+          </div>
+          <AuthField icon={Mail} type="email" placeholder="votre email"
+            value={email} onChange={setEmail} autoComplete="email" />
+          <AuthField icon={Lock} type="password" placeholder="mot de passe (6 caractères min.)"
+            value={password} onChange={setPassword} autoComplete="new-password" />
+
+          {error && (
+            <div className="mp-paper-card px-3 py-2 text-sm italic"
+                 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--sanguine)' }}>
+              {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading || !firstName || !email || !password}
+            className="mp-btn-ink w-full py-3 text-lg mt-2 rounded disabled:opacity-40 flex items-center justify-center gap-2"
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+            {loading && <Loader2 size={16} className="animate-spin" />}
+            {loading ? 'inscription…' : 'Créer mon compte'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <span className="mp-meta">déjà un compte ?</span>{' '}
+          <button onClick={onGoLogin}
+            className="italic hover:opacity-70"
+            style={{ fontFamily: 'Caveat, cursive', color: 'var(--sanguine)', fontSize: '16px' }}>
+            connectez-vous →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthGate({ children }) {
+  const { session, profile, loading, signOut } = useAuth();
+  const [mode, setMode] = useState('welcome'); // welcome | login | signup
+
+  if (!supabase) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="mp-paper-card p-6 max-w-md text-center"
+             style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+          <div className="mp-meta mb-2">configuration manquante</div>
+          <p className="italic">
+            Les clés Supabase ne sont pas configurées.<br/>
+            Ajoutez <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code> dans les variables d'environnement Vercel.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin" style={{ color: 'var(--sepia)' }} />
+      </div>
+    );
+  }
+
+  if (!session) {
+    if (mode === 'login')  return <LoginForm  onBack={() => setMode('welcome')} onGoSignup={() => setMode('signup')} />;
+    if (mode === 'signup') return <SignupForm onBack={() => setMode('welcome')} onGoLogin={() => setMode('login')} />;
+    return <WelcomeScreen onLogin={() => setMode('login')} onSignup={() => setMode('signup')} />;
+  }
+
+  // User authenticated — render the app with profile context
+  return React.cloneElement(children, { profile, signOut });
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+
+function MainApp({ profile, signOut }) {
   const [step, setStep] = useState('language');
   const [language, setLanguage] = useState(null);
   const [level, setLevel] = useState(null);
@@ -2192,6 +2544,7 @@ export default function App() {
   }, []);
 
   if (step === 'language') return <LanguagePicker
+    profile={profile} signOut={signOut}
     onSelect={(l) => { setLanguage(l); setStep('level'); }}
     onResumeLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar); setStep('chat'); }}
   />;
@@ -2202,4 +2555,8 @@ export default function App() {
   if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
   if (step === 'reader')   return <ReaderScreen lang={language} level={level} onBack={() => setStep('mode')} />;
   return <ChatScreen lang={language} level={level} avatar={avatar} onChangeAvatar={() => setStep('avatar')} />;
+}
+
+export default function App() {
+  return <AuthGate><MainApp /></AuthGate>;
 }

@@ -1670,17 +1670,12 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
 
     try {
       const apiMessages = newMessages.map(m => m.role === 'user' ? { role:'user', content: m.content } : { role:'assistant', content: m.reply });
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: buildSystemPrompt(lang, level, avatar),
-          messages: apiMessages,
-        }),
+      // Uses chatWithFallback: Haiku first (fast + cheap), Sonnet only if Haiku unavailable
+      const data = await chatWithFallback({
+        system: buildSystemPrompt(lang, level, avatar),
+        messages: apiMessages,
+        maxTokens: 1000,
       });
-      const data = await response.json();
       const textOut = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
       let parsed;
       try {

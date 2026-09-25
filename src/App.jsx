@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle, LogOut, Mail, Lock, User } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js'; 
+import { createClient } from '@supabase/supabase-js';
 
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 
@@ -2478,7 +2478,7 @@ function AuthGate({ children }) {
           <div className="mp-meta mb-2">configuration manquante</div>
           <p className="italic">
             Les clés Supabase ne sont pas configurées.<br/>
-            Ajoutez <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code> dans les variables d'environnement Vercel.
+            Ajoutez <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> dans les variables d'environnement Vercel.
           </p>
         </div>
       </div>

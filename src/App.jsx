@@ -1,6 +1,56 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle, LogOut, Mail, Lock, User } from 'lucide-react';
+import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle, LogOut, Mail, Lock, User, UserCircle, Calendar, MapPin, Phone, Globe2, Check } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+
+// ─── COUNTRY DIAL CODES ───────────────────────────────────────────────────────
+
+const COUNTRIES = [
+  { code: 'FR', dial: '+33',  name: 'France',        flag: '🇫🇷' },
+  { code: 'BE', dial: '+32',  name: 'Belgique',      flag: '🇧🇪' },
+  { code: 'CH', dial: '+41',  name: 'Suisse',        flag: '🇨🇭' },
+  { code: 'CA', dial: '+1',   name: 'Canada',        flag: '🇨🇦' },
+  { code: 'LU', dial: '+352', name: 'Luxembourg',    flag: '🇱🇺' },
+  { code: 'MC', dial: '+377', name: 'Monaco',        flag: '🇲🇨' },
+  { code: 'US', dial: '+1',   name: 'États-Unis',    flag: '🇺🇸' },
+  { code: 'GB', dial: '+44',  name: 'Royaume-Uni',   flag: '🇬🇧' },
+  { code: 'IE', dial: '+353', name: 'Irlande',       flag: '🇮🇪' },
+  { code: 'ES', dial: '+34',  name: 'Espagne',       flag: '🇪🇸' },
+  { code: 'PT', dial: '+351', name: 'Portugal',      flag: '🇵🇹' },
+  { code: 'IT', dial: '+39',  name: 'Italie',        flag: '🇮🇹' },
+  { code: 'DE', dial: '+49',  name: 'Allemagne',     flag: '🇩🇪' },
+  { code: 'AT', dial: '+43',  name: 'Autriche',      flag: '🇦🇹' },
+  { code: 'NL', dial: '+31',  name: 'Pays-Bas',      flag: '🇳🇱' },
+  { code: 'DK', dial: '+45',  name: 'Danemark',      flag: '🇩🇰' },
+  { code: 'SE', dial: '+46',  name: 'Suède',         flag: '🇸🇪' },
+  { code: 'NO', dial: '+47',  name: 'Norvège',       flag: '🇳🇴' },
+  { code: 'FI', dial: '+358', name: 'Finlande',      flag: '🇫🇮' },
+  { code: 'PL', dial: '+48',  name: 'Pologne',       flag: '🇵🇱' },
+  { code: 'CZ', dial: '+420', name: 'Tchéquie',      flag: '🇨🇿' },
+  { code: 'GR', dial: '+30',  name: 'Grèce',         flag: '🇬🇷' },
+  { code: 'TR', dial: '+90',  name: 'Turquie',       flag: '🇹🇷' },
+  { code: 'RU', dial: '+7',   name: 'Russie',        flag: '🇷🇺' },
+  { code: 'JP', dial: '+81',  name: 'Japon',         flag: '🇯🇵' },
+  { code: 'CN', dial: '+86',  name: 'Chine',         flag: '🇨🇳' },
+  { code: 'KR', dial: '+82',  name: 'Corée du Sud',  flag: '🇰🇷' },
+  { code: 'IN', dial: '+91',  name: 'Inde',          flag: '🇮🇳' },
+  { code: 'AU', dial: '+61',  name: 'Australie',     flag: '🇦🇺' },
+  { code: 'NZ', dial: '+64',  name: 'Nouvelle-Zélande', flag: '🇳🇿' },
+  { code: 'BR', dial: '+55',  name: 'Brésil',        flag: '🇧🇷' },
+  { code: 'MX', dial: '+52',  name: 'Mexique',       flag: '🇲🇽' },
+  { code: 'AR', dial: '+54',  name: 'Argentine',     flag: '🇦🇷' },
+  { code: 'MA', dial: '+212', name: 'Maroc',         flag: '🇲🇦' },
+  { code: 'DZ', dial: '+213', name: 'Algérie',       flag: '🇩🇿' },
+  { code: 'TN', dial: '+216', name: 'Tunisie',       flag: '🇹🇳' },
+  { code: 'SN', dial: '+221', name: 'Sénégal',       flag: '🇸🇳' },
+  { code: 'CI', dial: '+225', name: "Côte d'Ivoire", flag: '🇨🇮' },
+  { code: 'CM', dial: '+237', name: 'Cameroun',      flag: '🇨🇲' },
+  { code: 'MU', dial: '+230', name: 'Maurice',       flag: '🇲🇺' },
+  { code: 'RE', dial: '+262', name: 'La Réunion',    flag: '🇷🇪' },
+  { code: 'ZA', dial: '+27',  name: 'Afrique du Sud',flag: '🇿🇦' },
+  { code: 'AE', dial: '+971', name: 'Émirats',       flag: '🇦🇪' },
+  { code: 'SA', dial: '+966', name: 'Arabie Saoudite', flag: '🇸🇦' },
+  { code: 'IL', dial: '+972', name: 'Israël',        flag: '🇮🇱' },
+];
 
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 
@@ -908,7 +958,7 @@ function StepHeader({ step, total, label, onBack }) {
 
 // ─── STEP 1: LANGUAGE ─────────────────────────────────────────────────────────
 
-function LanguagePicker({ onSelect, onResumeLast, profile, signOut }) {
+function LanguagePicker({ onSelect, onResumeLast, profile, signOut, onOpenProfile }) {
   const [lastSession, setLastSession] = useState(null);
 
   useEffect(() => {
@@ -929,13 +979,28 @@ function LanguagePicker({ onSelect, onResumeLast, profile, signOut }) {
         {/* Top user bar */}
         {profile && (
           <div className="flex items-center justify-between mb-4 pb-3 border-b">
-            <span className="text-[15px] italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--corail-2)' }}>
-              bonjour, {profile.first_name} ·
-            </span>
-            <button onClick={signOut}
-              className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-              <LogOut size={11} /> se déconnecter
+            <button onClick={onOpenProfile}
+              className="flex items-center gap-2 hover:opacity-70 transition-opacity group">
+              <div className="rounded-full flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform"
+                   style={{ width: 32, height: 32, background: "linear-gradient(135deg, #FF385C, #E31C5F)", boxShadow: "0 2px 6px rgba(255,56,92,0.25)" }}>
+                <span style={{ fontSize: 14, color: 'white', fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+                  {(profile.first_name?.[0] || '?').toUpperCase()}
+                </span>
+              </div>
+              <span className="text-[15px] italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--corail-2)' }}>
+                bonjour, {profile.first_name}
+              </span>
             </button>
+            <div className="flex items-center gap-4">
+              <button onClick={onOpenProfile}
+                className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                <UserCircle size={12} /> mon compte
+              </button>
+              <button onClick={signOut}
+                className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                <LogOut size={11} /> déconnexion
+              </button>
+            </div>
           </div>
         )}
         <StepHeader step={1} total={4} label="langue" />
@@ -949,11 +1014,14 @@ function LanguagePicker({ onSelect, onResumeLast, profile, signOut }) {
 
         {lastSession && (
           <button onClick={() => onResumeLast(lastSession)}
-            className="mt-6 w-full hover:-translate-y-0.5 transition-all p-4 flex items-center gap-3 text-left rounded"
+            className="mt-6 w-full hover:-translate-y-0.5 transition-all p-4 flex items-center gap-3 text-left"
             style={{
               backgroundColor: 'white',
               border: '1px solid rgba(90, 78, 69, 0.15)',
               boxShadow: '2px 3px 0 rgba(90, 78, 69, 0.1)',
+              borderRadius: '999px',
+              paddingLeft: '1rem',
+              paddingRight: '1.25rem',
             }}>
             <AnimatedAvatar avatar={lastSession.avatar} size="md" />
             <div className="flex-1 min-w-0">
@@ -976,19 +1044,38 @@ function LanguagePicker({ onSelect, onResumeLast, profile, signOut }) {
             {lastSession ? '· ou commencer une nouvelle ·' : '· choisissez ·'}
           </div>
         </div>
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-8 px-2">
+        <div className="flex flex-wrap justify-center gap-5 sm:gap-6 px-2">
           {Object.values(LANGUAGES).map(lang => (
             <button key={lang.code} onClick={() => onSelect(lang)}
-              className="group flex flex-col items-center w-20 sm:w-24 transition-transform hover:-translate-y-1 hover:rotate-[-1deg]">
-              <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] text-2xl sm:text-[28px]"
-                   style={{ background: `radial-gradient(circle at 30% 30%, ${lang.accent}, ${lang.accent}CC)`, backgroundColor: lang.accent }}>
-                <span>{lang.glyph}</span>
-              </div>
-              <div className="mt-2.5 text-center" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
-                <div className="text-base sm:text-[17px] font-medium leading-tight" style={{ color: 'var(--ink)' }}>{lang.name}</div>
-                <div style={{ fontFamily:'DM Sans, sans-serif', fontSize: 10, letterSpacing: '0.06em', color: 'var(--gris)' }} className="mt-0.5">
+              className="lang-bubble group relative flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
+              style={{
+                width: '132px',
+                height: '132px',
+                borderRadius: '50%',
+                border: '1px solid rgba(90, 78, 69, 0.18)',
+                background: 'white',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                '--lang-accent': lang.accent,
+              }}>
+              <span
+                className="absolute inset-0 rounded-full transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                style={{
+                  background: `radial-gradient(circle at 30% 30%, ${lang.accent}, ${lang.accent}DD)`,
+                  boxShadow: `0 8px 24px ${lang.accent}55`,
+                }}
+              />
+              <div className="relative z-10 flex flex-col items-center justify-center px-3 text-center">
+                <span className="text-2xl mb-1 transition-transform duration-300 group-hover:scale-110">{lang.glyph}</span>
+                <span
+                  className="text-[15px] sm:text-base font-medium leading-tight transition-colors duration-300 group-hover:text-white"
+                  style={{ fontFamily:'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                  {lang.name}
+                </span>
+                <span
+                  className="mt-0.5 transition-colors duration-300 group-hover:text-white/85"
+                  style={{ fontFamily:'DM Sans, sans-serif', fontSize: 10, letterSpacing: '0.06em', color: 'var(--gris)' }}>
                   {lang.nativeName}
-                </div>
+                </span>
               </div>
             </button>
           ))}
@@ -2269,7 +2356,11 @@ function useAuth() {
     setSession(null); setProfile(null);
   };
 
-  return { session, profile, loading, signOut };
+  const reloadProfile = async () => {
+    if (session?.user?.id) await loadProfile(session.user.id);
+  };
+
+  return { session, profile, loading, signOut, reloadProfile };
 }
 
 // ─── AUTH SCREENS ─────────────────────────────────────────────────────────────
@@ -2374,19 +2465,72 @@ function WelcomeScreen({ onLogin, onSignup }) {
   );
 }
 
-function AuthField({ icon: Icon, type, placeholder, value, onChange, autoComplete }) {
+function AuthField({ icon: Icon, type, placeholder, value, onChange, autoComplete, disabled }) {
   return (
     <div className="flex items-center gap-3 wl-card px-4 py-3 rounded-2xl">
-      <Icon size={16} style={{ color: 'var(--gris)' }} />
+      {Icon && <Icon size={16} style={{ color: 'var(--gris)' }} />}
       <input
         type={type}
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
-        className="flex-1 bg-transparent focus:outline-none text-base"
+        disabled={disabled}
+        className="flex-1 bg-transparent focus:outline-none text-base disabled:opacity-60"
         style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, color: 'var(--ink)' }}
       />
+    </div>
+  );
+}
+
+function SelectField({ icon: Icon, value, onChange, options, placeholder }) {
+  return (
+    <div className="flex items-center gap-3 wl-card px-4 py-3 rounded-2xl">
+      {Icon && <Icon size={16} style={{ color: 'var(--gris)' }} />}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex-1 bg-transparent focus:outline-none text-base"
+        style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, color: value ? 'var(--ink)' : 'var(--gris)' }}
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function PhoneField({ dialCode, onDialChange, number, onNumberChange }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 wl-card px-3 py-3 rounded-2xl min-w-[120px]">
+        <Globe2 size={16} style={{ color: 'var(--gris)' }} />
+        <select
+          value={dialCode}
+          onChange={(e) => onDialChange(e.target.value)}
+          className="flex-1 bg-transparent focus:outline-none text-base"
+          style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, color: 'var(--ink)' }}
+        >
+          {COUNTRIES.map((c, i) => (
+            <option key={`${c.code}-${i}`} value={c.dial}>
+              {c.flag} {c.dial} {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center gap-3 wl-card px-4 py-3 rounded-2xl flex-1">
+        <Phone size={16} style={{ color: 'var(--gris)' }} />
+        <input
+          type="tel"
+          placeholder="numéro"
+          value={number}
+          onChange={(e) => onNumberChange(e.target.value.replace(/[^\d\s]/g, ''))}
+          className="flex-1 bg-transparent focus:outline-none text-base"
+          style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, color: 'var(--ink)' }}
+        />
+      </div>
     </div>
   );
 }
@@ -2469,15 +2613,36 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nativeLang, setNativeLang] = useState('fr');
+  const [birthDate, setBirthDate] = useState('');
+  const [address, setAddress] = useState('');
+  const [dialCode, setDialCode] = useState('+33');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [step, setStep] = useState(1); // 1: essentiel / 2: profil
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
+
+  const nextStep = () => {
+    if (!firstName || !lastName || !email || !password) {
+      setError('Merci de remplir tous les champs.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Le mot de passe doit faire au moins 6 caractères.');
+      return;
+    }
+    setError(null);
+    setStep(2);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     if (!supabase) { setError('Service non configuré.'); return; }
     if (password.length < 6) { setError('Le mot de passe doit faire au moins 6 caractères.'); return; }
     setLoading(true); setError(null);
+
+    const phoneFull = phoneNumber ? `${dialCode} ${phoneNumber}` : null;
 
     const { data, error: err } = await supabase.auth.signUp({
       email, password,
@@ -2488,13 +2653,19 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
     });
     if (err) { setLoading(false); setError(err.message); return; }
 
-    // Create profile row
+    // Create profile row with all fields
     if (data.user) {
       await supabase.from('profiles').upsert({
         id: data.user.id,
         first_name: firstName,
         last_name: lastName,
         email,
+        native_language: nativeLang,
+        birth_date: birthDate || null,
+        address: address || null,
+        phone_dial_code: dialCode,
+        phone_number: phoneNumber || null,
+        phone_full: phoneFull,
       });
     }
     setLoading(false);
@@ -2541,35 +2712,84 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
           </h1>
           <p className="mt-3 text-[15px]"
              style={{ fontFamily: 'DM Sans', fontWeight: 500, color: 'var(--gris)' }}>
-            Quelques infos et c'est parti ✨
+            {step === 1 ? "Quelques infos essentielles" : "Complétez votre profil"}  ✨
           </p>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <div className="w-8 h-1.5 rounded-full transition-colors" style={{ background: step >= 1 ? 'var(--corail)' : 'rgba(90,78,69,0.2)' }}></div>
+            <div className="w-8 h-1.5 rounded-full transition-colors" style={{ background: step >= 2 ? 'var(--corail)' : 'rgba(90,78,69,0.2)' }}></div>
+          </div>
         </div>
 
-        <form onSubmit={submit} className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <AuthField icon={User} type="text" placeholder="prénom"
-              value={firstName} onChange={setFirstName} autoComplete="given-name" />
-            <AuthField icon={User} type="text" placeholder="nom"
-              value={lastName} onChange={setLastName} autoComplete="family-name" />
-          </div>
-          <AuthField icon={Mail} type="email" placeholder="votre email"
-            value={email} onChange={setEmail} autoComplete="email" />
-          <AuthField icon={Lock} type="password" placeholder="mot de passe (6 caractères min.)"
-            value={password} onChange={setPassword} autoComplete="new-password" />
-
-          {error && (
-            <div className="wl-card px-4 py-3 text-sm font-semibold"
-                 style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
-              ⚠️ {error}
+        {step === 1 && (
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <AuthField icon={User} type="text" placeholder="prénom"
+                value={firstName} onChange={setFirstName} autoComplete="given-name" />
+              <AuthField icon={User} type="text" placeholder="nom"
+                value={lastName} onChange={setLastName} autoComplete="family-name" />
             </div>
-          )}
+            <AuthField icon={Mail} type="email" placeholder="votre email"
+              value={email} onChange={setEmail} autoComplete="email" />
+            <AuthField icon={Lock} type="password" placeholder="mot de passe (6 caractères min.)"
+              value={password} onChange={setPassword} autoComplete="new-password" />
 
-          <button type="submit" disabled={loading || !firstName || !email || !password}
-            className="wl-btn-primary w-full mt-2 flex items-center justify-center gap-2">
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'inscription…' : 'Créer mon compte 🚀'}
-          </button>
-        </form>
+            {error && (
+              <div className="wl-card px-4 py-3 text-sm font-semibold"
+                   style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+                ⚠️ {error}
+              </div>
+            )}
+
+            <button type="button" onClick={nextStep}
+              disabled={!firstName || !lastName || !email || !password}
+              className="wl-btn-primary w-full mt-2 flex items-center justify-center gap-2">
+              Continuer →
+            </button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <form onSubmit={submit} className="flex flex-col gap-3">
+            <SelectField icon={Globe2} value={nativeLang} onChange={setNativeLang}
+              options={Object.values(LANGUAGES).map(l => ({ value: l.code, label: `${l.glyph} ${l.name}` }))} />
+
+            <AuthField icon={Calendar} type="date" placeholder="date de naissance"
+              value={birthDate} onChange={setBirthDate} autoComplete="bday" />
+
+            <AuthField icon={MapPin} type="text" placeholder="adresse (ex: 12 rue Lafayette, 75009 Paris)"
+              value={address} onChange={setAddress} autoComplete="street-address" />
+
+            <PhoneField
+              dialCode={dialCode}
+              onDialChange={setDialCode}
+              number={phoneNumber}
+              onNumberChange={setPhoneNumber} />
+
+            {error && (
+              <div className="wl-card px-4 py-3 text-sm font-semibold"
+                   style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+                ⚠️ {error}
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-2">
+              <button type="button" onClick={() => { setStep(1); setError(null); }}
+                className="wl-chip px-5 py-3 flex items-center gap-2"
+                style={{ fontFamily: 'DM Sans', fontWeight: 700, color: 'var(--ink)' }}>
+                <ArrowLeft size={14} /> retour
+              </button>
+              <button type="submit" disabled={loading}
+                className="wl-btn-primary flex-1 flex items-center justify-center gap-2">
+                {loading && <Loader2 size={16} className="animate-spin" />}
+                {loading ? 'inscription…' : 'Créer mon compte 🚀'}
+              </button>
+            </div>
+
+            <p className="text-xs text-center mt-2" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              Ces informations sont modifiables plus tard depuis votre compte.
+            </p>
+          </form>
+        )}
 
         <div className="mt-6 text-center text-sm" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
           Déjà un compte ?{' '}
@@ -2584,8 +2804,201 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
   );
 }
 
+// ─── PROFILE / MON COMPTE ─────────────────────────────────────────────────────
+
+function ProfileScreen({ profile, onBack, onProfileUpdated }) {
+  const [firstName, setFirstName] = useState(profile?.first_name || '');
+  const [lastName, setLastName] = useState(profile?.last_name || '');
+  const [email, setEmail] = useState(profile?.email || '');
+  const [nativeLang, setNativeLang] = useState(profile?.native_language || 'fr');
+  const [birthDate, setBirthDate] = useState(profile?.birth_date || '');
+  const [address, setAddress] = useState(profile?.address || '');
+  const [dialCode, setDialCode] = useState(profile?.phone_dial_code || '+33');
+  const [phoneNumber, setPhoneNumber] = useState(profile?.phone_number || '');
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [error, setError] = useState(null);
+  const [pwdError, setPwdError] = useState(null);
+  const [pwdSuccess, setPwdSuccess] = useState(false);
+
+  const saveProfile = async (e) => {
+    e.preventDefault();
+    if (!supabase || !profile?.id) return;
+    setSaving(true); setError(null); setSavedFlash(false);
+
+    const phoneFull = phoneNumber ? `${dialCode} ${phoneNumber}` : null;
+
+    const { error: err } = await supabase.from('profiles').update({
+      first_name: firstName,
+      last_name: lastName,
+      native_language: nativeLang,
+      birth_date: birthDate || null,
+      address: address || null,
+      phone_dial_code: dialCode,
+      phone_number: phoneNumber || null,
+      phone_full: phoneFull,
+    }).eq('id', profile.id);
+
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 2500);
+    if (onProfileUpdated) onProfileUpdated();
+  };
+
+  const changePassword = async (e) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setPwdError(null); setPwdSuccess(false);
+    if (newPassword.length < 6) { setPwdError('Le mot de passe doit faire au moins 6 caractères.'); return; }
+    if (newPassword !== confirmPassword) { setPwdError('Les mots de passe ne correspondent pas.'); return; }
+    setChangingPassword(true);
+    const { error: err } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+    if (err) { setPwdError(err.message); return; }
+    setPwdSuccess(true);
+    setNewPassword(''); setConfirmPassword('');
+    setTimeout(() => setPwdSuccess(false), 3000);
+  };
+
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
+      <div className="max-w-2xl mx-auto">
+        <button onClick={onBack}
+          className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> retour
+        </button>
+
+        {/* Header avec avatar */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="rounded-full flex items-center justify-center shrink-0"
+               style={{ width: 72, height: 72, background: "linear-gradient(135deg, #FF385C, #E31C5F)", boxShadow: "0 6px 18px rgba(255,56,92,0.3)" }}>
+            <span style={{ fontSize: 32, color: 'white', fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+              {(firstName?.[0] || '?').toUpperCase()}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--gris)' }}>
+              mon compte
+            </div>
+            <h1 className="text-3xl sm:text-4xl leading-tight truncate"
+                style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800, color: 'var(--ink)' }}>
+              {firstName || 'Bienvenue'}
+            </h1>
+            <div className="text-[13px] mt-0.5 truncate" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              {email}
+            </div>
+          </div>
+        </div>
+
+        {/* Section: infos personnelles */}
+        <form onSubmit={saveProfile} className="wl-card p-5 sm:p-6" style={{ borderRadius: '24px' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <UserCircle size={18} style={{ color: 'var(--corail)' }} />
+            <h2 className="text-lg font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+              Informations personnelles
+            </h2>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>prénom</label>
+                <AuthField icon={User} type="text" placeholder="prénom" value={firstName} onChange={setFirstName} autoComplete="given-name" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>nom</label>
+                <AuthField icon={User} type="text" placeholder="nom" value={lastName} onChange={setLastName} autoComplete="family-name" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>email (identifiant)</label>
+              <AuthField icon={Mail} type="email" placeholder="email" value={email} onChange={setEmail} autoComplete="email" disabled />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>langue maternelle</label>
+              <SelectField icon={Globe2} value={nativeLang} onChange={setNativeLang}
+                options={Object.values(LANGUAGES).map(l => ({ value: l.code, label: `${l.glyph} ${l.name}` }))} />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>date de naissance</label>
+              <AuthField icon={Calendar} type="date" placeholder="date de naissance" value={birthDate} onChange={setBirthDate} autoComplete="bday" />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>adresse</label>
+              <AuthField icon={MapPin} type="text" placeholder="12 rue Lafayette, 75009 Paris" value={address} onChange={setAddress} autoComplete="street-address" />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>téléphone</label>
+              <PhoneField dialCode={dialCode} onDialChange={setDialCode} number={phoneNumber} onNumberChange={setPhoneNumber} />
+            </div>
+
+            {error && (
+              <div className="wl-card px-4 py-3 text-sm font-semibold"
+                   style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+                ⚠️ {error}
+              </div>
+            )}
+
+            <button type="submit" disabled={saving}
+              className="wl-btn-primary w-full mt-2 flex items-center justify-center gap-2">
+              {saving && <Loader2 size={16} className="animate-spin" />}
+              {savedFlash ? (<><Check size={16} /> enregistré !</>) : (saving ? 'enregistrement…' : 'Enregistrer les modifications')}
+            </button>
+          </div>
+        </form>
+
+        {/* Section: mot de passe */}
+        <form onSubmit={changePassword} className="wl-card p-5 sm:p-6 mt-5" style={{ borderRadius: '24px' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Lock size={18} style={{ color: 'var(--corail)' }} />
+            <h2 className="text-lg font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+              Changer mon mot de passe
+            </h2>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>nouveau mot de passe</label>
+              <AuthField icon={Lock} type="password" placeholder="6 caractères minimum" value={newPassword} onChange={setNewPassword} autoComplete="new-password" />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>confirmer</label>
+              <AuthField icon={Lock} type="password" placeholder="ressaisir" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
+            </div>
+
+            {pwdError && (
+              <div className="wl-card px-4 py-3 text-sm font-semibold"
+                   style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+                ⚠️ {pwdError}
+              </div>
+            )}
+
+            <button type="submit" disabled={changingPassword || !newPassword}
+              className="wl-btn-primary w-full mt-2 flex items-center justify-center gap-2">
+              {changingPassword && <Loader2 size={16} className="animate-spin" />}
+              {pwdSuccess ? (<><Check size={16} /> mot de passe mis à jour</>) : (changingPassword ? 'mise à jour…' : 'Changer mon mot de passe')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function AuthGate({ children }) {
-  const { session, profile, loading, signOut } = useAuth();
+  const { session, profile, loading, signOut, reloadProfile } = useAuth();
   const [mode, setMode] = useState('welcome'); // welcome | login | signup
 
   if (!supabase) {
@@ -2618,12 +3031,12 @@ function AuthGate({ children }) {
   }
 
   // User authenticated — render the app with profile context
-  return React.cloneElement(children, { profile, signOut });
+  return React.cloneElement(children, { profile, signOut, reloadProfile });
 }
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
-function MainApp({ profile, signOut }) {
+function MainApp({ profile, signOut, reloadProfile }) {
   const [step, setStep] = useState('language');
   const [language, setLanguage] = useState(null);
   const [level, setLevel] = useState(null);
@@ -2661,9 +3074,13 @@ function MainApp({ profile, signOut }) {
     };
   }, []);
 
+  if (step === 'profile')  return <ProfileScreen profile={profile}
+    onBack={() => setStep('language')}
+    onProfileUpdated={reloadProfile} />;
   if (step === 'language') return <LanguagePicker
     profile={profile} signOut={signOut}
     onSelect={(l) => { setLanguage(l); setStep('level'); }}
+    onOpenProfile={() => setStep('profile')}
     onResumeLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar); setStep('chat'); }}
   />;
   if (step === 'level')    return <LevelPicker language={language} onSelect={(lv) => { setLevel(lv); setStep('mode'); }} onBack={() => setStep('language')} />;

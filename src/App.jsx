@@ -3218,6 +3218,14 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises }) {
           <button onClick={() => setAutoSpeak(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoSpeak ? 'wl-btn-secondary border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`} title="lecture auto">
             <Volume2 size={14} />
           </button>
+          {onOpenExercises && (
+            <button onClick={onOpenExercises}
+              className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"
+              style={{ borderColor: `${lang.accent}55`, background: `${lang.accent}15` }}
+              title="générer des exercices ciblés sur vos erreurs">
+              <span style={{ fontSize: 15 }}>🎯</span>
+            </button>
+          )}
           <button onClick={restartChat} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]" title="nouvelle conversation">
             <RefreshCw size={14} />
           </button>
@@ -4803,7 +4811,10 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onBack={() => setStep('level')} />;
   if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
   if (step === 'reader')   return <ReaderScreen lang={language} level={level} onBack={() => setStep('mode')} />;
-  return <ChatScreen lang={language} level={level} avatar={avatar} onChangeAvatar={() => setStep('avatar')} />;
+  if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('chat')} />;
+  return <ChatScreen lang={language} level={level} avatar={avatar}
+    onChangeAvatar={() => setStep('avatar')}
+    onOpenExercises={() => setStep('exercises')} />;
 }
 
 export default function App() {

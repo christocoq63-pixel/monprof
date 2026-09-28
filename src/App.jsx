@@ -682,9 +682,35 @@ const DEVICES = [
 
 // ─── SYSTEM PROMPT ────────────────────────────────────────────────────────────
 
+// Strict level-specific constraints — used both by chat and reader
+const LEVEL_CONSTRAINTS = {
+  beginner: `LEVEL — BEGINNER (CEFR A1–A2). STRICT:
+- Vocabulary: only the 1000 most common everyday words. NEVER use rare or literary words.
+- Grammar: present tense, simple past ("was", "went"), simple future ("will"). Avoid conditionals, subjunctive, complex passives.
+- Sentence length: 5–10 words maximum, one clause each.
+- Repeat key words. Speak slowly (short sentences).
+- No idioms, no cultural references without context, no humor that hinges on wordplay.
+- Always finish with a very simple, open question the learner can answer in one short sentence.`,
+
+  intermediate: `LEVEL — INTERMEDIATE (CEFR B1–B2). STRICT:
+- Vocabulary: everyday + common professional/topical words. Avoid literary/technical jargon.
+- Grammar: all common tenses, conditionals, reported speech, common phrasal verbs.
+- Sentence length: 8–18 words, up to two clauses.
+- You may use common idioms if the meaning is transparent from context.
+- Natural, friendly pace.`,
+
+  advanced: `LEVEL — ADVANCED (CEFR C1–C2). STRICT:
+- Vocabulary: rich, precise, native-like including idioms, cultural references, humor, sarcasm.
+- Grammar: full range including subjunctive, inversion, complex subordination.
+- Sentence length: unrestricted, but keep replies conversational (1–4 sentences).
+- Nuance and register matter — challenge the learner.`,
+};
+
 const buildSystemPrompt = (lang, level, avatar) => `You are ${avatar.name}, a ${avatar.age}-year-old ${avatar.role.toLowerCase()} from ${avatar.location}.
 
-You are having a casual conversation with a French speaker who is learning ${lang.nativeName} (${lang.name} in French). They are at ${level.prompt}
+You are having a casual conversation with a French speaker who is learning ${lang.nativeName} (${lang.name} in French).
+
+${LEVEL_CONSTRAINTS[level.id] || level.prompt}
 
 Persona: ${avatar.persona}
 
@@ -692,13 +718,14 @@ Your role:
 - Always reply in ${lang.nativeName}. ${lang.code === 'mfe' ? 'IMPORTANT: respond strictly in Kreol Morisien using authentic Mauritian spelling and expressions. Do NOT respond in French.' : ''}
 - Stay in character. Be natural and engaging.
 - Keep replies short: 1–3 sentences. End with a question or remark that invites continuing.
-- Match your vocabulary and complexity exactly to the user's level.
+- Match your vocabulary and complexity STRICTLY to the level constraints above — never exceed them.
 - If the user writes mainly in French, gently respond in ${lang.nativeName}, encourage them, and provide one short model sentence they could try.
 
-Error correction (always in French, regardless of target language):
-- Detect real errors in the user's ${lang.nativeName}: grammar, conjugation, gender, word order, vocabulary, prepositions, false friends.
+ERROR CORRECTION (mandatory — this is your teacher role):
+- Detect ANY real error in the user's ${lang.nativeName}: grammar, conjugation, gender, word order, vocabulary, prepositions, tense, articles, false friends, spelling.
 - Do NOT flag minor stylistic preferences — only what a teacher would correct.
-- Brief, friendly French explanations, including the rule.
+- Give a brief, friendly French explanation with the underlying rule.
+- Also produce a natural spoken echo: how a native would rephrase the learner's whole sentence correctly, staying in ${lang.nativeName}. This is what the tutor's voice will read aloud so the learner hears the correct form.
 
 CRITICAL OUTPUT FORMAT: Respond ONLY with one valid JSON object, no markdown, no code fences, no preamble. Schema:
 
@@ -706,7 +733,12 @@ CRITICAL OUTPUT FORMAT: Respond ONLY with one valid JSON object, no markdown, no
   "reply": "<your in-character response in ${lang.nativeName}>",
   "fr_translation": "<a natural French translation of your reply>",
   "corrections": [
-    { "original": "<user's incorrect phrase>", "corrected": "<correction in ${lang.nativeName}>", "explanation_fr": "<short explanation in French with the rule>" }
+    {
+      "original": "<user's incorrect phrase, as they wrote it>",
+      "corrected": "<the same phrase rewritten correctly in ${lang.nativeName}>",
+      "spoken_echo": "<a short natural sentence in ${lang.nativeName} the tutor would say aloud to model the correct form, e.g. 'Actually, we say ...' or the equivalent in ${lang.nativeName}>",
+      "explanation_fr": "<short explanation in French with the rule>"
+    }
   ]
 }
 
@@ -814,11 +846,54 @@ function useSpeech() {
     }
     window.speechSynthesis.speak(u);
   };
+
+  // Speak several pieces one after the other, with an optional pause between them.
+  // Usage: speakSequence([{text: "Hello."}, {text: "How are you?", pauseBefore: 700}], avatar, lang, uri)
+  const speakSequence = (items, avatar, lang, preferredVoiceURI) => {
+    if (!('speechSynthesis' in window) || !items?.length) return;
+    window.speechSynthesis.cancel();
+    let cancelled = false;
+    let idx = 0;
+
+    const speakNext = () => {
+      if (cancelled || idx >= items.length) { setSpeakingText(null); return; }
+      const item = items[idx++];
+      const delay = item.pauseBefore || 0;
+      setTimeout(() => {
+        if (cancelled) return;
+        const u = new SpeechSynthesisUtterance(item.text);
+        u.lang = lang?.ttsLocale || 'en-US';
+        u.rate = item.rate ?? avatar?.rate ?? 0.9;
+        u.pitch = item.pitch ?? avatar?.pitch ?? 1;
+        u.onstart = () => setSpeakingText(item.text);
+        u.onend = () => { if (!cancelled) speakNext(); };
+        u.onerror = () => { setSpeakingText(null); };
+        // Reuse the same voice-picking logic by delegating
+        if (voices.length) {
+          let chosen = null;
+          if (preferredVoiceURI) chosen = voices.find(v => v.voiceURI === preferredVoiceURI);
+          if (!chosen) {
+            const base = (lang?.ttsLocale || 'en-US').split('-')[0];
+            const langPool = voices.filter(v => v.lang.startsWith(base));
+            const exactPool = langPool.filter(v => v.lang === (lang?.ttsLocale || 'en-US'));
+            const pool = exactPool.length ? exactPool : langPool;
+            chosen = pool[0];
+          }
+          if (chosen) u.voice = chosen;
+        }
+        window.speechSynthesis.speak(u);
+      }, delay);
+    };
+    speakNext();
+    // Return a canceller
+    return () => { cancelled = true; window.speechSynthesis.cancel(); setSpeakingText(null); };
+  };
+
   const stop = () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     setSpeakingText(null);
   };
-  return { speak, stop, speakingText, voices };
+  return { speak, speakSequence, stop, speakingText, voices };
 }
 
 function useRecognition(srLocale) {
@@ -2512,7 +2587,7 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
   const [voiceURI, setVoiceURI] = useState(null);
   const [showVoicePicker, setShowVoicePicker] = useState(false);
   const [wordPopup, setWordPopup] = useState(null);
-  const { speak, stop, speakingText, voices } = useSpeech();
+  const { speak, speakSequence, stop, speakingText, voices } = useSpeech();
   const endRef = useRef(null);
   const initDone = useRef(false);
 
@@ -2527,6 +2602,20 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
   }, [avatar.id]);
 
   const speakFor = (text) => speak(text, avatar, lang, voiceURI);
+
+  // Speak the reply, then (if corrections) the tutor's echo of the correct form.
+  const speakReplyWithCorrections = (reply, corrections) => {
+    const items = [];
+    if (reply) items.push({ text: reply });
+    if (corrections && corrections.length) {
+      corrections.forEach(c => {
+        const echo = c.spoken_echo || c.corrected;
+        if (echo) items.push({ text: echo, pauseBefore: 700, rate: (avatar?.rate ?? 0.9) - 0.05 });
+      });
+    }
+    if (items.length > 1) speakSequence(items, avatar, lang, voiceURI);
+    else if (items.length === 1) speakFor(items[0].text);
+  };
 
   useEffect(() => {
     initDone.current = false;
@@ -3054,15 +3143,28 @@ function useAuth() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recovering, setRecovering] = useState(false); // password reset flow in progress
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return; }
+
+    // Detect recovery link on initial load (hash contains type=recovery)
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      if (hash.includes('type=recovery') || hash.includes('password-reset')) {
+        setRecovering(true);
+      }
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       if (data.session) loadProfile(data.session.user.id);
       else setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_ev, sess) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((ev, sess) => {
+      if (ev === 'PASSWORD_RECOVERY') {
+        setRecovering(true);
+      }
       setSession(sess);
       if (sess) loadProfile(sess.user.id);
       else { setProfile(null); setLoading(false); }
@@ -3088,7 +3190,15 @@ function useAuth() {
     if (session?.user?.id) await loadProfile(session.user.id);
   };
 
-  return { session, profile, loading, signOut, reloadProfile };
+  const clearRecovery = () => {
+    setRecovering(false);
+    // Clean the URL hash so it does not re-trigger on refresh
+    if (typeof window !== 'undefined' && window.location.hash) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  };
+
+  return { session, profile, loading, signOut, reloadProfile, recovering, clearRecovery };
 }
 
 // ─── AUTH SCREENS ─────────────────────────────────────────────────────────────
@@ -4058,8 +4168,9 @@ function formatTestDate(iso) {
 }
 
 function AuthGate({ children }) {
-  const { session, profile, loading, signOut, reloadProfile } = useAuth();
-  const [mode, setMode] = useState('welcome'); // welcome | login | signup
+  const { session, profile, loading, signOut, reloadProfile, recovering, clearRecovery } = useAuth();
+  const [mode, setMode] = useState('welcome'); // welcome | login | signup | forgot
+  const [forgotEmail, setForgotEmail] = useState('');
 
   if (!supabase) {
     return (
@@ -4084,8 +4195,26 @@ function AuthGate({ children }) {
     );
   }
 
+  // Priority: user arrived from the password-recovery email link.
+  // Supabase auto-creates a session bound to the recovery token.
+  if (recovering && session) {
+    return <ResetPasswordScreen onDone={async () => {
+      clearRecovery();
+      // Sign out to force a fresh login with the new password
+      await supabase.auth.signOut();
+      setMode('login');
+    }} />;
+  }
+
   if (!session) {
-    if (mode === 'login')  return <LoginForm  onBack={() => setMode('welcome')} onGoSignup={() => setMode('signup')} />;
+    if (mode === 'forgot') return <ForgotPasswordForm
+      prefilledEmail={forgotEmail}
+      onBack={() => setMode('login')}
+      onGoLogin={() => setMode('login')} />;
+    if (mode === 'login')  return <LoginForm
+      onBack={() => setMode('welcome')}
+      onGoSignup={() => setMode('signup')}
+      onGoForgot={(email) => { setForgotEmail(email); setMode('forgot'); }} />;
     if (mode === 'signup') return <SignupForm onBack={() => setMode('welcome')} onGoLogin={() => setMode('login')} />;
     return <WelcomeScreen onLogin={() => setMode('login')} onSignup={() => setMode('signup')} />;
   }

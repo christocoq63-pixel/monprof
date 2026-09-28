@@ -5268,7 +5268,7 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 
 // ─── PROFILE / MON COMPTE ─────────────────────────────────────────────────────
 
-function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManualLevel, onChangeDevice, device, onOpenLexicon }) {
+function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManualLevel, onChangeDevice, device, onOpenLexicon, signOut }) {
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [email, setEmail] = useState(profile?.email || '');
@@ -5291,6 +5291,65 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManua
   const [tests, setTests] = useState([]);
   const [loadingTests, setLoadingTests] = useState(true);
   const [expandedTest, setExpandedTest] = useState(null);
+
+  // Account deletion flow
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
+  const deleteAccount = async () => {
+    if (!supabase || !profile?.id) return;
+    setDeleting(true); setDeleteError(null);
+    try {
+      // 1) Delete all user data from our tables (RLS scopes this to the current user)
+      await Promise.allSettled([
+        supabase.from('lexicon').delete().eq('user_id', profile.id),
+        supabase.from('exercise_sessions').delete().eq('user_id', profile.id),
+        supabase.from('user_errors').delete().eq('user_id', profile.id),
+        supabase.from('level_tests').delete().eq('user_id', profile.id),
+        supabase.from('profiles').delete().eq('id', profile.id),
+      ]);
+
+      // 2) Ask the server to remove the auth user (requires the service_role key
+      //    on the server side, which the client must not see). We attach the
+      //    caller's access token so the endpoint can verify identity.
+      const { data: sessData } = await supabase.auth.getSession();
+      const accessToken = sessData?.session?.access_token;
+      const res = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ user_id: profile.id }),
+      });
+      // We tolerate a failure here: local data is already deleted, and worst case
+      // the auth row is orphaned but the user has no data attached to it.
+      if (!res.ok) {
+        console.warn('Auth deletion endpoint failed:', await res.text().catch(() => ''));
+      }
+
+      // 3) Clear local state — conversations, session pointer, lexicon cache, etc.
+      try {
+        const keys = Object.keys(localStorage);
+        keys.forEach(k => {
+          if (k.startsWith('chat:') || k.startsWith('stats:') || k.startsWith('errors:')
+              || k.startsWith('word:') || k === 'meta:lastSession' || k === 'lexicon'
+              || k === 'level_tests_cache' || k === 'exercise_sessions'
+              || k === 'device_choice' || k.startsWith('voice:')) {
+            localStorage.removeItem(k);
+          }
+        });
+      } catch {}
+
+      // 4) Sign out — this drops the auth session in the browser
+      await signOut?.();
+    } catch (e) {
+      setDeleteError(e.message);
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -5668,6 +5727,88 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManua
             </div>
           )}
         </div>
+
+        {/* Section: zone dangereuse — supprimer le compte */}
+        <div className="mt-8 p-5 sm:p-6" style={{ borderRadius: '24px', border: '1.5px solid rgba(220, 38, 38, 0.3)', background: 'white' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span style={{ fontSize: 18 }}>⚠️</span>
+            <h2 className="text-lg font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: '#B91C1C' }}>
+              Zone dangereuse
+            </h2>
+          </div>
+
+          {!showDelete ? (
+            <div>
+              <p className="text-[13px] mb-3" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                Supprimer votre compte effacera définitivement votre profil, vos conversations, votre lexique, vos tests de niveau et vos exercices. Cette action est irréversible.
+              </p>
+              <button onClick={() => { setShowDelete(true); setDeleteError(null); }}
+                className="px-4 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 transition-colors"
+                style={{
+                  fontFamily: 'DM Sans',
+                  background: 'white',
+                  color: '#B91C1C',
+                  border: '1.5px solid #FCA5A5',
+                }}>
+                <X size={14} /> Supprimer mon compte
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="text-[14px] mb-3" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                Pour confirmer, tapez <strong style={{ color: '#B91C1C' }}>SUPPRIMER</strong> ci-dessous. Toutes vos données seront perdues définitivement.
+              </p>
+              <input
+                type="text"
+                placeholder="tapez SUPPRIMER pour confirmer"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                disabled={deleting}
+                className="w-full px-4 py-3 rounded-2xl focus:outline-none disabled:opacity-60"
+                style={{
+                  fontFamily: 'DM Sans',
+                  fontSize: 15,
+                  border: '1.5px solid #FCA5A5',
+                  background: '#FEF2F2',
+                  color: 'var(--ink)',
+                }}
+              />
+
+              {deleteError && (
+                <div className="mt-3 wl-card px-4 py-3 text-sm font-semibold"
+                     style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+                  ⚠️ {deleteError}
+                </div>
+              )}
+
+              <div className="mt-4 flex gap-3">
+                <button onClick={() => { setShowDelete(false); setDeleteConfirmText(''); setDeleteError(null); }}
+                  disabled={deleting}
+                  className="px-5 py-2.5 rounded-full text-sm font-bold hover:opacity-80 transition-opacity disabled:opacity-40"
+                  style={{ fontFamily: 'DM Sans', background: 'white', color: 'var(--ink)', border: '1.5px solid rgba(90,78,69,0.2)' }}>
+                  Annuler
+                </button>
+                <button
+                  onClick={deleteAccount}
+                  disabled={deleting || deleteConfirmText.trim() !== 'SUPPRIMER'}
+                  className="px-5 py-2.5 rounded-full text-sm font-bold text-white flex items-center gap-2 transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    fontFamily: 'DM Sans',
+                    background: 'linear-gradient(135deg, #DC2626, #B91C1C)',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
+                  }}>
+                  {deleting && <Loader2 size={14} className="animate-spin" />}
+                  {deleting ? 'suppression…' : 'Supprimer définitivement'}
+                </button>
+              </div>
+
+              <p className="mt-3 text-[11px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                Un email de confirmation peut vous être envoyé selon la configuration du service.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -5825,6 +5966,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onManualLevel={() => setStep('manuallevel')}
     onChangeDevice={() => setStep('device')}
     onOpenLexicon={() => setStep('lexicon')}
+    signOut={signOut}
     device={deviceChoice} />;
   if (step === 'picklangfortest') return <LanguagePickForTest
     onBack={() => setStep('profile')}

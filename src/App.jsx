@@ -522,17 +522,22 @@ async function loadStats(lang, level, avatar) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-// Returns the last session ONLY if it belongs to the given user.
-// This prevents leaking a previous user's data across accounts sharing the same browser.
+// Returns the last session for the given user (or unscoped, if no userId given).
+// Sessions stored with a different userId are refused (prevents cross-account leaks).
+// Legacy sessions with no userId are claimed for the current user AND re-saved
+// with the userId, so they persist properly and don't cause a re-migration.
 async function loadLastSession(userId = null) {
   const raw = storage.get(META_KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
+    // Explicit foreign user → refuse
     if (userId && parsed.userId && parsed.userId !== userId) return null;
-    // If no userId is stored, we don't return anything — treat legacy data as "not mine"
-    // to be safe when a new user signs up on a browser that hosted another account.
-    if (userId && !parsed.userId) return null;
+    // Legacy data (no userId) → claim for the current user and re-save
+    if (userId && !parsed.userId) {
+      parsed.userId = userId;
+      try { storage.set(META_KEY, JSON.stringify(parsed)); } catch {}
+    }
     return parsed;
   } catch { return null; }
 }
@@ -4439,7 +4444,7 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
 
 // ─── STEP 2.5: MODE PICKER ────────────────────────────────────────────────────
 
-function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, onChangeLanguage }) {
+function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, onChangeLanguage, signOut, onOpenProfile, onOpenLexicon }) {
   const [resumeSession, setResumeSession] = useState(null);
 
   // Check if there's a saved conversation for this exact language + level (for THIS user).
@@ -4466,6 +4471,43 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
       <div className="max-w-4xl mx-auto">
+        {/* Top user bar — reproduit celui de l'écran 1 pour rester à portée */}
+        {profile && (
+          <div className="flex items-center justify-between mb-4 pb-3 border-b">
+            <button onClick={onOpenProfile}
+              className="flex items-center gap-2 hover:opacity-70 transition-opacity group">
+              <div className="rounded-full flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform"
+                   style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 2px 6px rgba(255,56,92,0.25)' }}>
+                <span style={{ fontSize: 14, color: 'white', fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+                  {(profile.first_name?.[0] || '?').toUpperCase()}
+                </span>
+              </div>
+              <span className="text-[15px] italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--corail-2)' }}>
+                bonjour, {profile.first_name}
+              </span>
+            </button>
+            <div className="flex items-center gap-4">
+              {onOpenLexicon && (
+                <button onClick={onOpenLexicon}
+                  className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                  <span style={{ fontSize: 13 }}>📚</span> mon lexique
+                </button>
+              )}
+              {onOpenProfile && (
+                <button onClick={onOpenProfile}
+                  className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                  <UserCircle size={12} /> mon compte
+                </button>
+              )}
+              {signOut && (
+                <button onClick={signOut}
+                  className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                  <LogOut size={11} /> déconnexion
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         {/* No back arrow on Screen 3: once a language + level are set, the user
              changes language via the "autre langue" pill, or level from Mon compte. */}
         <StepHeader step={3} total={4} label="mode" />
@@ -5889,7 +5931,9 @@ function AuthGate({ children }) {
 function MainApp({ profile, signOut, reloadProfile }) {
   // First-launch device chooser: show it once if no explicit choice yet.
   const hasDeviceChoice = (() => { try { return !!storage.get(DEVICE_KEY); } catch { return false; } })();
-  const [step, setStep] = useState(hasDeviceChoice ? 'language' : 'device');
+  // Start in a special 'autoloading' state when the device is already set,
+  // so we don't flash Screen 1 before we know whether to jump to Screen 3.
+  const [step, setStep] = useState(hasDeviceChoice ? 'autoloading' : 'device');
   const [language, setLanguage] = useState(null);
   const [level, setLevel] = useState(null);
   const [avatar, setAvatar] = useState(null);
@@ -5900,17 +5944,20 @@ function MainApp({ profile, signOut, reloadProfile }) {
   // and jump straight to the mode picker (screen 3) instead of the language picker.
   useEffect(() => {
     if (autoloadDone) return;
-    if (!profile?.id) return;
+    if (!profile?.id) {
+      // No profile yet: keep autoloading state until the profile is ready
+      return;
+    }
     loadLastSession(profile.id).then(s => {
       setAutoloadDone(true);
-      if (!s) return;
-      const lang = LANGUAGES[s.langCode];
-      const lv   = LEVELS[s.levelId];
+      const lang = s && LANGUAGES[s.langCode];
+      const lv   = s && LEVELS[s.levelId];
       if (lang && lv) {
         setLanguage(lang);
         setLevel(lv);
-        // Only auto-forward if the user hasn't navigated away yet
-        setStep(current => (current === 'language' ? 'mode' : current));
+        setStep(current => (current === 'autoloading' ? 'mode' : current));
+      } else {
+        setStep(current => (current === 'autoloading' ? 'language' : current));
       }
     });
   }, [profile?.id, autoloadDone]);
@@ -5956,6 +6003,18 @@ function MainApp({ profile, signOut, reloadProfile }) {
     };
   }, []);
 
+  if (step === 'autoloading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'transparent' }}>
+        <div className="text-center">
+          <Loader2 size={28} className="animate-spin inline mb-3" style={{ color: 'var(--corail-2)' }} />
+          <p style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)', fontSize: 15 }}>
+            un instant…
+          </p>
+        </div>
+      </div>
+    );
+  }
   if (step === 'device')   return <DeviceChooserScreen
     forceShow={!hasDeviceChoice}
     currentDevice={deviceChoice}
@@ -5993,6 +6052,9 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onBack={() => setStep('level')} />;
   if (step === 'mode')     return <ModePicker language={language} level={level}
     profile={profile}
+    signOut={signOut}
+    onOpenProfile={() => setStep('profile')}
+    onOpenLexicon={() => setStep('lexicon')}
     onSelect={(m) => {
       if (m === 'chat') return setStep('avatar');
       if (m === 'reader') return setStep('reader');

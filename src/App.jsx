@@ -299,6 +299,58 @@ const LANGUAGES = {
                    {t:"Bonzour ! Pran twa letan. Ki to anvi koz lor li azordi ?", fr:"Bonjour ! Prends ton temps. De quoi as-tu envie de parler aujourd'hui ?"}]},
     ],
   },
+  fr: {
+    code: 'fr', name: 'Français', nativeName: 'Français', glyph: 'FR',
+    ttsLocale: 'fr-FR', srLocale: 'fr-FR', srSupported: true,
+    accent: '#2E5C8A',
+    avatars: [
+      { id:'lea', gender:'female', name:'Léa', age:28, location:'Paris, France', role:'Amie de café',
+        tagline:'Parisienne, détendue, tendance',
+        persona:`casual modern Parisian French, warm and lively.
+- Use natural Parisian expressions: "du coup", "en fait", "carrément", "grave", "c'est ouf", "trop bien", "je te jure".
+- Talk about cafés, weekends, séries, sorties, culture, food, actualité.
+- Uses "tu" naturally, contractions ("j'sais pas", "chuis"), fluid speech.
+- Warm, friendly, uses subtle humor.`,
+        color:'#2E5C8A', soft:'#D5E2EF', pattern:'circles',
+        voiceHint:['google français','google french','amélie','audrey','virginie','marie','female'],
+        rate: 0.92, pitch: 1.0,
+        greetings:[{t:"Salut ! Ça va aujourd'hui ?", fr:"Hi! How are you today?"},
+                   {t:"Coucou ! Alors, quoi de neuf ?", fr:"Hey! So, what's new?"}]},
+      { id:'antoine', gender:'male', name:'Antoine', age:42, location:'Lyon, France', role:'Ingénieur',
+        tagline:'Pragmatique, boulot, projets tech',
+        persona:`professional French from Lyon, precise and technical.
+- Uses proper business French but stays warm.
+- Discusses engineering, tech, work, family, culture.
+- Balanced formal/informal, uses "vous" at first then may switch to "tu".`,
+        color:'#7C2D12', soft:'#EFD8C9', pattern:'grid',
+        voiceHint:['google français','google french','thomas','nicolas','daniel','male'],
+        rate: 0.9, pitch: 0.95,
+        greetings:[{t:"Bonjour ! Enchanté. Vous travaillez dans quel domaine ?", fr:"Hello! Nice to meet you. What field do you work in?"},
+                   {t:"Bonjour, comment allez-vous aujourd'hui ?", fr:"Hello, how are you today?"}]},
+      { id:'fatou', gender:'female', name:'Fatou', age:35, location:'Dakar, Sénégal', role:'Journaliste',
+        tagline:'Français africain, culture, actualité',
+        persona:`Senegalese French journalist, warm and articulate.
+- Uses standard French with occasional West-African expressions ("dis donc", "ah bon !", "c'est parti").
+- Discusses culture, actualité, voyages, cuisine.
+- Very expressive and encouraging.`,
+        color:'#0F766E', soft:'#CDE8E5', pattern:'lines',
+        voiceHint:['google français','google french','audrey','amélie','female'],
+        rate: 0.9, pitch: 1.02,
+        greetings:[{t:"Bonjour ! Ravie de te rencontrer. D'où viens-tu ?", fr:"Hello! Nice to meet you. Where are you from?"},
+                   {t:"Salut ! Comment tu vas ? Raconte-moi un peu.", fr:"Hi! How are you? Tell me a bit about yourself."}]},
+      { id:'marie_fr', gender:'female', name:'Marie', age:48, location:'Aix-en-Provence, France', role:"Professeure de français",
+        tagline:'Patiente, claire, français standard',
+        persona:`standard French teacher from Provence, very patient.
+- Speaks slowly and clearly, repeats important words.
+- Uses simple vocabulary at first, gradually introduces more complex terms.
+- Explains grammar naturally when useful. Very warm and encouraging.`,
+        color:'#5B21B6', soft:'#DDD3F0', pattern:'dots',
+        voiceHint:['google français','google french','marie','audrey','virginie','female'],
+        rate: 0.82, pitch: 1.0,
+        greetings:[{t:"Bonjour ! Prenez votre temps. Comment vous appelez-vous ?", fr:"Hello! Take your time. What's your name?"},
+                   {t:"Bienvenue ! De quoi aimeriez-vous parler aujourd'hui ?", fr:"Welcome! What would you like to talk about today?"}]},
+    ],
+  },
 };
 
 // Face features per avatar — gives each character a distinct look
@@ -332,6 +384,10 @@ const FACES = {
   anais:   { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick' },
   ravi:    { eyes:'round',  mouth:'smile',      accessory:null },
   marie:   { eyes:'round',  mouth:'wide-smile', accessory:null },
+  lea:     { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick' },
+  antoine: { eyes:'round',  mouth:'smile',      accessory:'glasses-square' },
+  fatou:   { eyes:'lashes', mouth:'wide-smile', accessory:null },
+  marie_fr:{ eyes:'round',  mouth:'wide-smile', accessory:null },
 };
 
 const LEVELS = {
@@ -820,7 +876,7 @@ function LanguageBadge({ lang, size='md' }) {
   const sizes = { sm:'w-12 h-12 text-base', md:'w-16 h-16 text-xl', lg:'w-20 h-20 text-2xl' };
   return (
     <div className={`${sizes[size]} grid place-items-center text-stone-50 shrink-0 relative overflow-hidden`}
-         style={{ backgroundColor: lang.accent, fontFamily:'Cormorant Garamond, Georgia, serif', fontWeight: 500 }}>
+         style={{ backgroundColor: lang.accent, fontFamily:'Fraunces, Georgia, serif', fontWeight: 500 }}>
       <span>{lang.glyph}</span>
     </div>
   );
@@ -832,17 +888,17 @@ function StepHeader({ step, total, label, onBack }) {
   return (
     <div className="flex items-center gap-3 mb-6">
       {onBack && (
-        <button onClick={onBack} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--encre)] hover:text-white transition-colors">
+        <button onClick={onBack} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--ink)] hover:text-white transition-colors">
           <ArrowLeft size={16} />
         </button>
       )}
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--encre-doux)]" style={{ fontFamily:'Nunito, sans-serif' }}>
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>
           étape {step} / {total} · {label}
         </div>
         <div className="flex gap-1 mt-1.5">
           {Array.from({length: total}).map((_,i) => (
-            <div key={i} className={`h-0.5 flex-1 ${i < step ? 'bg-[color:var(--encre)]' : 'bg-[color:rgba(90,78,69,0.2)]'}`} />
+            <div key={i} className={`h-0.5 flex-1 ${i < step ? 'bg-[color:var(--ink)]' : 'bg-[color:rgba(90,78,69,0.2)]'}`} />
           ))}
         </div>
       </div>
@@ -872,22 +928,22 @@ function LanguagePicker({ onSelect, onResumeLast, profile, signOut }) {
       <div className="max-w-3xl mx-auto">
         {/* Top user bar */}
         {profile && (
-          <div className="flex items-center justify-between mb-4 pb-3 mp-dashed-bottom">
-            <span className="text-[15px] italic" style={{ fontFamily: 'Caveat, cursive', color: 'var(--sepia)' }}>
+          <div className="flex items-center justify-between mb-4 pb-3 border-b">
+            <span className="text-[15px] italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--corail-2)' }}>
               bonjour, {profile.first_name} ·
             </span>
             <button onClick={signOut}
-              className="mp-meta flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+              className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
               <LogOut size={11} /> se déconnecter
             </button>
           </div>
         )}
         <StepHeader step={1} total={4} label="langue" />
-        <span className="mp-kicker text-[22px] mb-1">bonjour !</span>
-        <h1 className="text-3xl sm:text-[46px] font-medium tracking-tight leading-none mt-1" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
-          Quelle <span className="mp-underline">langue</span> voulez-vous apprendre ?
+        <span className="text-[22px] mb-1">bonjour !</span>
+        <h1 className="text-3xl sm:text-[46px] font-medium tracking-tight leading-none mt-1" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
+          Quelle <span >langue</span> voulez-vous apprendre ?
         </h1>
-        <p className="mt-4 text-[17px] max-w-lg italic" style={{ fontFamily:'Cormorant Garamond, Georgia, serif', color: 'var(--encre-doux)' }}>
+        <p className="mt-4 text-[17px] max-w-lg italic" style={{ fontFamily:'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
           Chaque langue est une invitation au voyage. Choisissez celle qui vous fait rêver aujourd'hui.
         </p>
 
@@ -895,28 +951,28 @@ function LanguagePicker({ onSelect, onResumeLast, profile, signOut }) {
           <button onClick={() => onResumeLast(lastSession)}
             className="mt-6 w-full hover:-translate-y-0.5 transition-all p-4 flex items-center gap-3 text-left rounded"
             style={{
-              backgroundColor: 'var(--ivoire)',
+              backgroundColor: 'white',
               border: '1px solid rgba(90, 78, 69, 0.15)',
               boxShadow: '2px 3px 0 rgba(90, 78, 69, 0.1)',
             }}>
             <AnimatedAvatar avatar={lastSession.avatar} size="md" />
             <div className="flex-1 min-w-0">
-              <div className="mp-meta">
+              <div className="text-xs font-bold uppercase tracking-wider">
                 📖 reprendre votre conversation
               </div>
-              <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-xl font-medium leading-tight mt-0.5">
+              <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-xl font-medium leading-tight mt-0.5">
                 {lastSession.avatar.name} · <span className="italic font-normal">{lastSession.lang.name}</span>
               </div>
-              <div className="mp-meta mt-0.5 truncate" style={{ textTransform: 'none', letterSpacing: '0.05em' }}>
+              <div className="text-xs font-bold uppercase tracking-wider mt-0.5 truncate" style={{ textTransform: 'none', letterSpacing: '0.05em' }}>
                 niveau {lastSession.level.label.toLowerCase()} · {timeSince(lastSession.lastUpdated)}
               </div>
             </div>
-            <span className="shrink-0 text-xl" style={{ fontFamily:'Caveat, cursive', color: 'var(--sanguine)' }}>→</span>
+            <span className="shrink-0 text-xl" style={{ fontFamily:'Fraunces, Georgia, serif', color: 'var(--corail)' }}>→</span>
           </button>
         )}
 
         <div className="mt-8">
-          <div className="mp-meta text-center mb-6">
+          <div className="text-xs font-bold uppercase tracking-wider text-center mb-6">
             {lastSession ? '· ou commencer une nouvelle ·' : '· choisissez ·'}
           </div>
         </div>
@@ -924,13 +980,13 @@ function LanguagePicker({ onSelect, onResumeLast, profile, signOut }) {
           {Object.values(LANGUAGES).map(lang => (
             <button key={lang.code} onClick={() => onSelect(lang)}
               className="group flex flex-col items-center w-20 sm:w-24 transition-transform hover:-translate-y-1 hover:rotate-[-1deg]">
-              <div className="mp-splash w-16 h-16 sm:w-[72px] sm:h-[72px] text-2xl sm:text-[28px]"
+              <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] text-2xl sm:text-[28px]"
                    style={{ background: `radial-gradient(circle at 30% 30%, ${lang.accent}, ${lang.accent}CC)`, backgroundColor: lang.accent }}>
                 <span>{lang.glyph}</span>
               </div>
-              <div className="mt-2.5 text-center" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
-                <div className="text-base sm:text-[17px] font-medium leading-tight" style={{ color: 'var(--encre)' }}>{lang.name}</div>
-                <div style={{ fontFamily:'Nunito, sans-serif', fontSize: 10, letterSpacing: '0.06em', color: 'var(--encre-doux)' }} className="mt-0.5">
+              <div className="mt-2.5 text-center" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
+                <div className="text-base sm:text-[17px] font-medium leading-tight" style={{ color: 'var(--ink)' }}>{lang.name}</div>
+                <div style={{ fontFamily:'DM Sans, sans-serif', fontSize: 10, letterSpacing: '0.06em', color: 'var(--gris)' }} className="mt-0.5">
                   {lang.nativeName}
                 </div>
               </div>
@@ -950,29 +1006,29 @@ function LevelPicker({ language, onSelect, onBack }) {
       <div className="max-w-3xl mx-auto">
         <StepHeader step={2} total={4} label="niveau" onBack={onBack} />
         <div className="flex items-baseline gap-3 flex-wrap">
-          <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+          <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
             Votre <em>niveau</em> en
           </h1>
-          <span className="text-2xl sm:text-4xl px-3 py-1 text-stone-50" style={{ fontFamily:'Cormorant Garamond, Georgia, serif', backgroundColor: language.accent }}>
+          <span className="text-2xl sm:text-4xl px-3 py-1 text-stone-50" style={{ fontFamily:'Fraunces, Georgia, serif', backgroundColor: language.accent }}>
             {language.name}
           </span>
         </div>
-        <p className="mt-3 text-[color:var(--encre-doux)] max-w-xl" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+        <p className="mt-3 text-[color:var(--gris)] max-w-xl" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
           Soyez honnête — c'est mieux de commencer un peu en dessous et de progresser.
         </p>
         <div className="mt-6 space-y-3">
           {Object.values(LEVELS).map(lv => (
             <button key={lv.id} onClick={() => onSelect(lv)}
-              className="w-full text-left mp-paper-card hover:-translate-y-0.5 transition-all p-4 sm:p-5 flex items-center gap-4">
-              <div className="w-14 h-14 grid place-items-center text-stone-50 shrink-0" style={{ backgroundColor: language.accent, fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+              className="w-full text-left wl-card hover:-translate-y-0.5 transition-all p-4 sm:p-5 flex items-center gap-4">
+              <div className="w-14 h-14 grid place-items-center text-stone-50 shrink-0" style={{ backgroundColor: language.accent, fontFamily:'Fraunces, Georgia, serif' }}>
                 <span className="text-2xl">{lv.icon}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 flex-wrap">
-                  <span style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-xl sm:text-2xl font-medium">{lv.label}</span>
-                  <span className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)]" style={{ fontFamily:'Nunito, sans-serif' }}>{lv.sublabel}</span>
+                  <span style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-xl sm:text-2xl font-medium">{lv.label}</span>
+                  <span className="text-[10px] uppercase tracking-widest text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>{lv.sublabel}</span>
                 </div>
-                <p className="text-sm text-[color:var(--encre-doux)] mt-1" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>{lv.description}</p>
+                <p className="text-sm text-[color:var(--gris)] mt-1" style={{ fontFamily:'Fraunces, Georgia, serif' }}>{lv.description}</p>
               </div>
             </button>
           ))}
@@ -995,10 +1051,10 @@ function AvatarPicker({ language, level, onSelect, onBack }) {
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
       <div className="max-w-3xl mx-auto">
         <StepHeader step={4} total={4} label="interlocuteur" onBack={onBack} />
-        <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+        <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
           Avec <em>qui</em> ?
         </h1>
-        <p className="mt-3 text-[color:var(--encre-doux)] max-w-xl" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+        <p className="mt-3 text-[color:var(--gris)] max-w-xl" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
           {language.name} · {level.label.toLowerCase()} · choisissez l'accent et la personnalité qui vous parlent
         </p>
         <div className="mt-6 grid sm:grid-cols-2 gap-3">
@@ -1006,17 +1062,17 @@ function AvatarPicker({ language, level, onSelect, onBack }) {
             const hasHist = withHistory.has(av.id);
             return (
               <button key={av.id} onClick={() => onSelect(av)}
-                className="relative text-left mp-paper-card hover:-translate-y-0.5 transition-all p-4 flex gap-3 items-start">
+                className="relative text-left wl-card hover:-translate-y-0.5 transition-all p-4 flex gap-3 items-start">
                 <AnimatedAvatar avatar={av} size="md" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
-                    <h3 style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-xl sm:text-2xl font-medium leading-none">{av.name}</h3>
-                    <span className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)]" style={{ fontFamily:'Nunito, sans-serif' }}>{av.age} ans</span>
+                    <h3 style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-xl sm:text-2xl font-medium leading-none">{av.name}</h3>
+                    <span className="text-[10px] uppercase tracking-widest text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>{av.age} ans</span>
                   </div>
-                  <div className="text-[11px] text-[color:var(--encre-doux)] mt-1 truncate" style={{ fontFamily:'Nunito, sans-serif' }}>{av.location} · {av.role}</div>
-                  <p className="mt-2 text-sm text-[color:var(--encre)] leading-snug" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>{av.tagline}</p>
+                  <div className="text-[11px] text-[color:var(--gris)] mt-1 truncate" style={{ fontFamily:'DM Sans, sans-serif' }}>{av.location} · {av.role}</div>
+                  <p className="mt-2 text-sm text-[color:var(--ink)] leading-snug" style={{ fontFamily:'Fraunces, Georgia, serif' }}>{av.tagline}</p>
                   {hasHist && (
-                    <div className="inline-flex items-center gap-1 mt-2 px-1.5 py-0.5 text-stone-50 text-[9px] uppercase tracking-widest" style={{ fontFamily:'Nunito, sans-serif', backgroundColor: av.color }}>
+                    <div className="inline-flex items-center gap-1 mt-2 px-1.5 py-0.5 text-stone-50 text-[9px] uppercase tracking-widest" style={{ fontFamily:'DM Sans, sans-serif', backgroundColor: av.color }}>
                       <span>📖</span><span>reprendre</span>
                     </div>
                   )}
@@ -1036,17 +1092,17 @@ function CorrectionsPanel({ corrections }) {
   if (!corrections || !corrections.length) return null;
   return (
     <div className="mt-2 border-l-4 border-amber-700 bg-amber-50/70 pl-3 pr-3 py-2.5 space-y-2.5">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-amber-900" style={{ fontFamily:'Nunito, sans-serif' }}>
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-amber-900" style={{ fontFamily:'DM Sans, sans-serif' }}>
         <BookOpen size={11} /> correction{corrections.length > 1 ? 's' : ''}
       </div>
       {corrections.map((c, i) => (
-        <div key={i} className="text-sm" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+        <div key={i} className="text-sm" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="line-through text-[color:var(--encre-doux)] italic">{c.original}</span>
+            <span className="line-through text-[color:var(--gris)] italic">{c.original}</span>
             <span className="text-amber-800">→</span>
-            <span className="font-medium text-[color:var(--encre)] italic">{c.corrected}</span>
+            <span className="font-medium text-[color:var(--ink)] italic">{c.corrected}</span>
           </div>
-          <div className="mt-1 text-[color:var(--encre)] text-[13px] leading-snug">{c.explanation_fr}</div>
+          <div className="mt-1 text-[color:var(--ink)] text-[13px] leading-snug">{c.explanation_fr}</div>
         </div>
       ))}
     </div>
@@ -1135,18 +1191,18 @@ function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
   return (
     <div className="fixed inset-0 z-50 bg-[color:rgba(43,36,34,0.55)] flex items-end sm:items-center justify-center p-0 sm:p-4"
          onClick={onClose}>
-      <div className="w-full sm:max-w-md mp-paper-card max-h-[85vh] flex flex-col"
+      <div className="w-full sm:max-w-md wl-card max-h-[85vh] flex flex-col"
            onClick={(e) => e.stopPropagation()}>
-        <div className="px-4 py-3 mp-dashed-bottom flex items-center gap-3">
+        <div className="px-4 py-3 border-b flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)]" style={{ fontFamily:'Nunito, sans-serif' }}>
+            <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>
               mot · {lang.name.toLowerCase()}
             </div>
-            <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-2xl font-medium leading-none mt-0.5 italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
+            <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-2xl font-medium leading-none mt-0.5 italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
               {word}
             </div>
           </div>
-          <button onClick={() => onSpeak(word)} className="w-9 h-9 grid place-items-center mp-btn-ink" title="écouter">
+          <button onClick={() => onSpeak(word)} className="w-9 h-9 grid place-items-center wl-btn-secondary" title="écouter">
             <Volume2 size={14} />
           </button>
           <button onClick={onClose} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]">
@@ -1156,44 +1212,44 @@ function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
 
         <div className="overflow-y-auto flex-1 p-4">
           {!data && !error && (
-            <div className="flex items-center gap-2 text-[color:var(--encre-doux)] text-sm" style={{ fontFamily:'Nunito, sans-serif' }}>
+            <div className="flex items-center gap-2 text-[color:var(--gris)] text-sm" style={{ fontFamily:'DM Sans, sans-serif' }}>
               <Loader2 size={14} className="animate-spin" />
               <span>recherche…</span>
             </div>
           )}
           {error && (
-            <div className="text-sm text-amber-800" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+            <div className="text-sm text-amber-800" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
               Impossible de récupérer l'explication. Vérifiez votre connexion.
             </div>
           )}
           {data && (
             <div className="space-y-4">
               <div>
-                <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] mb-1" style={{ fontFamily:'Nunito, sans-serif' }}>traduction</div>
-                <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-xl text-[color:var(--encre)] italic">
+                <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-1" style={{ fontFamily:'DM Sans, sans-serif' }}>traduction</div>
+                <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-xl text-[color:var(--ink)] italic">
                   {data.translation}
                 </div>
               </div>
               {data.explanation && (
                 <div>
-                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] mb-1" style={{ fontFamily:'Nunito, sans-serif' }}>explication</div>
-                  <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-stone-800 text-sm leading-relaxed">
+                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-1" style={{ fontFamily:'DM Sans, sans-serif' }}>explication</div>
+                  <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-stone-800 text-sm leading-relaxed">
                     {data.explanation}
                   </div>
                 </div>
               )}
               {data.example && data.example.text && (
                 <div className="border-l-4 border-amber-700 pl-3 py-1 bg-amber-50/60">
-                  <div className="text-[10px] uppercase tracking-widest text-amber-900 mb-1" style={{ fontFamily:'Nunito, sans-serif' }}>exemple</div>
+                  <div className="text-[10px] uppercase tracking-widest text-amber-900 mb-1" style={{ fontFamily:'DM Sans, sans-serif' }}>exemple</div>
                   <div className="flex items-start gap-2">
-                    <button onClick={() => onSpeak(data.example.text)} className="mt-0.5 shrink-0 text-[color:var(--encre-doux)] hover:text-[color:var(--encre)]" title="écouter">
+                    <button onClick={() => onSpeak(data.example.text)} className="mt-0.5 shrink-0 text-[color:var(--gris)] hover:text-[color:var(--ink)]" title="écouter">
                       <Volume2 size={12} />
                     </button>
                     <div className="flex-1">
-                      <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-[color:var(--encre)] italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
+                      <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-[color:var(--ink)] italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
                         « {data.example.text} »
                       </div>
-                      <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-[color:var(--encre-doux)] text-sm mt-1 italic">
+                      <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-[color:var(--gris)] text-sm mt-1 italic">
                         {data.example.fr}
                       </div>
                     </div>
@@ -1242,9 +1298,9 @@ function UserMessage({ message, rtl }) {
   return (
     <div className="flex flex-col items-end mb-4">
       <div className="max-w-[85%]">
-        <div className="mp-paper-card px-4 py-2.5" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
-          <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] mb-1" style={{ fontFamily:'Nunito, sans-serif' }}>vous</div>
-          <div className="text-[color:var(--encre)] leading-relaxed" style={{ direction: rtl ? 'rtl' : 'ltr' }}>{message.content}</div>
+        <div className="wl-card px-4 py-2.5" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
+          <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-1" style={{ fontFamily:'DM Sans, sans-serif' }}>vous</div>
+          <div className="text-[color:var(--ink)] leading-relaxed" style={{ direction: rtl ? 'rtl' : 'ltr' }}>{message.content}</div>
         </div>
         <div className="mt-1"><CorrectionsPanel corrections={message.corrections} /></div>
       </div>
@@ -1258,19 +1314,19 @@ function AssistantMessage({ message, avatar, lang, onSpeak, speaking, onWordClic
     <div className="flex gap-3 mb-4 items-start">
       <AnimatedAvatar avatar={avatar} size="sm" speaking={speaking} />
       <div className="max-w-[85%] flex-1">
-        <div className="px-4 py-3 relative" style={{ backgroundColor: avatar.soft, borderLeft: `3px solid ${avatar.color}`, fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+        <div className="px-4 py-3 relative" style={{ backgroundColor: avatar.soft, borderLeft: `3px solid ${avatar.color}`, fontFamily:'Fraunces, Georgia, serif' }}>
           <div className="flex items-baseline justify-between gap-2 mb-1">
-            <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily:'Nunito, sans-serif', color: avatar.color }}>{avatar.name}</span>
+            <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily:'DM Sans, sans-serif', color: avatar.color }}>{avatar.name}</span>
             <div className="flex items-center gap-2">
-              <button onClick={onSpeak} className="text-[color:var(--encre-doux)] hover:text-[color:var(--encre)]" aria-label="écouter"><Volume2 size={14} /></button>
-              <button onClick={() => setShowFr(s => !s)} className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] hover:text-[color:var(--encre)] px-1.5 border border-stone-400" style={{ fontFamily:'Nunito, sans-serif' }}>fr</button>
+              <button onClick={onSpeak} className="text-[color:var(--gris)] hover:text-[color:var(--ink)]" aria-label="écouter"><Volume2 size={14} /></button>
+              <button onClick={() => setShowFr(s => !s)} className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] hover:text-[color:var(--ink)] px-1.5 border border-stone-400" style={{ fontFamily:'DM Sans, sans-serif' }}>fr</button>
             </div>
           </div>
-          <div className="text-[color:var(--encre)] leading-relaxed">
+          <div className="text-[color:var(--ink)] leading-relaxed">
             <ClickableText text={message.reply} onWordClick={onWordClick} rtl={lang.rtl} />
           </div>
           {showFr && message.translation && (
-            <div className="mt-2 pt-2 border-t border-stone-400/40 text-sm text-[color:var(--encre)] italic">{message.translation}</div>
+            <div className="mt-2 pt-2 border-t border-stone-400/40 text-sm text-[color:var(--ink)] italic">{message.translation}</div>
           )}
         </div>
       </div>
@@ -1438,15 +1494,15 @@ function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeakin
     : text;
 
   return (
-    <div className="mp-dashed-top mp-paper-card px-3 sm:px-5 py-2.5 sticky bottom-0">
+    <div className="border-t wl-card px-3 sm:px-5 py-2.5 sticky bottom-0">
       <div className="max-w-3xl mx-auto">
         {micError === 'denied' && (
-          <div className="mb-2 text-[10px] uppercase tracking-widest text-amber-800 bg-amber-50 border border-amber-700/30 px-2 py-1.5 text-center" style={{ fontFamily:'Nunito, sans-serif' }}>
+          <div className="mb-2 text-[10px] uppercase tracking-widest text-amber-800 bg-amber-50 border border-amber-700/30 px-2 py-1.5 text-center" style={{ fontFamily:'DM Sans, sans-serif' }}>
             ⚠ micro refusé · autorisez-le dans les paramètres du site
           </div>
         )}
         {micError === 'other' && (
-          <div className="mb-2 text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] bg-stone-100 border border-stone-300 px-2 py-1.5 text-center" style={{ fontFamily:'Nunito, sans-serif' }}>
+          <div className="mb-2 text-[10px] uppercase tracking-widest text-[color:var(--gris)] bg-stone-100 border border-stone-300 px-2 py-1.5 text-center" style={{ fontFamily:'DM Sans, sans-serif' }}>
             micro non disponible sur ce navigateur
           </div>
         )}
@@ -1458,7 +1514,7 @@ function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeakin
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: avatar.color }}></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: avatar.color }}></span>
             </span>
-            <span className="text-[11px] uppercase tracking-widest flex-1" style={{ fontFamily:'Nunito, sans-serif', color: avatar.color }}>
+            <span className="text-[11px] uppercase tracking-widest flex-1" style={{ fontFamily:'DM Sans, sans-serif', color: avatar.color }}>
               {countdown > 0
                 ? `envoi dans ${countdown} s… continuez de parler pour attendre`
                 : `à l'écoute · parlez en ${lang.name.toLowerCase()}`}
@@ -1475,7 +1531,7 @@ function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeakin
                 ? 'text-stone-50 animate-pulse'
                 : micError === 'denied' || micError === 'other'
                   ? 'bg-stone-400 text-stone-100'
-                  : 'mp-btn-ink disabled:opacity-30'
+                  : 'wl-btn-secondary disabled:opacity-30'
             }`}
             style={recording ? { backgroundColor: avatar.color } : {}}
             aria-label={recording ? 'arrêter le micro' : 'démarrer le micro'}
@@ -1491,8 +1547,8 @@ function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeakin
                 : autoListen
                   ? `parlez ou écrivez à ${avatar.name}…`
                   : `écrivez à ${avatar.name}…`}
-              className="w-full resize-none mp-paper-card px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-700/40 disabled:opacity-50 text-base"
-              style={{ fontFamily:'Cormorant Garamond, Georgia, serif', maxHeight:120, direction: lang.rtl ? 'rtl' : 'ltr' }} />
+              className="w-full resize-none wl-card px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-700/40 disabled:opacity-50 text-base"
+              style={{ fontFamily:'Fraunces, Georgia, serif', maxHeight:120, direction: lang.rtl ? 'rtl' : 'ltr' }} />
           </div>
           <button onClick={submitFromButton} disabled={disabled || !((text || interim).trim())}
             className="shrink-0 w-11 h-11 grid place-items-center text-stone-50 disabled:opacity-30 transition-all"
@@ -1527,18 +1583,18 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
   return (
     <div className="fixed inset-0 z-50 bg-[color:rgba(43,36,34,0.55)] flex items-end sm:items-center justify-center p-0 sm:p-4"
          onClick={onClose}>
-      <div className="w-full sm:max-w-lg mp-paper-card max-h-[85vh] flex flex-col"
+      <div className="w-full sm:max-w-lg wl-card max-h-[85vh] flex flex-col"
            onClick={(e) => e.stopPropagation()}>
-        <div className="px-4 py-3 mp-dashed-bottom flex items-center gap-3">
+        <div className="px-4 py-3 border-b flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)]" style={{ fontFamily:'Nunito, sans-serif' }}>
+            <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>
               voix pour · {avatar.name}
             </div>
-            <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-lg font-medium leading-none mt-0.5">
+            <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none mt-0.5">
               Choisir la voix
             </div>
           </div>
-          <button onClick={onClose} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--encre)] hover:text-white">
+          <button onClick={onClose} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--ink)] hover:text-white">
             ✕
           </button>
         </div>
@@ -1546,10 +1602,10 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
         <div className="overflow-y-auto flex-1">
           {filtered.length === 0 ? (
             <div className="p-6 text-center">
-              <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-[color:var(--encre)]">
+              <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-[color:var(--ink)]">
                 Aucune voix installée pour <em>{lang.name.toLowerCase()}</em> sur cet appareil.
               </div>
-              <div className="mt-3 text-xs text-[color:var(--encre-doux)]" style={{ fontFamily:'Nunito, sans-serif' }}>
+              <div className="mt-3 text-xs text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>
                 installez une voix dans les paramètres système<br/>
                 (windows : paramètres › voix · android : synthèse vocale)
               </div>
@@ -1561,8 +1617,8 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
                 className={`w-full text-left px-4 py-3 border-b border-stone-300 hover:bg-white flex items-center gap-3 ${!currentURI ? 'bg-amber-50' : ''}`}
               >
                 <div className="flex-1">
-                  <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="font-medium">Auto (recommandé)</div>
-                  <div className="text-xs text-[color:var(--encre-doux)] mt-0.5" style={{ fontFamily:'Nunito, sans-serif' }}>
+                  <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="font-medium">Auto (recommandé)</div>
+                  <div className="text-xs text-[color:var(--gris)] mt-0.5" style={{ fontFamily:'DM Sans, sans-serif' }}>
                     l'appli choisit la meilleure voix disponible
                   </div>
                 </div>
@@ -1576,37 +1632,37 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
                 return (
                   <div key={v.voiceURI} className={`px-4 py-3 border-b border-stone-200 flex items-center gap-2 ${isSelected ? 'bg-amber-50' : 'hover:bg-white'}`}>
                     <button onClick={() => onPreview(v.voiceURI)}
-                      className="w-9 h-9 grid place-items-center mp-btn-ink shrink-0"
+                      className="w-9 h-9 grid place-items-center wl-btn-secondary shrink-0"
                       title="écouter un extrait">
                       <Volume2 size={14} />
                     </button>
                     <button onClick={() => onChoose(v.voiceURI)} className="flex-1 text-left min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="font-medium truncate">
+                        <span style={{ fontFamily:'Fraunces, Georgia, serif' }} className="font-medium truncate">
                           {v.name}
                         </span>
                         {gender === 'female' && (
-                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-rose-600 text-stone-50" style={{ fontFamily:'Nunito, sans-serif' }}>
+                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-rose-600 text-stone-50" style={{ fontFamily:'DM Sans, sans-serif' }}>
                             ♀ f
                           </span>
                         )}
                         {gender === 'male' && (
-                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-sky-700 text-stone-50" style={{ fontFamily:'Nunito, sans-serif' }}>
+                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-sky-700 text-stone-50" style={{ fontFamily:'DM Sans, sans-serif' }}>
                             ♂ h
                           </span>
                         )}
                         {isNatural && (
-                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-emerald-700 text-stone-50" style={{ fontFamily:'Nunito, sans-serif' }}>
+                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-emerald-700 text-stone-50" style={{ fontFamily:'DM Sans, sans-serif' }}>
                             naturelle
                           </span>
                         )}
                         {isGoogle && !isNatural && (
-                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-stone-700 text-stone-50" style={{ fontFamily:'Nunito, sans-serif' }}>
+                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 bg-stone-700 text-stone-50" style={{ fontFamily:'DM Sans, sans-serif' }}>
                             google
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-[color:var(--encre-doux)] mt-0.5" style={{ fontFamily:'Nunito, sans-serif' }}>
+                      <div className="text-xs text-[color:var(--gris)] mt-0.5" style={{ fontFamily:'DM Sans, sans-serif' }}>
                         {v.lang}{v.localService ? ' · local' : ' · en ligne'}
                       </div>
                     </button>
@@ -1618,7 +1674,7 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
           )}
         </div>
 
-        <div className="px-4 py-2 border-t border-stone-300 text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)]" style={{ fontFamily:'Nunito, sans-serif' }}>
+        <div className="px-4 py-2 border-t border-stone-300 text-[10px] uppercase tracking-widest text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>
           {filtered.length} voix trouvée{filtered.length > 1 ? 's' : ''} · touchez 🔊 pour écouter
         </div>
       </div>
@@ -1747,26 +1803,26 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor:'transparent' }}>
-      <div className="mp-dashed-bottom mp-paper-card sticky top-0 z-10">
+      <div className="border-b wl-card sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-3 sm:px-5 py-3 flex items-center gap-3">
-          <button onClick={onChangeAvatar} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--encre)] hover:text-white transition-colors" title="changer">
+          <button onClick={onChangeAvatar} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--ink)] hover:text-white transition-colors" title="changer">
             <ArrowLeft size={16} />
           </button>
           <AnimatedAvatar avatar={avatar} size="sm" speaking={!!speakingText} />
           <div className="flex-1 min-w-0">
-            <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-lg font-medium leading-none">{avatar.name}</div>
-            <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] mt-0.5 truncate" style={{ fontFamily:'Nunito, sans-serif' }}>
+            <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none">{avatar.name}</div>
+            <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mt-0.5 truncate" style={{ fontFamily:'DM Sans, sans-serif' }}>
               {lang.name} · {level.label.toLowerCase()} · {avatar.location}
             </div>
           </div>
           <button onClick={() => setShowVoicePicker(true)} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)] relative" title="choisir la voix">
-            <span className="text-[10px] font-bold" style={{ fontFamily:'Nunito, sans-serif' }}>A♪</span>
+            <span className="text-[10px] font-bold" style={{ fontFamily:'DM Sans, sans-serif' }}>A♪</span>
             {voiceURI && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-700 rounded-full" />}
           </button>
-          <button onClick={() => setAutoListen(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoListen ? 'mp-btn-ink border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`} title={autoListen ? "conversation mains-libres activée" : "conversation mains-libres désactivée"}>
+          <button onClick={() => setAutoListen(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoListen ? 'wl-btn-secondary border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`} title={autoListen ? "conversation mains-libres activée" : "conversation mains-libres désactivée"}>
             <Mic size={14} />
           </button>
-          <button onClick={() => setAutoSpeak(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoSpeak ? 'mp-btn-ink border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`} title="lecture auto">
+          <button onClick={() => setAutoSpeak(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoSpeak ? 'wl-btn-secondary border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`} title="lecture auto">
             <Volume2 size={14} />
           </button>
           <button onClick={restartChat} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]" title="nouvelle conversation">
@@ -1778,7 +1834,7 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-3 sm:px-5 py-5">
           {resumedFrom && (
-            <div className="border-l-4 border-stone-400 pl-3 py-2 mb-4 bg-stone-100/70 flex items-center gap-2 text-[11px] uppercase tracking-widest text-[color:var(--encre-doux)]" style={{ fontFamily:'Nunito, sans-serif' }}>
+            <div className="border-l-4 border-stone-400 pl-3 py-2 mb-4 bg-stone-100/70 flex items-center gap-2 text-[11px] uppercase tracking-widest text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>
               <span>📖</span>
               <span>reprise · dernière visite {timeSince(resumedFrom)}</span>
             </div>
@@ -2001,17 +2057,17 @@ function ReaderScreen({ lang, level, onBack }) {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor:'transparent' }}>
-      <div className="mp-dashed-bottom mp-paper-card sticky top-0 z-10">
+      <div className="border-b wl-card sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-3 sm:px-5 py-3 flex items-center gap-3">
-          <button onClick={onBack} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--encre)] hover:text-white transition-colors" title="retour">
+          <button onClick={onBack} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--ink)] hover:text-white transition-colors" title="retour">
             <ArrowLeft size={16} />
           </button>
           <div className="w-11 h-11 grid place-items-center text-stone-50 shrink-0" style={{ backgroundColor: lang.accent }}>
             <BookText size={20} />
           </div>
           <div className="flex-1 min-w-0">
-            <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-lg font-medium leading-none">Lecture</div>
-            <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] mt-0.5 truncate" style={{ fontFamily:'Nunito, sans-serif' }}>
+            <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none">Lecture</div>
+            <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mt-0.5 truncate" style={{ fontFamily:'DM Sans, sans-serif' }}>
               {lang.name} · {level.label.toLowerCase()}
             </div>
           </div>
@@ -2026,7 +2082,7 @@ function ReaderScreen({ lang, level, onBack }) {
         <div className="max-w-3xl mx-auto px-3 sm:px-5 py-5">
           {/* Topic pills */}
           <div className="mb-5">
-            <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] mb-2" style={{ fontFamily:'Nunito, sans-serif' }}>
+            <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-2" style={{ fontFamily:'DM Sans, sans-serif' }}>
               sujet
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -2034,10 +2090,10 @@ function ReaderScreen({ lang, level, onBack }) {
                 <button key={t.id} onClick={() => setTopic(t)}
                   className={`px-3 py-1.5 text-xs uppercase tracking-wider border transition-all flex items-center gap-1.5 ${
                     topic.id === t.id
-                      ? 'mp-btn-ink border-transparent'
+                      ? 'wl-btn-secondary border-transparent'
                       : 'bg-stone-50 border-stone-300 hover:border-[color:rgba(90,78,69,0.3)]'
                   }`}
-                  style={{ fontFamily:'Nunito, sans-serif' }}>
+                  style={{ fontFamily:'DM Sans, sans-serif' }}>
                   <span>{t.icon}</span>
                   <span>{t.label}</span>
                 </button>
@@ -2046,16 +2102,16 @@ function ReaderScreen({ lang, level, onBack }) {
           </div>
 
           {loading && !passage && (
-            <div className="mp-paper-card p-5 sm:p-8 relative">
+            <div className="wl-card p-5 sm:p-8 relative">
               <div className="flex items-center gap-3 pb-4 mb-4 border-b border-stone-300">
                 <div className="w-9 h-9 grid place-items-center bg-stone-100 border border-stone-300">
-                  <Loader2 size={14} className="animate-spin text-[color:var(--encre-doux)]" />
+                  <Loader2 size={14} className="animate-spin text-[color:var(--gris)]" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)]" style={{ fontFamily:'Nunito, sans-serif' }}>
+                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>
                     {topic.icon} {topic.label}
                   </div>
-                  <div className="text-sm text-[color:var(--encre)] mt-1" style={{ fontFamily:'Nunito, sans-serif' }}>
+                  <div className="text-sm text-[color:var(--ink)] mt-1" style={{ fontFamily:'DM Sans, sans-serif' }}>
                     {loadingHint || 'préparation…'}
                   </div>
                 </div>
@@ -2069,56 +2125,56 @@ function ReaderScreen({ lang, level, onBack }) {
           )}
 
           {error && (
-            <div className="border-2 border-amber-700 bg-amber-50 p-4 text-amber-900" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+            <div className="border-2 border-amber-700 bg-amber-50 p-4 text-amber-900" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
               Impossible de générer un texte. Vérifiez votre connexion et réessayez.
             </div>
           )}
 
           {passage && (
-            <div className="mp-paper-card p-5 sm:p-8 relative"
+            <div className="wl-card p-5 sm:p-8 relative"
                  style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.04) 31px, rgba(0,0,0,0.04) 32px)' }}>
               <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-stone-300">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] flex items-center gap-2" style={{ fontFamily:'Nunito, sans-serif' }}>
+                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] flex items-center gap-2" style={{ fontFamily:'DM Sans, sans-serif' }}>
                     <span>{topic.icon} {topic.label}</span>
                     {loading && <Loader2 size={10} className="animate-spin" />}
                   </div>
-                  <h2 style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-2xl sm:text-3xl font-medium leading-tight mt-1 italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
+                  <h2 style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-2xl sm:text-3xl font-medium leading-tight mt-1 italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
                     {passage.title || <span className="text-[color:rgba(90,78,69,0.55)]">…</span>}
                   </h2>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={speakPassage} disabled={loading || !passage.text}
-                    className={`w-9 h-9 grid place-items-center transition-colors disabled:opacity-30 ${speakingText === passage.text ? 'bg-amber-700 text-stone-50 animate-pulse' : 'mp-btn-ink'}`}
+                    className={`w-9 h-9 grid place-items-center transition-colors disabled:opacity-30 ${speakingText === passage.text ? 'bg-amber-700 text-stone-50 animate-pulse' : 'wl-btn-secondary'}`}
                     title="écouter le texte">
                     <Volume2 size={14} />
                   </button>
                   <button onClick={() => setShowFr(s => !s)} disabled={!passage.translation}
-                    className={`px-2 py-1 text-[10px] uppercase tracking-widest border disabled:opacity-30 ${showFr ? 'mp-btn-ink border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`}
-                    style={{ fontFamily:'Nunito, sans-serif' }}>
+                    className={`px-2 py-1 text-[10px] uppercase tracking-widest border disabled:opacity-30 ${showFr ? 'wl-btn-secondary border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`}
+                    style={{ fontFamily:'DM Sans, sans-serif' }}>
                     fr
                   </button>
                 </div>
               </div>
 
-              <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-lg leading-relaxed text-[color:var(--encre)]" dir={lang.rtl ? 'rtl' : 'ltr'}>
+              <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg leading-relaxed text-[color:var(--ink)]" dir={lang.rtl ? 'rtl' : 'ltr'}>
                 <ClickableText text={passage.text || ''} onWordClick={(w, ctx) => setWordPopup({ word: w, context: ctx })} rtl={lang.rtl} />
                 {loading && (
-                  <span className="inline-block w-0.5 h-5 bg-[color:var(--encre)] ml-0.5 align-middle" style={{ animation: 'cursor-blink 0.9s steps(2) infinite' }} />
+                  <span className="inline-block w-0.5 h-5 bg-[color:var(--ink)] ml-0.5 align-middle" style={{ animation: 'cursor-blink 0.9s steps(2) infinite' }} />
                 )}
               </div>
 
               {showFr && passage.translation && (
                 <div className="mt-5 pt-4 border-t border-stone-300">
-                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--encre-doux)] mb-2" style={{ fontFamily:'Nunito, sans-serif' }}>traduction française</div>
-                  <div style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-[color:var(--encre)] leading-relaxed italic">
+                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-2" style={{ fontFamily:'DM Sans, sans-serif' }}>traduction française</div>
+                  <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-[color:var(--ink)] leading-relaxed italic">
                     {passage.translation}
                   </div>
                 </div>
               )}
 
               {!loading && (
-                <div className="mt-6 text-[10px] uppercase tracking-widest text-[color:rgba(90,78,69,0.55)] text-center" style={{ fontFamily:'Nunito, sans-serif' }}>
+                <div className="mt-6 text-[10px] uppercase tracking-widest text-[color:rgba(90,78,69,0.55)] text-center" style={{ fontFamily:'DM Sans, sans-serif' }}>
                   ↳ touchez un mot pour sa traduction et son explication
                 </div>
               )}
@@ -2149,10 +2205,10 @@ function ModePicker({ language, level, onSelect, onBack }) {
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
       <div className="max-w-3xl mx-auto">
         <StepHeader step={3} total={4} label="mode" onBack={onBack} />
-        <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+        <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
           <em>Comment</em> apprendre ?
         </h1>
-        <p className="mt-3 text-[color:var(--encre-doux)] max-w-xl" style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }}>
+        <p className="mt-3 text-[color:var(--gris)] max-w-xl" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
           {language.name} · {level.label.toLowerCase()} — choisissez votre mode
         </p>
         <div className="mt-6 grid sm:grid-cols-2 gap-3">
@@ -2160,12 +2216,12 @@ function ModePicker({ language, level, onSelect, onBack }) {
             const Icon = m.icon;
             return (
               <button key={m.id} onClick={() => onSelect(m.id)}
-                className="text-left mp-paper-card hover:-translate-y-0.5 transition-all p-5 flex flex-col gap-3 items-start">
+                className="text-left wl-card hover:-translate-y-0.5 transition-all p-5 flex flex-col gap-3 items-start">
                 <div className="w-14 h-14 grid place-items-center text-stone-50" style={{ backgroundColor: language.accent }}>
                   <Icon size={26} />
                 </div>
-                <h3 style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-2xl font-medium leading-none">{m.label}</h3>
-                <p style={{ fontFamily:'Cormorant Garamond, Georgia, serif' }} className="text-sm text-[color:var(--encre)] leading-relaxed">{m.desc}</p>
+                <h3 style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-2xl font-medium leading-none">{m.label}</h3>
+                <p style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-sm text-[color:var(--ink)] leading-relaxed">{m.desc}</p>
               </button>
             );
           })}
@@ -2218,40 +2274,101 @@ function useAuth() {
 
 // ─── AUTH SCREENS ─────────────────────────────────────────────────────────────
 
+function MascotHoot({ size = 180 }) {
+  return (
+    <svg viewBox="0 0 180 180" width={size} height={size}
+         style={{ filter: 'drop-shadow(0 6px 12px rgba(255, 107, 74, 0.25))' }}>
+      <ellipse cx="90" cy="105" rx="55" ry="60" fill="#FF6B4A" stroke="#2C1B1D" strokeWidth="4"/>
+      <ellipse cx="90" cy="115" rx="35" ry="42" fill="#FFF3E0"/>
+      <path d="M75 160 L72 170 M80 160 L80 172 M85 160 L88 170" stroke="#2C1B1D" strokeWidth="3" strokeLinecap="round"/>
+      <path d="M95 160 L92 170 M100 160 L100 172 M105 160 L108 170" stroke="#2C1B1D" strokeWidth="3" strokeLinecap="round"/>
+      <path d="M40 100 Q30 130 50 145" stroke="#2C1B1D" strokeWidth="4" fill="#E4522F"/>
+      <path d="M140 100 Q150 130 130 145" stroke="#2C1B1D" strokeWidth="4" fill="#E4522F"/>
+      <circle cx="70" cy="80" r="20" fill="white" stroke="#2C1B1D" strokeWidth="4"/>
+      <circle cx="110" cy="80" r="20" fill="white" stroke="#2C1B1D" strokeWidth="4"/>
+      <circle cx="72" cy="82" r="10" fill="#2C1B1D"/>
+      <circle cx="112" cy="82" r="10" fill="#2C1B1D"/>
+      <circle cx="75" cy="79" r="3" fill="white"/>
+      <circle cx="115" cy="79" r="3" fill="white"/>
+      <path d="M85 95 L90 108 L95 95 Z" fill="#FFC94D" stroke="#2C1B1D" strokeWidth="3" strokeLinejoin="round"/>
+      <path d="M60 55 L55 40 L65 50 Z" fill="#E4522F" stroke="#2C1B1D" strokeWidth="3" strokeLinejoin="round"/>
+      <path d="M120 55 L125 40 L115 50 Z" fill="#E4522F" stroke="#2C1B1D" strokeWidth="3" strokeLinejoin="round"/>
+      <circle cx="55" cy="105" r="8" fill="#FF8FB1" opacity="0.6"/>
+      <circle cx="125" cy="105" r="8" fill="#FF8FB1" opacity="0.6"/>
+      <rect x="75" y="130" width="30" height="22" rx="2" fill="#A78BFA" stroke="#2C1B1D" strokeWidth="3"/>
+      <line x1="90" y1="132" x2="90" y2="150" stroke="#2C1B1D" strokeWidth="2"/>
+    </svg>
+  );
+}
+
 function WelcomeScreen({ onLogin, onSignup }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-10" style={{ backgroundColor: 'transparent' }}>
-      <div className="max-w-md w-full text-center">
-        <div className="mp-splash mx-auto w-24 h-24 text-4xl mb-6"
-             style={{ background: 'radial-gradient(circle at 30% 30%, #2D5F8A, #0F2340)', backgroundColor: '#1E3A5F' }}>
-          <span style={{ fontFamily: 'Cormorant Garamond, serif' }}>MP</span>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg)' }}>
+      {/* Hero image with sunset gradient + city silhouette */}
+      <div className="relative overflow-hidden" style={{ height: '52vh', minHeight: '380px' }}>
+        <div className="absolute inset-0 wl-hero-sunset"></div>
+        <svg className="absolute bottom-0 left-0 right-0" style={{ height: '130px', opacity: 0.7 }} viewBox="0 0 400 130" preserveAspectRatio="xMidYEnd meet">
+          <g fill="#2A1520" opacity="0.7">
+            <rect x="0" y="90" width="30" height="40"/>
+            <rect x="35" y="70" width="25" height="60"/>
+            <path d="M180 20 L195 130 L165 130 Z"/>
+            <rect x="70" y="80" width="35" height="50"/>
+            <rect x="110" y="60" width="20" height="70"/>
+            <rect x="135" y="85" width="25" height="45"/>
+            <rect x="205" y="75" width="30" height="55"/>
+            <rect x="240" y="65" width="25" height="65"/>
+            <rect x="270" y="80" width="35" height="50"/>
+            <rect x="310" y="55" width="20" height="75"/>
+            <path d="M340 40 L350 60 L340 60 L340 130 L360 130 L360 60 L370 60 L360 40 Z"/>
+            <rect x="380" y="75" width="20" height="55"/>
+          </g>
+        </svg>
+        <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-between text-white z-10">
+          {/* Brand + live badge */}
+          <div className="flex items-center justify-between">
+            <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontStyle: 'italic', fontWeight: 700, fontSize: '24px', color: 'white' }}>
+              MonProf
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+              style={{ background: 'rgba(255,255,255,0.95)', color: 'var(--ink)', backdropFilter: 'blur(10px)' }}>
+              <span className="wl-dot-live"></span>1 200 en ligne
+            </span>
+          </div>
+          {/* Big headline */}
+          <div>
+            <h1 style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 500, fontSize: 'clamp(32px, 8vw, 46px)', lineHeight: 1.05, letterSpacing: '-0.03em', textShadow: '0 2px 20px rgba(0,0,0,0.3)' }}>
+              Le monde en <em style={{ color: '#FFDBB5' }}>conversations.</em>
+            </h1>
+            <p className="mt-2 text-[15px] font-medium max-w-xs" style={{ opacity: 0.95, textShadow: '0 1px 10px rgba(0,0,0,0.3)' }}>
+              Rencontrez 33 professeurs à travers 10 pays.
+            </p>
+          </div>
         </div>
-        <span className="mp-kicker text-[24px]">bienvenue !</span>
-        <h1 className="text-4xl sm:text-5xl font-medium tracking-tight leading-none mt-2"
-            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
-          <span className="mp-underline">MonProf</span>
-        </h1>
-        <p className="mt-4 text-[17px] italic max-w-sm mx-auto"
-           style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre-doux)' }}>
-          Apprenez les langues en conversation. Un professeur virtuel à vos côtés, jour après jour.
+      </div>
+
+      {/* Content below hero */}
+      <div className="flex-1 px-6 sm:px-8 pt-8 pb-8 max-w-md mx-auto w-full">
+        <p className="text-center text-[15px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>
+          Une nouvelle façon d'apprendre les langues :<br/>
+          en conversant, comme en voyage.
         </p>
 
-        <div className="mt-10 flex flex-col gap-3">
-          <button onClick={onLogin}
-            className="mp-btn-ink w-full py-3 text-lg rounded"
-            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
-            Se connecter
+        <div className="mt-8 flex flex-col gap-3">
+          <button onClick={onSignup} className="wl-btn-primary w-full">
+            Commencer l'aventure
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
-          <button onClick={onSignup}
-            className="mp-paper-card w-full py-3 text-lg hover:-translate-y-0.5 transition-all"
-            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre)' }}>
-            Créer un compte
+          <button onClick={onLogin} className="wl-btn-secondary w-full">
+            J'ai déjà un compte
           </button>
         </div>
 
-        <p className="mp-meta mt-8" style={{ letterSpacing: '0.15em' }}>
-          · 9 langues · voix · lecture · conversation ·
-        </p>
+        <div className="mt-8 flex justify-center gap-2 flex-wrap">
+          <span className="wl-chip">🇬🇧 Anglais</span>
+          <span className="wl-chip">🇪🇸 Español</span>
+          <span className="wl-chip">🇯🇵 日本語</span>
+          <span className="wl-chip">+7 autres</span>
+        </div>
       </div>
     </div>
   );
@@ -2259,8 +2376,8 @@ function WelcomeScreen({ onLogin, onSignup }) {
 
 function AuthField({ icon: Icon, type, placeholder, value, onChange, autoComplete }) {
   return (
-    <div className="flex items-center gap-3 mp-paper-card px-3 py-2.5">
-      <Icon size={16} style={{ color: 'var(--encre-doux)' }} />
+    <div className="flex items-center gap-3 wl-card px-4 py-3 rounded-2xl">
+      <Icon size={16} style={{ color: 'var(--gris)' }} />
       <input
         type={type}
         placeholder={placeholder}
@@ -2268,7 +2385,7 @@ function AuthField({ icon: Icon, type, placeholder, value, onChange, autoComplet
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         className="flex-1 bg-transparent focus:outline-none text-base"
-        style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre)' }}
+        style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, color: 'var(--ink)' }}
       />
     </div>
   );
@@ -2298,45 +2415,48 @@ function LoginForm({ onBack, onSuccess, onGoSignup }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-10" style={{ backgroundColor: 'transparent' }}>
-      <div className="max-w-md w-full">
-        <button onClick={onBack} className="mp-meta flex items-center gap-1 mb-6 hover:opacity-70">
-          <ArrowLeft size={12} /> retour
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center px-6 py-10">
+      <div className="" style={{ top: '-60px', right: '-40px', width: '200px', height: '200px', background: 'var(--soleil)' }}></div>
+      <div className="max-w-md w-full relative z-10">
+        <button onClick={onBack} className="flex items-center gap-1 mb-6 hover:opacity-70 text-sm font-bold"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> retour
         </button>
 
-        <span className="mp-kicker text-[22px]">content de vous revoir !</span>
-        <h1 className="text-3xl sm:text-4xl font-medium tracking-tight leading-none mt-2"
-            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
-          <span className="mp-underline">Connexion</span>
-        </h1>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center rounded-full mb-2" style={{ width: 72, height: 72, background: "linear-gradient(135deg, #FF385C, #E31C5F)", boxShadow: "0 6px 18px rgba(255,56,92,0.3)" }}><span style={{ fontSize: 34 }}>🌍</span></div>
+          <h1 className="text-3xl sm:text-4xl leading-none mt-4"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
+            Content de te <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>revoir !</span>
+          </h1>
+        </div>
 
-        <form onSubmit={submit} className="mt-8 flex flex-col gap-3">
+        <form onSubmit={submit} className="flex flex-col gap-3">
           <AuthField icon={Mail} type="email" placeholder="votre email"
             value={email} onChange={setEmail} autoComplete="email" />
           <AuthField icon={Lock} type="password" placeholder="mot de passe"
             value={password} onChange={setPassword} autoComplete="current-password" />
 
           {error && (
-            <div className="mp-paper-card px-3 py-2 text-sm italic"
-                 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--sanguine)', borderColor: 'var(--sanguine)' }}>
-              {error}
+            <div className="wl-card px-4 py-3 text-sm font-semibold"
+                 style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+              ⚠️ {error}
             </div>
           )}
 
           <button type="submit" disabled={loading || !email || !password}
-            className="mp-btn-ink w-full py-3 text-lg mt-2 rounded disabled:opacity-40 flex items-center justify-center gap-2"
-            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+            className="wl-btn-primary w-full mt-2 flex items-center justify-center gap-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'connexion…' : 'Se connecter'}
+            {loading ? 'connexion…' : 'Se connecter →'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <span className="mp-meta">pas encore de compte ?</span>{' '}
+        <div className="mt-6 text-center text-sm" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          Pas encore de compte ?{' '}
           <button onClick={onGoSignup}
-            className="text-[13px] italic hover:opacity-70"
-            style={{ fontFamily: 'Caveat, cursive', color: 'var(--sanguine)', fontSize: '16px' }}>
-            créez-en un →
+            className="font-bold hover:opacity-70"
+            style={{ color: 'var(--corail)' }}>
+            Créer un compte →
           </button>
         </div>
       </div>
@@ -2383,26 +2503,21 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 py-10">
-        <div className="max-w-md w-full text-center">
-          <div className="mp-splash mx-auto w-20 h-20 text-4xl mb-6"
-               style={{ background: 'radial-gradient(circle at 30% 30%, #4A9086, #1F5A54)', backgroundColor: '#0F766E' }}>
-            ✓
-          </div>
-          <span className="mp-kicker text-[22px]">bienvenue à bord !</span>
-          <h1 className="text-3xl font-medium tracking-tight leading-none mt-2"
-              style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
-            <span className="mp-underline">Vérifiez votre email</span>
+      <div className="min-h-screen relative overflow-hidden flex items-center justify-center px-6 py-10">
+        <div className="" style={{ top: '-40px', left: '-40px', width: '200px', height: '200px', background: 'var(--menthe)' }}></div>
+        <div className="max-w-md w-full text-center relative z-10">
+          <div className="text-6xl mb-4  inline-block">🎉</div>
+          <h1 className="text-3xl leading-none mt-2"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
+            Vérifie tes <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>emails !</span>
           </h1>
-          <p className="mt-5 text-[17px] italic"
-             style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre-doux)' }}>
-            Un email vient d'être envoyé à <strong style={{ color: 'var(--encre)' }}>{email}</strong>.<br/>
-            Cliquez sur le lien qu'il contient pour activer votre compte, puis revenez ici pour vous connecter.
+          <p className="mt-5 text-[16px] leading-relaxed"
+             style={{ fontFamily: 'DM Sans', fontWeight: 500, color: 'var(--gris)' }}>
+            Un email a été envoyé à <strong style={{ color: 'var(--ink)' }}>{email}</strong>.<br/>
+            Clique sur le lien pour activer ton compte, puis reviens ici 👇
           </p>
-          <button onClick={onGoLogin}
-            className="mp-btn-ink mt-8 px-8 py-3 rounded"
-            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
-            Aller à la connexion
+          <button onClick={onGoLogin} className="wl-btn-primary mt-8">
+            Aller à la connexion →
           </button>
         </div>
       </div>
@@ -2410,23 +2525,27 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-10" style={{ backgroundColor: 'transparent' }}>
-      <div className="max-w-md w-full">
-        <button onClick={onBack} className="mp-meta flex items-center gap-1 mb-6 hover:opacity-70">
-          <ArrowLeft size={12} /> retour
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center px-6 py-10">
+      <div className="" style={{ top: '-60px', right: '-40px', width: '200px', height: '200px', background: 'var(--menthe)' }}></div>
+      <div className="max-w-md w-full relative z-10">
+        <button onClick={onBack} className="flex items-center gap-1 mb-6 hover:opacity-70 text-sm font-bold"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> retour
         </button>
 
-        <span className="mp-kicker text-[22px]">enchanté !</span>
-        <h1 className="text-3xl sm:text-4xl font-medium tracking-tight leading-none mt-2"
-            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
-          <span className="mp-underline">Créer un compte</span>
-        </h1>
-        <p className="mt-3 text-[15px] italic"
-           style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--encre-doux)' }}>
-          Quelques infos pour personnaliser votre parcours.
-        </p>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center rounded-full mb-2" style={{ width: 72, height: 72, background: "linear-gradient(135deg, #FF385C, #E31C5F)", boxShadow: "0 6px 18px rgba(255,56,92,0.3)" }}><span style={{ fontSize: 34 }}>🌍</span></div>
+          <h1 className="text-3xl sm:text-4xl leading-none mt-4"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
+            <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>Enchanté !</span>
+          </h1>
+          <p className="mt-3 text-[15px]"
+             style={{ fontFamily: 'DM Sans', fontWeight: 500, color: 'var(--gris)' }}>
+            Quelques infos et c'est parti ✨
+          </p>
+        </div>
 
-        <form onSubmit={submit} className="mt-6 flex flex-col gap-3">
+        <form onSubmit={submit} className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <AuthField icon={User} type="text" placeholder="prénom"
               value={firstName} onChange={setFirstName} autoComplete="given-name" />
@@ -2439,26 +2558,25 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
             value={password} onChange={setPassword} autoComplete="new-password" />
 
           {error && (
-            <div className="mp-paper-card px-3 py-2 text-sm italic"
-                 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: 'var(--sanguine)' }}>
-              {error}
+            <div className="wl-card px-4 py-3 text-sm font-semibold"
+                 style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+              ⚠️ {error}
             </div>
           )}
 
           <button type="submit" disabled={loading || !firstName || !email || !password}
-            className="mp-btn-ink w-full py-3 text-lg mt-2 rounded disabled:opacity-40 flex items-center justify-center gap-2"
-            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+            className="wl-btn-primary w-full mt-2 flex items-center justify-center gap-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'inscription…' : 'Créer mon compte'}
+            {loading ? 'inscription…' : 'Créer mon compte 🚀'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <span className="mp-meta">déjà un compte ?</span>{' '}
+        <div className="mt-6 text-center text-sm" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          Déjà un compte ?{' '}
           <button onClick={onGoLogin}
-            className="italic hover:opacity-70"
-            style={{ fontFamily: 'Caveat, cursive', color: 'var(--sanguine)', fontSize: '16px' }}>
-            connectez-vous →
+            className="font-bold hover:opacity-70"
+            style={{ color: 'var(--corail)' }}>
+            Se connecter →
           </button>
         </div>
       </div>
@@ -2473,9 +2591,9 @@ function AuthGate({ children }) {
   if (!supabase) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="mp-paper-card p-6 max-w-md text-center"
-             style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
-          <div className="mp-meta mb-2">configuration manquante</div>
+        <div className="wl-card p-6 max-w-md text-center"
+             style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+          <div className="text-xs font-bold uppercase tracking-wider mb-2">configuration manquante</div>
           <p className="italic">
             Les clés Supabase ne sont pas configurées.<br/>
             Ajoutez <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> dans les variables d'environnement Vercel.
@@ -2488,7 +2606,7 @@ function AuthGate({ children }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin" style={{ color: 'var(--sepia)' }} />
+        <Loader2 size={24} className="animate-spin" style={{ color: 'var(--corail-2)' }} />
       </div>
     );
   }
@@ -2513,7 +2631,7 @@ function MainApp({ profile, signOut }) {
 
   useEffect(() => {
     const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Caveat:wght@400;500;600&family=Nunito:wght@400;500;600;700&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=DM+Sans:wght@400;500;600;700&display=swap';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
     if ('speechSynthesis' in window) window.speechSynthesis.getVoices();

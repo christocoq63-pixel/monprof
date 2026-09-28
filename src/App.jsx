@@ -2211,28 +2211,45 @@ async function chatWithFallback({ system, messages, maxTokens = 500, cache = fal
   throw lastError || new Error('All models failed');
 }
 
-// Fetch a word explanation via our API — with a persistent cache to avoid
-// re-billing the same word twice for a given user.
-async function explainWord(word, context, lang) {
-  const normalized = word.toLowerCase().replace(/[^\p{L}\p{N}-]/gu, '').trim();
-  const cacheKey = `word:${lang.code}:${normalized}`;
-  // Try local cache first
-  try {
-    const cached = storage.get(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed && parsed.translation) return parsed;
-    }
-  } catch { /* ignore */ }
+// A tiny incremental JSON parser: given a partial JSON string,
+// extract as many top-level string fields as have arrived so far.
+// Handles nested objects (like "example": {...}) up to one level.
+function extractPartialFields(raw) {
+  const out = {};
+  if (!raw) return out;
+  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```/g, '');
+  const s = cleaned.indexOf('{');
+  if (s === -1) return out;
+  const body = cleaned.slice(s + 1);
 
-  const systemPrompt = `You are a language tutor helping a French speaker learn ${lang.nativeName} (${lang.name} in French).
-The user just clicked on the word "${word}" appearing in this sentence: "${context}".
-Give:
-- Its French translation IN THIS CONTEXT
+  // Match: "key": "value" (complete strings)
+  const pairRe = /"(\w+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+  let m;
+  while ((m = pairRe.exec(body)) !== null) out[m[1]] = m[2].replace(/\\"/g, '"');
+
+  // Match: "example": { "text": "...", "fr": "..." }
+  const exRe = /"example"\s*:\s*\{([^}]*)\}/;
+  const exMatch = body.match(exRe);
+  if (exMatch) {
+    const ex = {};
+    const inner = exMatch[1];
+    const innerRe = /"(\w+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+    let mm;
+    while ((mm = innerRe.exec(inner)) !== null) ex[mm[1]] = mm[2].replace(/\\"/g, '"');
+    if (Object.keys(ex).length) out.example = ex;
+  }
+  return out;
+}
+
+// System prompt for word lookups — stable per language, so Anthropic can cache it.
+function buildWordSystem(lang) {
+  return `You are a language tutor helping a French speaker learn ${lang.nativeName} (${lang.name} in French).
+The user will give you a word and the sentence it appears in. You produce:
+- The French translation IN THAT CONTEXT (as short as possible — 1-4 words)
 - A short French explanation (nature: nom/verbe/adjectif/etc, grammar note, nuance, or false friend warning)
 - A short example sentence in ${lang.nativeName} using this word, with its French translation
 
-Respond ONLY with a JSON object, no code fences:
+Respond ONLY with a JSON object, no code fences. Emit fields IN THIS ORDER — translation first, then explanation, then example:
 {
   "translation": "<French translation of the word in this context>",
   "explanation": "<short French explanation, 1-2 sentences>",
@@ -2241,19 +2258,89 @@ Respond ONLY with a JSON object, no code fences:
     "fr": "<French translation of the example>"
   }
 }`;
+}
 
-  const data = await chatWithFallback({
-    system: systemPrompt,
-    messages: [{ role: 'user', content: `Explain the word "${word}".` }],
-    maxTokens: 300,
-  });
-  const textOut = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  const cleaned = textOut.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+// Streaming word explanation — starts calling `onPartial` as soon as the
+// translation arrives (usually <500ms), so the popup shows a first result fast.
+async function explainWord(word, context, lang, { onPartial } = {}) {
+  const normalized = word.toLowerCase().replace(/[^\p{L}\p{N}-]/gu, '').trim();
+  const cacheKey = `word:${lang.code}:${normalized}`;
+
+  // 1) Local cache — instant, no network call
+  try {
+    const cached = storage.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.translation) {
+        onPartial?.(parsed);
+        return parsed;
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 2) Streaming call — Haiku only (fastest, no fallback penalty on hot path)
+  const cachedSystem = wrapSystemForCaching(buildWordSystem(lang), true);
+  const payload = {
+    model: 'claude-haiku-4-5',
+    max_tokens: 250,
+    system: cachedSystem,
+    messages: [{ role: 'user', content: `Word: "${word}"\nSentence: "${context}"` }],
+    stream: true,
+  };
+
+  let accumulated = '';
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
+      for (const evt of events) {
+        for (const line of evt.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          const dataStr = line.slice(6);
+          try {
+            const evtData = JSON.parse(dataStr);
+            if (evtData.type === 'content_block_delta' && evtData.delta?.text) {
+              accumulated += evtData.delta.text;
+              const partial = extractPartialFields(accumulated);
+              if (partial.translation) onPartial?.(partial);
+            }
+          } catch { /* ignore parse errors on partial events */ }
+        }
+      }
+    }
+  } catch (e) {
+    // Fallback: single non-streaming call
+    const data = await chatWithFallback({
+      system: buildWordSystem(lang),
+      messages: [{ role: 'user', content: `Word: "${word}"\nSentence: "${context}"` }],
+      maxTokens: 250,
+      cache: true,
+    });
+    accumulated = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  }
+
+  // Final parse
+  const cleaned = accumulated.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
   const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
   const parsed = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
 
-  // Cache the result — same word in same language usually gets the same explanation
+  // Cache the final result
   try { storage.set(cacheKey, JSON.stringify(parsed)); } catch { /* ignore */ }
+  onPartial?.(parsed);
   return parsed;
 }
 
@@ -2264,7 +2351,10 @@ function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
   useEffect(() => {
     let alive = true;
     setData(null); setError(null);
-    explainWord(word, context, lang)
+    explainWord(word, context, lang, {
+      // Progressive: as soon as `translation` arrives, the popup shows it.
+      onPartial: (partial) => { if (alive) setData(prev => ({ ...(prev || {}), ...partial })); },
+    })
       .then(d => { if (alive) setData(d); })
       .catch(() => { if (alive) setError(true); });
     return () => { alive = false; };
@@ -2297,6 +2387,12 @@ function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
             <div className="flex items-center gap-2 text-[color:var(--gris)] text-sm" style={{ fontFamily:'DM Sans, sans-serif' }}>
               <Loader2 size={14} className="animate-spin" />
               <span>recherche…</span>
+            </div>
+          )}
+          {data && !data.example && !error && (
+            <div className="mt-3 text-[11px] uppercase tracking-widest text-[color:var(--gris)] flex items-center gap-1.5" style={{ fontFamily:'DM Sans, sans-serif' }}>
+              <Loader2 size={10} className="animate-spin" />
+              <span>chargement de l'exemple…</span>
             </div>
           )}
           {error && (

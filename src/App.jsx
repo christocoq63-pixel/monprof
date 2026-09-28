@@ -1342,7 +1342,7 @@ function StepHeader({ step, total, label, onBack }) {
 
 // ─── STEP 1: LANGUAGE ─────────────────────────────────────────────────────────
 
-function LanguagePicker({ onSelect, onResumeLast, onResumeMode, profile, signOut, onOpenProfile, onOpenLexicon }) {
+function LanguagePicker({ onSelect, onResumeLast, profile, signOut, onOpenProfile, onOpenLexicon }) {
   const [lastSession, setLastSession] = useState(null);
 
   useEffect(() => {
@@ -1392,97 +1392,45 @@ function LanguagePicker({ onSelect, onResumeLast, onResumeMode, profile, signOut
           </div>
         )}
         <StepHeader step={1} total={4} label="langue" />
+        <span className="text-[22px] mb-1">bonjour !</span>
+        <h1 className="text-3xl sm:text-[46px] font-medium tracking-tight leading-none mt-1" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
+          Quelle <span>langue</span> voulez-vous apprendre ?
+        </h1>
+        <p className="mt-4 text-[17px] max-w-lg italic" style={{ fontFamily:'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
+          Chaque langue est une invitation au voyage. Choisissez celle qui vous fait rêver aujourd'hui.
+        </p>
 
-        {lastSession ? (
-          <>
-            {/* Bannière : langue en cours */}
-            <div className="mt-2 flex items-center gap-3">
-              <AnimatedAvatar avatar={lastSession.avatar} size="md" />
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--gris)' }}>
-                  bon retour ·  {timeSince(lastSession.lastUpdated)}
-                </div>
-                <h1 className="text-2xl sm:text-4xl font-medium leading-tight tracking-tight mt-0.5" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
-                  Continuons en <em style={{ color: lastSession.lang.accent }}>{lastSession.lang.name}</em>
-                </h1>
-                <div className="text-[12px] mt-0.5 truncate" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
-                  {lastSession.avatar.name} · niveau {lastSession.level.label.toLowerCase()}
-                </div>
+        {/* Raccourci discret : reprendre la dernière session en 1 clic */}
+        {lastSession && (
+          <button onClick={() => onResumeLast(lastSession)}
+            className="mt-5 w-full hover:-translate-y-0.5 transition-all p-3 pr-4 flex items-center gap-3 text-left"
+            style={{
+              backgroundColor: 'white',
+              border: `1.5px solid ${lastSession.lang.accent}55`,
+              boxShadow: `0 3px 10px ${lastSession.lang.accent}22`,
+              borderRadius: '999px',
+            }}>
+            <AnimatedAvatar avatar={lastSession.avatar} size="md" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: lastSession.lang.accent }}>
+                📖 reprendre avec {lastSession.avatar.name}
+              </div>
+              <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-tight truncate">
+                <em>{lastSession.lang.name}</em> · niveau {lastSession.level.label.toLowerCase()}
+              </div>
+              <div className="text-[11px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                {timeSince(lastSession.lastUpdated)}
               </div>
             </div>
-
-            {/* 4 pavés d'action */}
-            <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
-                { id: 'chat',      emoji: '💬', label: 'Reprendre',  desc: 'Discussion en cours avec ' + lastSession.avatar.name, primary: true },
-                { id: 'reader',    emoji: '📖', label: 'Lire',        desc: 'Textes à votre niveau, mot à mot cliquable' },
-                { id: 'exercises', emoji: '🎯', label: 'Exercices',   desc: 'Basés sur vos erreurs récentes' },
-                { id: 'lexicon',   emoji: '📚', label: 'Lexique',     desc: 'Revoir les mots enregistrés' },
-              ].map(tile => (
-                <button key={tile.id}
-                  onClick={() => tile.id === 'chat'
-                    ? onResumeLast(lastSession)
-                    : onResumeMode?.(lastSession, tile.id)}
-                  className="text-left p-4 sm:p-5 flex flex-col items-start gap-3 transition-all hover:-translate-y-1 group"
-                  style={{
-                    borderRadius: '24px',
-                    background: tile.primary
-                      ? `linear-gradient(135deg, ${lastSession.lang.accent}, ${lastSession.lang.accent}DD)`
-                      : 'white',
-                    border: tile.primary ? 'none' : `1.5px solid ${lastSession.lang.accent}44`,
-                    boxShadow: tile.primary
-                      ? `0 6px 20px ${lastSession.lang.accent}55`
-                      : `0 3px 12px ${lastSession.lang.accent}15`,
-                    color: tile.primary ? 'white' : 'var(--ink)',
-                  }}>
-                  <div className="rounded-full grid place-items-center group-hover:scale-105 transition-transform"
-                       style={{
-                         width: 52, height: 52,
-                         background: tile.primary
-                           ? 'rgba(255,255,255,0.22)'
-                           : `radial-gradient(circle at 30% 30%, ${lastSession.lang.accent}, ${lastSession.lang.accent}CC)`,
-                         color: 'white',
-                         fontSize: 22,
-                         boxShadow: tile.primary ? 'none' : `0 4px 14px ${lastSession.lang.accent}55`,
-                       }}>
-                    {tile.emoji}
-                  </div>
-                  <div>
-                    <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none">
-                      {tile.label}
-                    </div>
-                    <p className="text-[12px] leading-snug mt-1"
-                       style={{
-                         fontFamily: 'DM Sans',
-                         color: tile.primary ? 'rgba(255,255,255,0.9)' : 'var(--gris)',
-                       }}>
-                      {tile.desc}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-10 text-xs font-bold uppercase tracking-wider text-center mb-6" style={{ color: 'var(--gris)' }}>
-              · ou choisir une autre langue ·
-            </div>
-          </>
-        ) : (
-          <>
-            <span className="text-[22px] mb-1">bonjour !</span>
-            <h1 className="text-3xl sm:text-[46px] font-medium tracking-tight leading-none mt-1" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
-              Quelle <span>langue</span> voulez-vous apprendre ?
-            </h1>
-            <p className="mt-4 text-[17px] max-w-lg italic" style={{ fontFamily:'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
-              Chaque langue est une invitation au voyage. Choisissez celle qui vous fait rêver aujourd'hui.
-            </p>
-            <div className="mt-8">
-              <div className="text-xs font-bold uppercase tracking-wider text-center mb-6">
-                · choisissez ·
-              </div>
-            </div>
-          </>
+            <span className="shrink-0 text-xl" style={{ fontFamily:'Fraunces, Georgia, serif', color: lastSession.lang.accent }}>→</span>
+          </button>
         )}
+
+        <div className="mt-8">
+          <div className="text-xs font-bold uppercase tracking-wider text-center mb-6">
+            {lastSession ? '· ou choisir une autre langue ·' : '· choisissez ·'}
+          </div>
+        </div>
         <div className="flex flex-wrap justify-center gap-5 sm:gap-6 px-2">
           {Object.values(LANGUAGES).map(lang => (
             <button key={lang.code} onClick={() => onSelect(lang)}
@@ -4452,7 +4400,19 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
 
 // ─── STEP 2.5: MODE PICKER ────────────────────────────────────────────────────
 
-function ModePicker({ language, level, onSelect, onBack }) {
+function ModePicker({ language, level, onSelect, onBack, onResumeChat }) {
+  const [resumeSession, setResumeSession] = useState(null);
+
+  // Check if there's a saved conversation for this exact language + level
+  useEffect(() => {
+    loadLastSession().then(s => {
+      if (!s) return;
+      if (s.langCode !== language.code || s.levelId !== level.id) return;
+      const avatar = language.avatars.find(a => a.id === s.avatarId);
+      if (avatar) setResumeSession({ avatar, lastUpdated: s.lastUpdated });
+    });
+  }, [language.code, level.id]);
+
   const modes = [
     { id: 'chat',      label: 'Discuter',   icon: MessageCircle, emoji: '💬',
       desc: "Conversation vocale avec un interlocuteur virtuel. Il vous répond, corrige vos erreurs et explique." },
@@ -4473,6 +4433,44 @@ function ModePicker({ language, level, onSelect, onBack }) {
         <p className="mt-3 text-[color:var(--gris)] max-w-xl" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
           {language.name} · {level.label.toLowerCase()} — choisissez votre mode
         </p>
+
+        {/* Pavé Reprendre — apparaît quand une conversation existe pour ce lang+level */}
+        {resumeSession && (
+          <button onClick={() => onResumeChat?.(resumeSession.avatar)}
+            className="mt-6 w-full text-left hover:-translate-y-1 transition-all p-4 sm:p-5 flex items-center gap-4 group"
+            style={{
+              borderRadius: '9999px',
+              background: `linear-gradient(135deg, ${language.accent}, ${language.accent}DD)`,
+              border: 'none',
+              boxShadow: `0 6px 20px ${language.accent}55`,
+            }}>
+            <div className="rounded-full grid place-items-center shrink-0 overflow-hidden"
+                 style={{ width: 56, height: 56, background: 'rgba(255,255,255,0.25)', padding: 4 }}>
+              <AnimatedAvatar avatar={resumeSession.avatar} size="sm" />
+            </div>
+            <div className="flex-1 min-w-0 text-white">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span style={{ fontFamily: 'Fraunces, Georgia, serif' }} className="text-xl sm:text-2xl font-medium">
+                  Reprendre avec {resumeSession.avatar.name}
+                </span>
+                <span className="text-[10px] uppercase tracking-widest opacity-80" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                  {timeSince(resumeSession.lastUpdated)}
+                </span>
+              </div>
+              <p className="text-[13px] opacity-90 mt-0.5" style={{ fontFamily: 'DM Sans' }}>
+                Continuer la conversation là où vous l'aviez laissée
+              </p>
+            </div>
+            <span className="text-white text-2xl shrink-0 group-hover:translate-x-1 transition-transform" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>→</span>
+          </button>
+        )}
+
+        {resumeSession && (
+          <div className="mt-6 text-xs font-bold uppercase tracking-wider text-center mb-2" style={{ color: 'var(--gris)' }}>
+            · ou choisir un autre mode ·
+          </div>
+        )}
+
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {modes.map(m => {
             const Icon = m.icon;
@@ -5751,14 +5749,6 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onOpenProfile={() => setStep('profile')}
     onOpenLexicon={() => setStep('lexicon')}
     onResumeLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar); setStep('chat'); }}
-    onResumeMode={(s, mode) => {
-      // Reuse the last session's language + level, and jump to the chosen mode.
-      setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar);
-      if (mode === 'reader')    setStep('reader');
-      else if (mode === 'exercises') setStep('exercises');
-      else if (mode === 'lexicon')   setStep('lexicon');
-      else                            setStep('chat');
-    }}
   />;
   if (step === 'level')    return <LevelPicker language={language}
     onSelect={(lv) => { setLevel(lv); setStep('mode'); }}
@@ -5774,6 +5764,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
       if (m === 'exercises') return setStep('exercises');
       if (m === 'lexicon') return setStep('lexicon');
     }}
+    onResumeChat={(av) => { setAvatar(av); setStep('chat'); }}
     onBack={() => setStep('level')} />;
   if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
   if (step === 'reader')   return <ReaderScreen lang={language} level={level}

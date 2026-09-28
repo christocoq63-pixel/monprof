@@ -2019,6 +2019,163 @@ function DeviceChooserScreen({ onSaved, onSkip, currentDevice, forceShow = false
   );
 }
 
+// Mini-écran : choix manuel du niveau (langue + niveau) depuis "Mon compte"
+function ManualLevelPickerScreen({ onSaved, onBack }) {
+  const [selectedLang, setSelectedLang] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [error, setError] = useState(null);
+
+  const saveLevel = async (level) => {
+    if (!selectedLang) return;
+    setSaving(true); setError(null);
+    // Rough CEFR mapping from our 3 in-app levels
+    const cefr = level.id === 'beginner' ? 'A2' : level.id === 'intermediate' ? 'B1' : 'C1';
+    try {
+      await saveLevelTestResult({
+        language_code: selectedLang.code,
+        language_name: selectedLang.name,
+        cefr,
+        score: null,
+        level_id: level.id,
+        strengths_fr: '',
+        weaknesses_fr: '',
+        advice_fr: 'Niveau choisi manuellement — un test permettra une évaluation plus précise.',
+        transcript: '[Niveau choisi manuellement, sans test]',
+        exchanges: 0,
+        duration_seconds: 0,
+      });
+      setSavedFlash(true);
+      setTimeout(() => onSaved?.(level), 900);
+    } catch (e) {
+      setError(e.message);
+      setSaving(false);
+    }
+  };
+
+  // Étape 2 : choix du niveau une fois la langue choisie
+  if (selectedLang) {
+    return (
+      <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+        <div className="max-w-2xl mx-auto">
+          <button onClick={() => setSelectedLang(null)}
+            className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+            style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            <ArrowLeft size={14} /> retour
+          </button>
+
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-3 mb-3 px-4 py-2 rounded-full"
+                 style={{ background: `${selectedLang.accent}18`, color: selectedLang.accent, fontFamily: 'DM Sans', fontWeight: 700 }}>
+              <span style={{ fontSize: 18 }}>{selectedLang.glyph}</span>
+              <span>{selectedLang.name}</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl leading-none"
+                style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+              Choisir mon <em style={{ color: selectedLang.accent }}>niveau</em>
+            </h1>
+            <p className="mt-3 text-[14px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              Soyez honnête — c'est mieux de commencer un peu en dessous et de progresser
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {Object.values(LEVELS).map(lv => (
+              <button key={lv.id} onClick={() => saveLevel(lv)}
+                disabled={saving}
+                className="w-full text-left hover:-translate-y-0.5 transition-all p-4 sm:p-5 flex items-center gap-4 disabled:opacity-60"
+                style={{
+                  borderRadius: '9999px',
+                  background: 'white',
+                  border: `1.5px solid ${selectedLang.accent}44`,
+                  boxShadow: `0 2px 8px ${selectedLang.accent}12`,
+                }}>
+                <div className="w-14 h-14 rounded-full grid place-items-center text-stone-50 shrink-0" style={{ backgroundColor: selectedLang.accent, fontFamily: 'Fraunces, Georgia, serif' }}>
+                  <span className="text-2xl">{lv.icon}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span style={{ fontFamily: 'Fraunces, Georgia, serif' }} className="text-xl sm:text-2xl font-medium">{lv.label}</span>
+                    <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: 'DM Sans, sans-serif', color: selectedLang.accent, fontWeight: 700 }}>{lv.sublabel}</span>
+                  </div>
+                  <p className="text-sm text-[color:var(--gris)] mt-1" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>{lv.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {savedFlash && (
+            <div className="mt-5 text-center flex items-center justify-center gap-2 px-4 py-3 rounded-full"
+                 style={{ background: '#DCFCE7', color: '#15803D', fontFamily: 'DM Sans', fontWeight: 700 }}>
+              <Check size={16} /> niveau enregistré
+            </div>
+          )}
+          {error && (
+            <div className="mt-4 wl-card px-4 py-3 text-sm text-center"
+                 style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+              ⚠️ {error}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Étape 1 : choix de la langue
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+      <div className="max-w-2xl mx-auto">
+        <button onClick={onBack}
+          className="flex items-center gap-2 mb-6 text-sm font-bold hover:opacity-70"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> retour
+        </button>
+
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center rounded-full mb-3"
+               style={{ width: 64, height: 64, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 6px 18px rgba(255,56,92,0.3)' }}>
+            <span style={{ fontSize: 28 }}>📝</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl leading-none"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+            Choisir <em style={{ color: 'var(--corail)' }}>manuellement</em>
+          </h1>
+          <p className="mt-3 text-[15px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            Quelle langue voulez-vous définir ?
+          </p>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-5 sm:gap-6 px-2">
+          {Object.values(LANGUAGES).map(lang => (
+            <button key={lang.code} onClick={() => setSelectedLang(lang)}
+              className="group relative flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
+              style={{
+                width: '132px', height: '132px',
+                borderRadius: '50%',
+                border: `1.5px solid ${lang.accent}55`,
+                background: `radial-gradient(circle at 30% 30%, ${lang.accent}25, ${lang.accent}18)`,
+                boxShadow: `0 3px 10px ${lang.accent}20`,
+              }}>
+              <span className="absolute inset-0 rounded-full transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                style={{
+                  background: `radial-gradient(circle at 30% 30%, ${lang.accent}, ${lang.accent}DD)`,
+                  boxShadow: `0 10px 28px ${lang.accent}66`,
+                }} />
+              <div className="relative z-10 flex flex-col items-center justify-center px-3 text-center">
+                <span className="text-2xl mb-1 transition-transform duration-300 group-hover:scale-110">{lang.glyph}</span>
+                <span className="text-[15px] sm:text-base font-semibold leading-tight transition-colors duration-300 group-hover:text-white"
+                  style={{ fontFamily: 'Fraunces, Georgia, serif', color: lang.accent }}>
+                  {lang.name}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Mini-écran : choix de langue pour lancer un test depuis "Mon compte"
 function LanguagePickForTest({ onSelect, onBack }) {
   return (
@@ -4246,14 +4403,18 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
 
 function ModePicker({ language, level, onSelect, onBack }) {
   const modes = [
-    { id: 'chat',   label: 'Discuter',  icon: MessageCircle,
+    { id: 'chat',      label: 'Discuter',   icon: MessageCircle, emoji: '💬',
       desc: "Conversation vocale avec un interlocuteur virtuel. Il vous répond, corrige vos erreurs et explique." },
-    { id: 'reader', label: 'Lire',      icon: BookText,
+    { id: 'reader',    label: 'Lire',       icon: BookText,      emoji: '📖',
       desc: "Textes générés à votre niveau, sur le sujet de votre choix. Touchez chaque mot pour sa traduction et son explication." },
+    { id: 'exercises', label: 'Exercices',  icon: null,          emoji: '🎯',
+      desc: "Exercices de grammaire personnalisés générés à partir de vos erreurs — fill-in, transformations, traductions ciblées." },
+    { id: 'lexicon',   label: 'Lexique',    icon: null,          emoji: '📚',
+      desc: "Tous les mots dont vous avez demandé la traduction, avec explications et exemples. À revoir à volonté." },
   ];
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <StepHeader step={3} total={4} label="mode" onBack={onBack} />
         <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
           <em>Comment</em> apprendre ?
@@ -4261,14 +4422,26 @@ function ModePicker({ language, level, onSelect, onBack }) {
         <p className="mt-3 text-[color:var(--gris)] max-w-xl" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
           {language.name} · {level.label.toLowerCase()} — choisissez votre mode
         </p>
-        <div className="mt-6 grid sm:grid-cols-2 gap-3">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {modes.map(m => {
             const Icon = m.icon;
             return (
               <button key={m.id} onClick={() => onSelect(m.id)}
-                className="text-left wl-card hover:-translate-y-0.5 transition-all p-5 flex flex-col gap-3 items-start">
-                <div className="w-14 h-14 grid place-items-center text-stone-50" style={{ backgroundColor: language.accent }}>
-                  <Icon size={26} />
+                className="text-left hover:-translate-y-1 transition-all p-5 flex flex-col gap-3 items-start group"
+                style={{
+                  borderRadius: '24px',
+                  background: 'white',
+                  border: `1.5px solid ${language.accent}44`,
+                  boxShadow: `0 3px 12px ${language.accent}18`,
+                }}>
+                <div className="rounded-full grid place-items-center text-white group-hover:scale-105 transition-transform"
+                     style={{
+                       width: 60, height: 60,
+                       background: `radial-gradient(circle at 30% 30%, ${language.accent}, ${language.accent}CC)`,
+                       boxShadow: `0 4px 14px ${language.accent}55`,
+                       fontSize: 26,
+                     }}>
+                  {Icon ? <Icon size={26} /> : <span>{m.emoji}</span>}
                 </div>
                 <h3 style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-2xl font-medium leading-none">{m.label}</h3>
                 <p style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-sm text-[color:var(--ink)] leading-relaxed">{m.desc}</p>
@@ -4977,7 +5150,7 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 
 // ─── PROFILE / MON COMPTE ─────────────────────────────────────────────────────
 
-function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onChangeDevice, device, onOpenLexicon }) {
+function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManualLevel, onChangeDevice, device, onOpenLexicon }) {
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [email, setEmail] = useState(profile?.email || '');
@@ -5236,17 +5409,55 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onChang
 
         {/* Section: mes tests de niveau */}
         <div className="wl-card p-5 sm:p-6 mt-5" style={{ borderRadius: '24px' }}>
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <div className="flex items-center gap-2">
-              <span style={{ fontSize: 18 }}>🎯</span>
-              <h2 className="text-lg font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
-                Mes tests de niveau
-              </h2>
-            </div>
+          <div className="flex items-center gap-2 mb-4">
+            <span style={{ fontSize: 18 }}>🎯</span>
+            <h2 className="text-lg font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+              Mes tests de niveau
+            </h2>
+          </div>
+
+          {/* Deux options pour définir son niveau */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-5">
             <button onClick={onStartTest}
-              className="wl-btn-primary flex items-center gap-2"
-              style={{ padding: '10px 16px', fontSize: 13 }}>
-              <RefreshCw size={14} /> Refaire un test
+              className="text-left p-4 rounded-2xl transition-all hover:-translate-y-0.5 group"
+              style={{
+                background: 'linear-gradient(135deg, #FF385C, #E31C5F)',
+                boxShadow: '0 4px 14px rgba(255, 56, 92, 0.25)',
+                border: 'none',
+              }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ fontSize: 18 }}>🎯</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/90" style={{ fontFamily: 'DM Sans' }}>
+                  auto · 3–4 min
+                </span>
+              </div>
+              <div className="text-white leading-tight" style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 16, fontWeight: 500 }}>
+                Passer un test
+              </div>
+              <div className="text-[12px] mt-0.5 text-white/85" style={{ fontFamily: 'DM Sans' }}>
+                Discussion avec un tuteur qui évalue votre niveau
+              </div>
+            </button>
+
+            <button onClick={onManualLevel}
+              className="text-left p-4 rounded-2xl transition-all hover:-translate-y-0.5"
+              style={{
+                background: 'white',
+                border: '1.5px solid rgba(255, 56, 92, 0.35)',
+                boxShadow: '0 2px 8px rgba(255, 56, 92, 0.10)',
+              }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ fontSize: 18 }}>📝</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: 'var(--corail)' }}>
+                  manuel · rapide
+                </span>
+              </div>
+              <div className="leading-tight" style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 16, fontWeight: 500, color: 'var(--ink)' }}>
+                Choisir mon niveau
+              </div>
+              <div className="text-[12px] mt-0.5" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                Je connais déjà mon niveau, je le sélectionne
+              </div>
             </button>
           </div>
 
@@ -5473,12 +5684,16 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onBack={() => setStep('language')}
     onProfileUpdated={reloadProfile}
     onStartTest={() => setStep('picklangfortest')}
+    onManualLevel={() => setStep('manuallevel')}
     onChangeDevice={() => setStep('device')}
     onOpenLexicon={() => setStep('lexicon')}
     device={deviceChoice} />;
   if (step === 'picklangfortest') return <LanguagePickForTest
     onBack={() => setStep('profile')}
     onSelect={(l) => { setLanguage(l); setStep('leveltest'); }} />;
+  if (step === 'manuallevel') return <ManualLevelPickerScreen
+    onBack={() => setStep('profile')}
+    onSaved={() => setStep('profile')} />;
   if (step === 'language') return <LanguagePicker
     profile={profile} signOut={signOut}
     onSelect={(l) => { setLanguage(l); setStep('level'); }}
@@ -5494,7 +5709,12 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onLevelDetermined={(lv) => { setLevel(lv); setStep('mode'); }}
     onBack={() => setStep('level')} />;
   if (step === 'mode')     return <ModePicker language={language} level={level}
-    onSelect={(m) => setStep(m === 'chat' ? 'avatar' : 'reader')}
+    onSelect={(m) => {
+      if (m === 'chat') return setStep('avatar');
+      if (m === 'reader') return setStep('reader');
+      if (m === 'exercises') return setStep('exercises');
+      if (m === 'lexicon') return setStep('lexicon');
+    }}
     onBack={() => setStep('level')} />;
   if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
   if (step === 'reader')   return <ReaderScreen lang={language} level={level}

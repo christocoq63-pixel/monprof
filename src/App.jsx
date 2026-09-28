@@ -627,7 +627,18 @@ const detectPlatform = () => {
   if (/Windows/i.test(ua)) return 'windows';
   return 'other';
 };
-const PLATFORM = detectPlatform();
+const AUTO_PLATFORM = detectPlatform();
+
+// User's chosen device (persists across sessions). Falls back to auto-detection.
+const DEVICE_KEY = 'device_choice';
+const getUserDevice = () => {
+  try { return storage.get(DEVICE_KEY) || AUTO_PLATFORM; } catch { return AUTO_PLATFORM; }
+};
+const setUserDevice = (device) => {
+  try { storage.set(DEVICE_KEY, device); } catch {}
+};
+let PLATFORM = AUTO_PLATFORM;
+try { PLATFORM = storage.get(DEVICE_KEY) || AUTO_PLATFORM; } catch {}
 
 const PLATFORM_HINTS = {
   android: { label: 'micro du clavier', detail: 'sur le clavier Gboard, touchez le 🎤 en haut à droite' },
@@ -636,6 +647,38 @@ const PLATFORM_HINTS = {
   windows: { label: 'Win + H', detail: 'appuyez sur Win+H pour dicter' },
   other:   { label: 'dictée clavier', detail: 'utilisez le micro de votre système' },
 };
+
+// Device presentation info for the chooser
+const DEVICES = [
+  {
+    id: 'ios',
+    name: 'iPhone / iPad',
+    emoji: '📱',
+    color: '#0A84FF',
+    tip: 'Reconnaissance vocale par touches courtes. Meilleure expérience : installer en PWA depuis Safari (Partager → Sur l\'écran d\'accueil).',
+  },
+  {
+    id: 'android',
+    name: 'Android',
+    emoji: '🤖',
+    color: '#3DDC84',
+    tip: 'Excellent support du micro et de la voix. Installe l\'app via le menu Chrome → Ajouter à l\'écran d\'accueil.',
+  },
+  {
+    id: 'mac',
+    name: 'Mac',
+    emoji: '💻',
+    color: '#A855F7',
+    tip: 'Utilise Chrome ou Safari. Le micro et les voix macOS marchent parfaitement.',
+  },
+  {
+    id: 'windows',
+    name: 'Windows',
+    emoji: '🖥️',
+    color: '#FF385C',
+    tip: 'Chrome ou Edge recommandés. Utilise Win+H pour la dictée système en complément.',
+  },
+];
 
 // ─── SYSTEM PROMPT ────────────────────────────────────────────────────────────
 
@@ -1615,6 +1658,127 @@ RULES:
 - Never say "let's move on" or announce the difficulty. Just chat naturally.
 - Avoid yes/no questions — use open questions that reveal grammar and vocabulary.
 - Do NOT end the conversation on your own; the system does it after ~10 exchanges.`;
+}
+
+// ─── DEVICE CHOOSER ──────────────────────────────────────────────────────────
+
+function DeviceChooserScreen({ onSaved, onSkip, currentDevice, forceShow = false }) {
+  const [selected, setSelected] = useState(currentDevice || AUTO_PLATFORM);
+  const detected = DEVICES.find(d => d.id === AUTO_PLATFORM);
+
+  const save = () => {
+    setUserDevice(selected);
+    PLATFORM = selected;
+    onSaved?.(selected);
+  };
+
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+      <div className="max-w-2xl mx-auto">
+        {onSkip && (
+          <button onClick={onSkip}
+            className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+            style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            <ArrowLeft size={14} /> retour
+          </button>
+        )}
+
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center rounded-full mb-3"
+               style={{ width: 68, height: 68, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 6px 18px rgba(255,56,92,0.3)' }}>
+            <span style={{ fontSize: 32 }}>📱</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl leading-none mt-2"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+            Sur quel <em style={{ color: 'var(--corail)' }}>appareil</em> ?
+          </h1>
+          <p className="mt-3 text-[15px] max-w-md mx-auto" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            {forceShow
+              ? "MonProf adapte le micro, les voix et les astuces à votre appareil."
+              : "Confirmez ou changez votre appareil pour adapter l'expérience."}
+          </p>
+          {detected && (
+            <div className="inline-flex items-center gap-2 mt-3 px-4 py-1.5 rounded-full"
+                 style={{ background: `${detected.color}18`, color: detected.color, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12 }}>
+              <span>{detected.emoji}</span>
+              <span>détecté : {detected.name}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          {DEVICES.map(dev => {
+            const isSelected = selected === dev.id;
+            return (
+              <button key={dev.id} onClick={() => setSelected(dev.id)}
+                className="p-4 sm:p-5 text-center transition-all hover:-translate-y-1"
+                style={{
+                  borderRadius: '24px',
+                  border: `2px solid ${isSelected ? dev.color : `${dev.color}33`}`,
+                  background: isSelected
+                    ? `linear-gradient(135deg, ${dev.color}18, ${dev.color}08)`
+                    : 'white',
+                  boxShadow: isSelected
+                    ? `0 8px 24px ${dev.color}55`
+                    : `0 2px 8px ${dev.color}15`,
+                }}>
+                <div className="rounded-full mx-auto mb-3 flex items-center justify-center transition-transform"
+                     style={{
+                       width: 64, height: 64,
+                       background: `radial-gradient(circle at 30% 30%, ${dev.color}30, ${dev.color}18)`,
+                       transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                     }}>
+                  <span style={{ fontSize: 32 }}>{dev.emoji}</span>
+                </div>
+                <div className="font-medium leading-tight"
+                     style={{ fontFamily: 'Fraunces, Georgia, serif', color: isSelected ? dev.color : 'var(--ink)', fontSize: 16 }}>
+                  {dev.name}
+                </div>
+                {isSelected && (
+                  <div className="mt-1.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest"
+                       style={{ fontFamily: 'DM Sans', color: dev.color }}>
+                    <Check size={11} /> choisi
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Astuce contextuelle */}
+        {selected && (() => {
+          const dev = DEVICES.find(d => d.id === selected);
+          if (!dev) return null;
+          return (
+            <div className="mt-5 p-4 sm:p-5 rounded-3xl"
+                 style={{ background: `${dev.color}12`, border: `1px solid ${dev.color}33` }}>
+              <div className="flex items-start gap-3">
+                <div className="rounded-full flex items-center justify-center shrink-0"
+                     style={{ width: 36, height: 36, background: dev.color, color: 'white', fontSize: 18 }}>
+                  💡
+                </div>
+                <div className="flex-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider mb-1"
+                       style={{ fontFamily: 'DM Sans', color: dev.color }}>
+                    astuce {dev.name}
+                  </div>
+                  <p className="text-[14px] leading-snug"
+                     style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                    {dev.tip}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        <button onClick={save}
+          className="wl-btn-primary w-full mt-6 flex items-center justify-center gap-2">
+          <Check size={16} /> {forceShow ? 'Continuer' : 'Enregistrer'}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // Mini-écran : choix de langue pour lancer un test depuis "Mon compte"
@@ -3370,7 +3534,7 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 
 // ─── PROFILE / MON COMPTE ─────────────────────────────────────────────────────
 
-function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest }) {
+function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onChangeDevice, device }) {
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [email, setEmail] = useState(profile?.email || '');
@@ -3534,6 +3698,37 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest }) {
             </button>
           </div>
         </form>
+
+        {/* Section: appareil */}
+        {onChangeDevice && (() => {
+          const dev = DEVICES.find(d => d.id === device) || DEVICES.find(d => d.id === 'other') || DEVICES[0];
+          const color = dev?.color || 'var(--corail)';
+          return (
+            <button onClick={onChangeDevice}
+              className="w-full text-left wl-card p-5 sm:p-6 mt-5 flex items-center gap-4 hover:-translate-y-0.5 transition-all group"
+              style={{ borderRadius: '24px', border: `1.5px solid ${color}33` }}>
+              <div className="rounded-full flex items-center justify-center shrink-0"
+                   style={{ width: 56, height: 56, background: `radial-gradient(circle at 30% 30%, ${color}30, ${color}18)` }}>
+                <span style={{ fontSize: 26 }}>{dev.emoji}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                    Mon appareil
+                  </h2>
+                  <span className="text-[10px] font-bold uppercase tracking-widest"
+                        style={{ fontFamily: 'DM Sans', color }}>
+                    {dev.name}
+                  </span>
+                </div>
+                <p className="text-[13px] mt-0.5" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                  Toucher pour changer l'appareil
+                </p>
+              </div>
+              <span className="shrink-0 group-hover:translate-x-1 transition-transform" style={{ color, fontFamily: 'Fraunces, Georgia, serif', fontSize: 20 }}>→</span>
+            </button>
+          );
+        })()}
 
         {/* Section: mot de passe */}
         <form onSubmit={changePassword} className="wl-card p-5 sm:p-6 mt-5" style={{ borderRadius: '24px' }}>
@@ -3731,10 +3926,13 @@ function AuthGate({ children }) {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
 function MainApp({ profile, signOut, reloadProfile }) {
-  const [step, setStep] = useState('language');
+  // First-launch device chooser: show it once if no explicit choice yet.
+  const hasDeviceChoice = (() => { try { return !!storage.get(DEVICE_KEY); } catch { return false; } })();
+  const [step, setStep] = useState(hasDeviceChoice ? 'language' : 'device');
   const [language, setLanguage] = useState(null);
   const [level, setLevel] = useState(null);
   const [avatar, setAvatar] = useState(null);
+  const [deviceChoice, setDeviceChoice] = useState(getUserDevice());
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -3777,10 +3975,17 @@ function MainApp({ profile, signOut, reloadProfile }) {
     };
   }, []);
 
+  if (step === 'device')   return <DeviceChooserScreen
+    forceShow={!hasDeviceChoice}
+    currentDevice={deviceChoice}
+    onSaved={(d) => { setDeviceChoice(d); setStep(hasDeviceChoice ? 'profile' : 'language'); }}
+    onSkip={hasDeviceChoice ? () => setStep('profile') : null} />;
   if (step === 'profile')  return <ProfileScreen profile={profile}
     onBack={() => setStep('language')}
     onProfileUpdated={reloadProfile}
-    onStartTest={() => setStep('picklangfortest')} />;
+    onStartTest={() => setStep('picklangfortest')}
+    onChangeDevice={() => setStep('device')}
+    device={deviceChoice} />;
   if (step === 'picklangfortest') return <LanguagePickForTest
     onBack={() => setStep('profile')}
     onSelect={(l) => { setLanguage(l); setStep('leveltest'); }} />;

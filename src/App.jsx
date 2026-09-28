@@ -3263,7 +3263,7 @@ function PhoneField({ dialCode, onDialChange, number, onNumberChange }) {
   );
 }
 
-function LoginForm({ onBack, onSuccess, onGoSignup }) {
+function LoginForm({ onBack, onSuccess, onGoSignup, onGoForgot }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -3323,7 +3323,15 @@ function LoginForm({ onBack, onSuccess, onGoSignup }) {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+        <div className="mt-3 text-center text-sm" style={{ fontFamily: 'DM Sans' }}>
+          <button onClick={() => onGoForgot?.(email)}
+            className="font-bold hover:opacity-70"
+            style={{ color: 'var(--corail)' }}>
+            Mot de passe oublié&nbsp;?
+          </button>
+        </div>
+
+        <div className="mt-4 text-center text-sm" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
           Pas encore de compte ?{' '}
           <button onClick={onGoSignup}
             className="font-bold hover:opacity-70"
@@ -3331,6 +3339,169 @@ function LoginForm({ onBack, onSuccess, onGoSignup }) {
             Créer un compte →
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── FORGOT PASSWORD (envoi du lien de réinitialisation) ─────────────────────
+
+function ForgotPasswordForm({ onBack, onGoLogin, prefilledEmail }) {
+  const [email, setEmail] = useState(prefilledEmail || '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [sent, setSent] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!supabase) { setError('Service non configuré.'); return; }
+    if (!email) { setError('Merci de saisir votre email.'); return; }
+    setLoading(true); setError(null);
+    // The link brings the user back to /?type=recovery — AuthGate detects it.
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}${window.location.pathname}#password-reset`,
+    });
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    setSent(true);
+  };
+
+  if (sent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 py-10">
+        <div className="max-w-md w-full text-center">
+          <div className="text-6xl mb-4 inline-block">📬</div>
+          <h1 className="text-3xl leading-none mt-2"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
+            Vérifiez vos <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>emails</span>
+          </h1>
+          <p className="mt-5 text-[16px] leading-relaxed"
+             style={{ fontFamily: 'DM Sans', fontWeight: 500, color: 'var(--gris)' }}>
+            Un lien de réinitialisation a été envoyé à <strong style={{ color: 'var(--ink)' }}>{email}</strong>.<br/>
+            Cliquez dessus pour définir un nouveau mot de passe.
+          </p>
+          <p className="mt-3 text-[13px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            Pensez à regarder dans les spams. Le lien expire dans 1 heure.
+          </p>
+          <button onClick={onGoLogin} className="wl-btn-primary mt-8">
+            Retour à la connexion →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6 py-10">
+      <div className="max-w-md w-full">
+        <button onClick={onBack} className="flex items-center gap-1 mb-6 hover:opacity-70 text-sm font-bold"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> retour
+        </button>
+
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center rounded-full mb-2"
+               style={{ width: 72, height: 72, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 6px 18px rgba(255,56,92,0.3)' }}>
+            <span style={{ fontSize: 34 }}>🔑</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl leading-none mt-4"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
+            Mot de passe <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>oublié&nbsp;?</span>
+          </h1>
+          <p className="mt-3 text-[15px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            Saisissez votre email, nous vous envoyons un lien pour le redéfinir.
+          </p>
+        </div>
+
+        <form onSubmit={submit} className="flex flex-col gap-3">
+          <AuthField icon={Mail} type="email" placeholder="votre email"
+            value={email} onChange={setEmail} autoComplete="email" />
+
+          {error && (
+            <div className="wl-card px-4 py-3 text-sm font-semibold"
+                 style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+              ⚠️ {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading || !email}
+            className="wl-btn-primary w-full mt-2 flex items-center justify-center gap-2">
+            {loading && <Loader2 size={16} className="animate-spin" />}
+            {loading ? 'envoi…' : 'Envoyer le lien 📩'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center text-sm" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          Vous vous souvenez ?{' '}
+          <button onClick={onGoLogin}
+            className="font-bold hover:opacity-70"
+            style={{ color: 'var(--corail)' }}>
+            Se connecter →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── RESET PASSWORD (arrivé via le lien email) ───────────────────────────────
+
+function ResetPasswordScreen({ onDone }) {
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!supabase) { setError('Service non configuré.'); return; }
+    if (newPwd.length < 6) { setError('Le mot de passe doit faire au moins 6 caractères.'); return; }
+    if (newPwd !== confirmPwd) { setError('Les mots de passe ne correspondent pas.'); return; }
+    setLoading(true); setError(null);
+    const { error: err } = await supabase.auth.updateUser({ password: newPwd });
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    setSuccess(true);
+    setTimeout(() => onDone?.(), 1800);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6 py-10">
+      <div className="max-w-md w-full">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center rounded-full mb-2"
+               style={{ width: 72, height: 72, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 6px 18px rgba(255,56,92,0.3)' }}>
+            <span style={{ fontSize: 34 }}>🔒</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl leading-none mt-4"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
+            Nouveau <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>mot de passe</span>
+          </h1>
+          <p className="mt-3 text-[15px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            Choisissez un nouveau mot de passe pour votre compte
+          </p>
+        </div>
+
+        <form onSubmit={submit} className="flex flex-col gap-3">
+          <AuthField icon={Lock} type="password" placeholder="nouveau mot de passe (6 caractères min.)"
+            value={newPwd} onChange={setNewPwd} autoComplete="new-password" />
+          <AuthField icon={Lock} type="password" placeholder="confirmer le mot de passe"
+            value={confirmPwd} onChange={setConfirmPwd} autoComplete="new-password" />
+
+          {error && (
+            <div className="wl-card px-4 py-3 text-sm font-semibold"
+                 style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+              ⚠️ {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading || success || !newPwd || !confirmPwd}
+            className="wl-btn-primary w-full mt-2 flex items-center justify-center gap-2">
+            {loading && <Loader2 size={16} className="animate-spin" />}
+            {success ? (<><Check size={16} /> mot de passe mis à jour !</>) : (loading ? 'mise à jour…' : 'Enregistrer le mot de passe')}
+          </button>
+        </form>
       </div>
     </div>
   );

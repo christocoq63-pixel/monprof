@@ -924,6 +924,7 @@ function guessVoiceGender(voiceName) {
 function useSpeech() {
   const [voices, setVoices] = useState([]);
   const [speakingText, setSpeakingText] = useState(null);
+  const [speakingBoundary, setSpeakingBoundary] = useState(null); // { text, charIndex, charLength }
 
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
@@ -940,9 +941,15 @@ function useSpeech() {
     // Per-avatar rate/pitch override if defined
     u.rate = avatar?.rate ?? 0.9;
     u.pitch = avatar?.pitch ?? 1;
-    u.onstart = () => setSpeakingText(text);
-    u.onend = () => setSpeakingText(null);
-    u.onerror = () => setSpeakingText(null);
+    u.onstart = () => { setSpeakingText(text); setSpeakingBoundary({ text, charIndex: 0, charLength: 0 }); };
+    u.onend = () => { setSpeakingText(null); setSpeakingBoundary(null); };
+    u.onerror = () => { setSpeakingText(null); setSpeakingBoundary(null); };
+    u.onboundary = (evt) => {
+      // Fired for word/sentence boundaries. Not all browsers fire it, but Chrome/Safari do.
+      if (evt.name === 'word' || !evt.name) {
+        setSpeakingBoundary({ text, charIndex: evt.charIndex, charLength: evt.charLength || 0 });
+      }
+    };
     if (voices.length) {
       let chosen = null;
       if (preferredVoiceURI) {
@@ -1041,8 +1048,9 @@ function useSpeech() {
   const stop = () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     setSpeakingText(null);
+    setSpeakingBoundary(null);
   };
-  return { speak, speakSequence, stop, speakingText, voices };
+  return { speak, speakSequence, stop, speakingText, speakingBoundary, voices };
 }
 
 function useRecognition(srLocale) {
@@ -2344,9 +2352,96 @@ async function explainWord(word, context, lang, { onPartial } = {}) {
   return parsed;
 }
 
+// ─── LEXICON (mots enregistrés) ──────────────────────────────────────────────
+
+async function saveToLexicon({ word, translation, explanation, example, lang, context }) {
+  const normalized = word.toLowerCase().replace(/[^\p{L}\p{N}-]/gu, '').trim();
+  const record = {
+    word: normalized,
+    display_word: word.trim(),
+    translation,
+    explanation: explanation || '',
+    example_text: example?.text || '',
+    example_fr: example?.fr || '',
+    language_code: lang.code,
+    language_name: lang.name,
+    context: context || '',
+    saved_at: new Date().toISOString(),
+  };
+
+  // Local cache
+  try {
+    const key = 'lexicon';
+    const raw = storage.get(key);
+    const arr = raw ? JSON.parse(raw) : [];
+    // De-dup: remove any existing entry for (word, language) and prepend the new one
+    const filtered = arr.filter(e => !(e.word === normalized && e.language_code === lang.code));
+    filtered.unshift(record);
+    storage.set(key, JSON.stringify(filtered.slice(0, 500)));
+  } catch (e) { /* ignore */ }
+
+  // Supabase (fire-and-forget)
+  if (!supabase) return;
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+    // Upsert on (user_id, language_code, word) to keep only latest lookup
+    await supabase.from('lexicon').upsert({
+      user_id: userData.user.id,
+      word: normalized,
+      display_word: word.trim(),
+      translation,
+      explanation: explanation || null,
+      example_text: example?.text || null,
+      example_fr: example?.fr || null,
+      language_code: lang.code,
+      language_name: lang.name,
+      context: context || null,
+      saved_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,language_code,word' });
+  } catch (e) { /* silent */ }
+}
+
+async function loadLexicon(userId, languageCode = null, limit = 200) {
+  if (supabase && userId) {
+    try {
+      let q = supabase.from('lexicon').select('*').eq('user_id', userId);
+      if (languageCode) q = q.eq('language_code', languageCode);
+      const { data, error } = await q.order('saved_at', { ascending: false }).limit(limit);
+      if (!error && data) return data;
+    } catch (e) { /* fall through */ }
+  }
+  try {
+    const raw = storage.get('lexicon');
+    const arr = raw ? JSON.parse(raw) : [];
+    return languageCode ? arr.filter(e => e.language_code === languageCode).slice(0, limit) : arr.slice(0, limit);
+  } catch { return []; }
+}
+
+async function deleteLexiconEntry(entry, userId) {
+  // Local
+  try {
+    const raw = storage.get('lexicon');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      const filtered = arr.filter(e => !(e.word === entry.word && e.language_code === entry.language_code));
+      storage.set('lexicon', JSON.stringify(filtered));
+    }
+  } catch { /* ignore */ }
+  // Supabase
+  if (!supabase || !userId) return;
+  try {
+    await supabase.from('lexicon').delete()
+      .eq('user_id', userId)
+      .eq('language_code', entry.language_code)
+      .eq('word', entry.word);
+  } catch { /* silent */ }
+}
+
 function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [savedFlash, setSavedFlash] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -2355,7 +2450,23 @@ function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
       // Progressive: as soon as `translation` arrives, the popup shows it.
       onPartial: (partial) => { if (alive) setData(prev => ({ ...(prev || {}), ...partial })); },
     })
-      .then(d => { if (alive) setData(d); })
+      .then(d => {
+        if (!alive) return;
+        setData(d);
+        // Auto-save to lexicon in the background
+        saveToLexicon({
+          word,
+          translation: d.translation,
+          explanation: d.explanation,
+          example: d.example,
+          lang,
+          context,
+        }).then(() => {
+          if (!alive) return;
+          setSavedFlash(true);
+          setTimeout(() => alive && setSavedFlash(false), 1800);
+        }).catch(() => {});
+      })
       .catch(() => { if (alive) setError(true); });
     return () => { alive = false; };
   }, [word, context, lang.code]);
@@ -2383,6 +2494,12 @@ function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
         </div>
 
         <div className="overflow-y-auto flex-1 p-4">
+          {savedFlash && (
+            <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
+                 style={{ fontFamily: 'DM Sans', background: '#DCFCE7', color: '#15803D' }}>
+              <Check size={11} /> ajouté au lexique
+            </div>
+          )}
           {!data && !error && (
             <div className="flex items-center gap-2 text-[color:var(--gris)] text-sm" style={{ fontFamily:'DM Sans, sans-serif' }}>
               <Loader2 size={14} className="animate-spin" />
@@ -2444,23 +2561,46 @@ function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
 
 // Splits text into clickable word tokens.
 // Non-word characters (punctuation, spaces) are rendered as static spans.
-function ClickableText({ text, onWordClick, rtl = false }) {
+function ClickableText({ text, onWordClick, rtl = false, boundary = null, activeText = null, highlightedWord = null }) {
   if (!text) return null;
   // Match word chunks (letters incl. accents & CJK) vs non-word chunks
+  // Use split-with-capture so we keep both word and non-word chunks in order.
   const parts = text.split(/(\s+|[.,;:!?¿¡«»"'()\[\]{}—–…])/g);
+
+  // Compute the char range currently being spoken (only when boundary matches this text)
+  const speakingIsThis = boundary && activeText && boundary.text === activeText && activeText === text;
+  const speakStart = speakingIsThis ? boundary.charIndex : -1;
+  const speakEnd = speakingIsThis ? boundary.charIndex + (boundary.charLength || 0) : -1;
+
+  // Normalize the "just clicked" word for comparison
+  const clickedNorm = highlightedWord ? highlightedWord.toLowerCase().trim() : null;
+
+  let cursor = 0; // running char index in the source text
   return (
     <span style={{ direction: rtl ? 'rtl' : 'ltr' }}>
       {parts.map((part, i) => {
+        if (part === undefined || part === null) return null;
+        const startIdx = cursor;
+        cursor += part.length;
         if (!part) return null;
-        // Words: at least one letter (any script)
         const isWord = /[\p{L}]/u.test(part) && !/^\s+$/.test(part);
         if (!isWord) return <span key={i}>{part}</span>;
+
+        const isBeingSpoken = speakingIsThis && startIdx >= speakStart && startIdx < speakEnd;
+        const isClicked = clickedNorm && part.toLowerCase().trim() === clickedNorm;
+
+        const cls = [
+          'inline hover:bg-amber-200 hover:underline decoration-dotted underline-offset-2 rounded-sm transition-colors cursor-pointer',
+          isBeingSpoken ? 'bg-amber-300/70 underline decoration-2 underline-offset-2' : '',
+          isClicked ? 'bg-yellow-200 ring-2 ring-amber-400 rounded-md' : '',
+        ].filter(Boolean).join(' ');
+
         return (
           <button
             key={i}
             onClick={(e) => { e.stopPropagation(); onWordClick(part.trim(), text); }}
-            className="inline hover:bg-amber-200 hover:underline decoration-dotted underline-offset-2 rounded-sm transition-colors cursor-pointer"
-            style={{ padding: '0 1px' }}
+            className={cls}
+            style={{ padding: '0 1px', transition: 'background-color 120ms ease' }}
           >
             {part}
           </button>
@@ -2490,7 +2630,7 @@ function UserMessage({ message, rtl, onReplayCorrection }) {
   );
 }
 
-function AssistantMessage({ message, avatar, lang, onSpeak, speaking, onWordClick }) {
+function AssistantMessage({ message, avatar, lang, onSpeak, speaking, onWordClick, boundary, activeText, highlightedWord }) {
   const [showFr, setShowFr] = useState(false);
   return (
     <div className="flex gap-3 mb-4 items-start">
@@ -2505,7 +2645,14 @@ function AssistantMessage({ message, avatar, lang, onSpeak, speaking, onWordClic
             </div>
           </div>
           <div className="text-[color:var(--ink)] leading-relaxed">
-            <ClickableText text={message.reply} onWordClick={onWordClick} rtl={lang.rtl} />
+            <ClickableText
+              text={message.reply}
+              onWordClick={onWordClick}
+              rtl={lang.rtl}
+              boundary={boundary}
+              activeText={activeText}
+              highlightedWord={highlightedWord}
+            />
           </div>
           {showFr && message.translation && (
             <div className="mt-2 pt-2 border-t border-stone-400/40 text-sm text-[color:var(--ink)] italic">{message.translation}</div>
@@ -2865,6 +3012,241 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
 }
 
 // ─── EXERCISES SCREEN ─────────────────────────────────────────────────────────
+
+// ─── LEXICON SCREEN ──────────────────────────────────────────────────────────
+
+function LexiconScreen({ lang, profile, onBack }) {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
+  const [scope, setScope] = useState(lang?.code || 'all'); // 'all' or a language code
+  const [expanded, setExpanded] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const { speak } = useSpeech();
+
+  const load = async () => {
+    setLoading(true);
+    const data = await loadLexicon(profile?.id, scope === 'all' ? null : scope, 300);
+    setEntries(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [profile?.id, scope]);
+
+  const doDelete = async (entry) => {
+    await deleteLexiconEntry(entry, profile?.id);
+    setEntries(es => es.filter(e => !(e.word === entry.word && e.language_code === entry.language_code)));
+    setConfirmDelete(null);
+    setExpanded(null);
+  };
+
+  // Which languages appear in the lexicon
+  const langsInLexicon = Array.from(new Set(entries.map(e => e.language_code)));
+  const availableLangs = scope === 'all'
+    ? langsInLexicon
+    : Array.from(new Set([scope, ...langsInLexicon]));
+
+  const filtered = filter
+    ? entries.filter(e => {
+        const q = filter.toLowerCase().trim();
+        return e.display_word?.toLowerCase().includes(q)
+          || e.word?.toLowerCase().includes(q)
+          || e.translation?.toLowerCase().includes(q);
+      })
+    : entries;
+
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+      <div className="max-w-2xl mx-auto">
+        <button onClick={onBack}
+          className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> retour
+        </button>
+
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center rounded-full mb-3"
+               style={{ width: 68, height: 68, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 6px 18px rgba(255,56,92,0.3)' }}>
+            <span style={{ fontSize: 32 }}>📚</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl leading-none"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+            Mon <em style={{ color: 'var(--corail)' }}>lexique</em>
+          </h1>
+          <p className="mt-2 text-[14px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            Tous les mots dont vous avez demandé la traduction
+          </p>
+        </div>
+
+        {/* Filtres */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <button onClick={() => setScope('all')}
+            className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all"
+            style={{
+              fontFamily: 'DM Sans',
+              background: scope === 'all' ? 'var(--corail)' : 'white',
+              color: scope === 'all' ? 'white' : 'var(--gris)',
+              border: `1.5px solid ${scope === 'all' ? 'var(--corail)' : 'rgba(90,78,69,0.2)'}`,
+            }}>
+            toutes ({entries.length && scope === 'all' ? entries.length : '·'})
+          </button>
+          {availableLangs.map(code => {
+            const l = LANGUAGES[code];
+            if (!l) return null;
+            const isActive = scope === code;
+            return (
+              <button key={code} onClick={() => setScope(code)}
+                className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+                style={{
+                  fontFamily: 'DM Sans',
+                  background: isActive ? l.accent : 'white',
+                  color: isActive ? 'white' : l.accent,
+                  border: `1.5px solid ${l.accent}${isActive ? '' : '55'}`,
+                }}>
+                <span>{l.glyph}</span>
+                <span>{l.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Recherche */}
+        <div className="flex items-center gap-2 wl-card px-4 py-2.5 rounded-full mb-4">
+          <span style={{ color: 'var(--gris)', fontSize: 15 }}>🔍</span>
+          <input
+            type="text"
+            placeholder="rechercher un mot…"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="flex-1 bg-transparent focus:outline-none text-[15px]"
+            style={{ fontFamily: 'DM Sans', color: 'var(--ink)' }}
+          />
+          {filter && (
+            <button onClick={() => setFilter('')} className="w-6 h-6 grid place-items-center rounded-full hover:bg-black/5">
+              <X size={13} style={{ color: 'var(--gris)' }} />
+            </button>
+          )}
+        </div>
+
+        {loading && (
+          <div className="text-center py-10" style={{ color: 'var(--gris)' }}>
+            <Loader2 size={20} className="animate-spin inline mr-2" />
+            chargement du lexique…
+          </div>
+        )}
+
+        {!loading && filtered.length === 0 && (
+          <div className="wl-card p-8 text-center" style={{ borderRadius: '24px' }}>
+            <div className="text-4xl mb-3">✨</div>
+            <p style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)', fontSize: 15 }}>
+              {entries.length === 0
+                ? 'Aucun mot enregistré pour l\'instant. Cliquez sur les mots dans le reader ou dans le chat pour les ajouter automatiquement.'
+                : 'Aucun mot ne correspond à votre recherche.'}
+            </p>
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            {filtered.length} mot{filtered.length > 1 ? 's' : ''}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {filtered.map((entry, i) => {
+            const l = LANGUAGES[entry.language_code];
+            const accent = l?.accent || 'var(--corail)';
+            const isOpen = expanded === i;
+            return (
+              <div key={`${entry.language_code}-${entry.word}-${i}`}
+                   style={{ borderRadius: '18px', background: 'white', border: `1px solid ${accent}33`, boxShadow: `0 2px 6px ${accent}12` }}>
+                <button
+                  onClick={() => setExpanded(isOpen ? null : i)}
+                  className="w-full flex items-center gap-3 p-3 sm:p-4 text-left hover:bg-black/5 rounded-[18px] transition-colors">
+                  <div className="rounded-full flex items-center justify-center shrink-0 text-white shrink-0"
+                       style={{ width: 40, height: 40, background: `radial-gradient(circle at 30% 30%, ${accent}, ${accent}CC)`, fontFamily: 'Fraunces, Georgia, serif', fontSize: 16 }}>
+                    {l?.glyph || '·'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)', fontSize: 18, fontWeight: 500, fontStyle: 'italic' }}>
+                        {entry.display_word || entry.word}
+                      </span>
+                      <span style={{ color: 'var(--gris)', fontSize: 12 }}>→</span>
+                      <span style={{ fontFamily: 'Fraunces, Georgia, serif', color: accent, fontSize: 15, fontWeight: 500 }}>
+                        {entry.translation}
+                      </span>
+                    </div>
+                    <div className="text-[11px] mt-0.5" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                      {formatTestDate(entry.saved_at)}
+                    </div>
+                  </div>
+                  <span className="shrink-0" style={{ color: 'var(--gris)', transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>→</span>
+                </button>
+
+                {isOpen && (
+                  <div className="px-4 pb-4 pt-1 space-y-2.5 text-[13px]"
+                       style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                    {entry.explanation && (
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: accent, fontFamily: 'DM Sans' }}>explication</span>
+                        <p className="mt-0.5">{entry.explanation}</p>
+                      </div>
+                    )}
+                    {entry.example_text && (
+                      <div className="flex items-start gap-2 p-2.5 rounded-xl" style={{ background: `${accent}12` }}>
+                        <button onClick={() => speak(entry.example_text, null, l)}
+                          className="mt-0.5 shrink-0" title="écouter">
+                          <Volume2 size={14} style={{ color: accent }} />
+                        </button>
+                        <div className="flex-1">
+                          <div className="italic">« {entry.example_text} »</div>
+                          {entry.example_fr && (
+                            <div className="text-[12px] mt-1 italic" style={{ color: 'var(--gris)' }}>
+                              {entry.example_fr}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {entry.context && entry.context !== entry.example_text && (
+                      <div className="text-[12px] italic" style={{ color: 'var(--gris)' }}>
+                        vu dans : « {entry.context.length > 100 ? entry.context.slice(0, 100) + '…' : entry.context} »
+                      </div>
+                    )}
+                    <div className="flex justify-end pt-1">
+                      {confirmDelete === i ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px]" style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)' }}>supprimer ?</span>
+                          <button onClick={() => setConfirmDelete(null)}
+                            className="text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full hover:opacity-70"
+                            style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                            annuler
+                          </button>
+                          <button onClick={() => doDelete(entry)}
+                            className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white"
+                            style={{ fontFamily: 'DM Sans', background: 'var(--corail)' }}>
+                            supprimer
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmDelete(i)}
+                          className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 hover:opacity-70"
+                          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                          <X size={11} /> retirer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ExercisesScreen({ lang, level, onBack }) {
   const [errors, setErrors] = useState([]);
@@ -3279,7 +3661,7 @@ Respond ONLY with JSON: {"correct": <boolean>, "feedback_fr": "<one short French
 
 // ─── CHAT SCREEN ──────────────────────────────────────────────────────────────
 
-function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises }) {
+function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises, onOpenLexicon }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
@@ -3292,7 +3674,7 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises }) {
   const [voiceURI, setVoiceURI] = useState(null);
   const [showVoicePicker, setShowVoicePicker] = useState(false);
   const [wordPopup, setWordPopup] = useState(null);
-  const { speak, speakSequence, stop, speakingText, voices } = useSpeech();
+  const { speak, speakSequence, stop, speakingText, speakingBoundary, voices } = useSpeech();
   const endRef = useRef(null);
   const initDone = useRef(false);
 
@@ -3446,6 +3828,14 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises }) {
           <button onClick={() => setAutoSpeak(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoSpeak ? 'wl-btn-secondary border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`} title="lecture auto">
             <Volume2 size={14} />
           </button>
+          {onOpenLexicon && (
+            <button onClick={onOpenLexicon}
+              className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"
+              style={{ borderColor: `${lang.accent}55`, background: `${lang.accent}15` }}
+              title="mon lexique — mots enregistrés">
+              <span style={{ fontSize: 15 }}>📚</span>
+            </button>
+          )}
           {onOpenExercises && (
             <button onClick={onOpenExercises}
               className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"
@@ -3477,7 +3867,10 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises }) {
             : <AssistantMessage key={i} message={m} avatar={avatar} lang={lang}
                 onSpeak={() => speakFor(m.reply)}
                 speaking={speakingText === m.reply}
-                onWordClick={(w, ctx) => setWordPopup({ word: w, context: ctx })} />
+                onWordClick={(w, ctx) => setWordPopup({ word: w, context: ctx })}
+                boundary={speakingBoundary}
+                activeText={speakingText}
+                highlightedWord={wordPopup?.word || null} />
           )}
           {loading && <TypingIndicator avatar={avatar} />}
           <div ref={endRef} />
@@ -3637,7 +4030,7 @@ function extractPartialJson(raw) {
   return (out.title || out.text || out.translation) ? out : null;
 }
 
-function ReaderScreen({ lang, level, onBack }) {
+function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
   const [topic, setTopic] = useState(READER_TOPICS[0]);
   const [passage, setPassage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -3645,7 +4038,7 @@ function ReaderScreen({ lang, level, onBack }) {
   const [error, setError] = useState(null);
   const [showFr, setShowFr] = useState(false);
   const [wordPopup, setWordPopup] = useState(null);
-  const { speak, stop, speakingText } = useSpeech();
+  const { speak, stop, speakingText, speakingBoundary } = useSpeech();
 
   // Cache: keep the last passage per topic in memory for instant re-display
   const cacheRef = useRef({});
@@ -3709,6 +4102,14 @@ function ReaderScreen({ lang, level, onBack }) {
               {lang.name} · {level.label.toLowerCase()}
             </div>
           </div>
+          {onOpenLexicon && (
+            <button onClick={onOpenLexicon}
+              className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"
+              style={{ borderColor: `${lang.accent}55`, background: `${lang.accent}15` }}
+              title="mon lexique — mots enregistrés">
+              <span style={{ fontSize: 15 }}>📚</span>
+            </button>
+          )}
           <button onClick={() => load(topic, true)} disabled={loading}
             className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)] disabled:opacity-30" title="nouveau texte">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -3796,7 +4197,14 @@ function ReaderScreen({ lang, level, onBack }) {
               </div>
 
               <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg leading-relaxed text-[color:var(--ink)]" dir={lang.rtl ? 'rtl' : 'ltr'}>
-                <ClickableText text={passage.text || ''} onWordClick={(w, ctx) => setWordPopup({ word: w, context: ctx })} rtl={lang.rtl} />
+                <ClickableText
+                  text={passage.text || ''}
+                  onWordClick={(w, ctx) => setWordPopup({ word: w, context: ctx })}
+                  rtl={lang.rtl}
+                  boundary={speakingBoundary}
+                  activeText={speakingText}
+                  highlightedWord={wordPopup?.word || null}
+                />
                 {loading && (
                   <span className="inline-block w-0.5 h-5 bg-[color:var(--ink)] ml-0.5 align-middle" style={{ animation: 'cursor-blink 0.9s steps(2) infinite' }} />
                 )}
@@ -5056,11 +5464,16 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onSelect={(m) => setStep(m === 'chat' ? 'avatar' : 'reader')}
     onBack={() => setStep('level')} />;
   if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
-  if (step === 'reader')   return <ReaderScreen lang={language} level={level} onBack={() => setStep('mode')} />;
+  if (step === 'reader')   return <ReaderScreen lang={language} level={level}
+    onBack={() => setStep('mode')}
+    onOpenLexicon={() => setStep('lexicon')} />;
   if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('chat')} />;
+  if (step === 'lexicon')  return <LexiconScreen lang={language} profile={profile}
+    onBack={() => setStep(avatar ? 'chat' : 'reader')} />;
   return <ChatScreen lang={language} level={level} avatar={avatar}
     onChangeAvatar={() => setStep('avatar')}
-    onOpenExercises={() => setStep('exercises')} />;
+    onOpenExercises={() => setStep('exercises')}
+    onOpenLexicon={() => setStep('lexicon')} />;
 }
 
 export default function App() {

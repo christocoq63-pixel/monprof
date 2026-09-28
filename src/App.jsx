@@ -496,9 +496,10 @@ async function loadConversation(lang, level, avatar) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-async function saveConversation(lang, level, avatar, messages) {
+async function saveConversation(lang, level, avatar, messages, userId = null) {
   storage.set(storageKey(lang, level, avatar), JSON.stringify(messages));
   storage.set(META_KEY, JSON.stringify({
+    userId: userId || null,
     langCode: lang.code, levelId: level.id, avatarId: avatar.id, lastUpdated: Date.now(),
   }));
   let stats = { firstVisit: Date.now(), days: [] };
@@ -521,10 +522,19 @@ async function loadStats(lang, level, avatar) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-async function loadLastSession() {
+// Returns the last session ONLY if it belongs to the given user.
+// This prevents leaking a previous user's data across accounts sharing the same browser.
+async function loadLastSession(userId = null) {
   const raw = storage.get(META_KEY);
   if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
+  try {
+    const parsed = JSON.parse(raw);
+    if (userId && parsed.userId && parsed.userId !== userId) return null;
+    // If no userId is stored, we don't return anything — treat legacy data as "not mine"
+    // to be safe when a new user signs up on a browser that hosted another account.
+    if (userId && !parsed.userId) return null;
+    return parsed;
+  } catch { return null; }
 }
 
 const voiceKey = (avatar) => `voice:${avatar.id}`;
@@ -1346,8 +1356,10 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
   const [lastSession, setLastSession] = useState(null);
 
   useEffect(() => {
-    loadLastSession().then(s => {
-      if (!s) return;
+    // Only show a resume banner if the saved session belongs to the current user.
+    if (!profile?.id) { setLastSession(null); return; }
+    loadLastSession(profile.id).then(s => {
+      if (!s) { setLastSession(null); return; }
       const lang = LANGUAGES[s.langCode];
       const level = LEVELS[s.levelId];
       const avatar = lang?.avatars.find(a => a.id === s.avatarId);
@@ -1355,7 +1367,7 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
         setLastSession({ lang, level, avatar, lastUpdated: s.lastUpdated });
       }
     });
-  }, []);
+  }, [profile?.id]);
 
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
@@ -3841,7 +3853,7 @@ Respond ONLY with JSON: {"correct": <boolean>, "feedback_fr": "<one short French
 
 // ─── CHAT SCREEN ──────────────────────────────────────────────────────────────
 
-function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExercises, onOpenLexicon }) {
+function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExercises, onOpenLexicon, profile }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
@@ -3904,12 +3916,13 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
     // eslint-disable-next-line
   }, [avatar.id, lang.code, level.id]);
 
-  // Auto-save on every message change (after initial load)
+  // Auto-save on every message change (after initial load). Passing the userId
+  // so the "reprendre" banner on the home screen only shows for the right user.
   useEffect(() => {
     if (!initDone.current) return;
     if (messages.length < 1) return;
-    saveConversation(lang, level, avatar, messages);
-  }, [messages, lang.code, level.id, avatar.id]);
+    saveConversation(lang, level, avatar, messages, profile?.id);
+  }, [messages, lang.code, level.id, avatar.id, profile?.id]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages, loading]);
 
@@ -4426,14 +4439,15 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
 
 // ─── STEP 2.5: MODE PICKER ────────────────────────────────────────────────────
 
-function ModePicker({ language, level, onSelect, onBack, onResumeChat }) {
+function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, onChangeLanguage }) {
   const [resumeSession, setResumeSession] = useState(null);
 
-  // Check if there's a saved conversation for this exact language + level
+  // Check if there's a saved conversation for this exact language + level (for THIS user).
   useEffect(() => {
-    loadLastSession().then(s => {
-      if (!s) return;
-      if (s.langCode !== language.code || s.levelId !== level.id) return;
+    if (!profile?.id) { setResumeSession(null); return; }
+    loadLastSession(profile.id).then(s => {
+      if (!s) { setResumeSession(null); return; }
+      if (s.langCode !== language.code || s.levelId !== level.id) { setResumeSession(null); return; }
       const avatar = language.avatars.find(a => a.id === s.avatarId);
       if (avatar) setResumeSession({ avatar, lastUpdated: s.lastUpdated });
     });
@@ -4453,12 +4467,38 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat }) {
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
       <div className="max-w-4xl mx-auto">
         <StepHeader step={3} total={4} label="mode" onBack={onBack} />
-        <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
-          <em>Comment</em> apprendre ?
-        </h1>
-        <p className="mt-3 text-[color:var(--gris)] max-w-xl" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
-          {language.name} · {level.label.toLowerCase()} — choisissez votre mode
-        </p>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
+              <em>Comment</em> apprendre ?
+            </h1>
+            <p className="mt-3 text-[color:var(--gris)]" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
+              <span className="inline-flex items-center gap-1.5 mr-1 px-2 py-0.5 rounded-full"
+                    style={{ background: `${language.accent}18`, color: language.accent, fontWeight: 700, fontSize: 13, fontFamily: 'DM Sans' }}>
+                {language.glyph} {language.name}
+              </span>
+              · {level.label.toLowerCase()}
+            </p>
+          </div>
+          {onChangeLanguage && (
+            <button onClick={onChangeLanguage}
+              className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full transition-all hover:-translate-y-0.5"
+              style={{
+                background: 'white',
+                border: `1.5px solid ${language.accent}55`,
+                boxShadow: `0 2px 8px ${language.accent}18`,
+                fontFamily: 'DM Sans',
+                fontWeight: 700,
+                fontSize: 12,
+                color: language.accent,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+              }}
+              title="changer de langue">
+              <span style={{ fontSize: 14 }}>🌍</span> autre langue
+            </button>
+          )}
+        </div>
 
         {/* Pavé Reprendre — apparaît quand une conversation existe pour ce lang+level */}
         {resumeSession && (
@@ -4577,6 +4617,9 @@ function useAuth() {
   const signOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
+    // Clear the local "resume" pointer so the next account signing in on this
+    // browser does not see the previous user's session banner.
+    try { localStorage.removeItem(META_KEY); } catch {}
     setSession(null); setProfile(null);
   };
 
@@ -5708,6 +5751,26 @@ function MainApp({ profile, signOut, reloadProfile }) {
   const [level, setLevel] = useState(null);
   const [avatar, setAvatar] = useState(null);
   const [deviceChoice, setDeviceChoice] = useState(getUserDevice());
+  const [autoloadDone, setAutoloadDone] = useState(false);
+
+  // On first load, if a saved session exists for THIS user, restore language + level
+  // and jump straight to the mode picker (screen 3) instead of the language picker.
+  useEffect(() => {
+    if (autoloadDone) return;
+    if (!profile?.id) return;
+    loadLastSession(profile.id).then(s => {
+      setAutoloadDone(true);
+      if (!s) return;
+      const lang = LANGUAGES[s.langCode];
+      const lv   = LEVELS[s.levelId];
+      if (lang && lv) {
+        setLanguage(lang);
+        setLevel(lv);
+        // Only auto-forward if the user hasn't navigated away yet
+        setStep(current => (current === 'language' ? 'mode' : current));
+      }
+    });
+  }, [profile?.id, autoloadDone]);
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -5785,6 +5848,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onLevelDetermined={(lv) => { setLevel(lv); setStep('mode'); }}
     onBack={() => setStep('level')} />;
   if (step === 'mode')     return <ModePicker language={language} level={level}
+    profile={profile}
     onSelect={(m) => {
       if (m === 'chat') return setStep('avatar');
       if (m === 'reader') return setStep('reader');
@@ -5792,18 +5856,20 @@ function MainApp({ profile, signOut, reloadProfile }) {
       if (m === 'lexicon') return setStep('lexicon');
     }}
     onResumeChat={(av) => { setAvatar(av); setStep('chat'); }}
+    onChangeLanguage={() => setStep('language')}
     onBack={() => setStep('level')} />;
   if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
-  // All 4 mode screens return to page 1 (LanguagePicker) on exit
+  // All 4 mode screens return to Screen 3 (ModePicker) on exit, keeping the
+  // language + level context — the user changes language only by explicit choice.
   if (step === 'reader')   return <ReaderScreen lang={language} level={level}
-    onBack={() => setStep('language')}
+    onBack={() => setStep('mode')}
     onOpenLexicon={() => setStep('lexicon')} />;
-  if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('language')} />;
+  if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('mode')} />;
   if (step === 'lexicon')  return <LexiconScreen lang={language} profile={profile}
-    onBack={() => setStep('language')} />;
-  return <ChatScreen lang={language} level={level} avatar={avatar}
+    onBack={() => setStep(language ? 'mode' : 'language')} />;
+  return <ChatScreen lang={language} level={level} avatar={avatar} profile={profile}
     onChangeAvatar={() => setStep('avatar')}
-    onBackHome={() => setStep('language')}
+    onBackHome={() => setStep('mode')}
     onOpenExercises={() => setStep('exercises')}
     onOpenLexicon={() => setStep('lexicon')} />;
 }

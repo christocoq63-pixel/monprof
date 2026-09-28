@@ -1342,7 +1342,7 @@ function StepHeader({ step, total, label, onBack }) {
 
 // ─── STEP 1: LANGUAGE ─────────────────────────────────────────────────────────
 
-function LanguagePicker({ onSelect, onResumeLast, profile, signOut, onOpenProfile, onOpenLexicon }) {
+function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile, signOut, onOpenProfile, onOpenLexicon }) {
   const [lastSession, setLastSession] = useState(null);
 
   useEffect(() => {
@@ -1400,30 +1400,50 @@ function LanguagePicker({ onSelect, onResumeLast, profile, signOut, onOpenProfil
           Chaque langue est une invitation au voyage. Choisissez celle qui vous fait rêver aujourd'hui.
         </p>
 
-        {/* Raccourci discret : reprendre la dernière session en 1 clic */}
+        {/* Raccourci : reprendre la dernière session + option changer de prof */}
         {lastSession && (
-          <button onClick={() => onResumeLast(lastSession)}
-            className="mt-5 w-full hover:-translate-y-0.5 transition-all p-3 pr-4 flex items-center gap-3 text-left"
-            style={{
-              backgroundColor: 'white',
-              border: `1.5px solid ${lastSession.lang.accent}55`,
-              boxShadow: `0 3px 10px ${lastSession.lang.accent}22`,
-              borderRadius: '999px',
-            }}>
-            <AnimatedAvatar avatar={lastSession.avatar} size="md" />
-            <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: lastSession.lang.accent }}>
-                📖 reprendre avec {lastSession.avatar.name}
+          <div className="mt-5 flex items-stretch gap-2">
+            <button onClick={() => onResumeLast(lastSession)}
+              className="flex-1 hover:-translate-y-0.5 transition-all p-3 pr-4 flex items-center gap-3 text-left"
+              style={{
+                backgroundColor: 'white',
+                border: `1.5px solid ${lastSession.lang.accent}55`,
+                boxShadow: `0 3px 10px ${lastSession.lang.accent}22`,
+                borderRadius: '999px',
+              }}>
+              <AnimatedAvatar avatar={lastSession.avatar} size="md" />
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: lastSession.lang.accent }}>
+                  📖 reprendre avec {lastSession.avatar.name}
+                </div>
+                <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-tight truncate">
+                  <em>{lastSession.lang.name}</em> · niveau {lastSession.level.label.toLowerCase()}
+                </div>
+                <div className="text-[11px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                  {timeSince(lastSession.lastUpdated)}
+                </div>
               </div>
-              <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-tight truncate">
-                <em>{lastSession.lang.name}</em> · niveau {lastSession.level.label.toLowerCase()}
-              </div>
-              <div className="text-[11px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
-                {timeSince(lastSession.lastUpdated)}
-              </div>
-            </div>
-            <span className="shrink-0 text-xl" style={{ fontFamily:'Fraunces, Georgia, serif', color: lastSession.lang.accent }}>→</span>
-          </button>
+              <span className="shrink-0 text-xl" style={{ fontFamily:'Fraunces, Georgia, serif', color: lastSession.lang.accent }}>→</span>
+            </button>
+
+            {/* Bouton "choisir autre prof" — même langue + niveau, nouveau prof */}
+            <button onClick={() => onChangeAvatarForLast?.(lastSession)}
+              className="hover:-translate-y-0.5 transition-all px-4 flex flex-col items-center justify-center gap-1"
+              style={{
+                backgroundColor: 'white',
+                border: `1.5px solid ${lastSession.lang.accent}55`,
+                boxShadow: `0 3px 10px ${lastSession.lang.accent}22`,
+                borderRadius: '999px',
+                minWidth: '96px',
+              }}
+              title="choisir un autre prof pour cette langue">
+              <span style={{ fontSize: 22 }}>👤</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-center leading-tight"
+                    style={{ fontFamily: 'DM Sans', color: lastSession.lang.accent }}>
+                autre<br/>prof
+              </span>
+            </button>
+          </div>
         )}
 
         <div className="mt-8">
@@ -3821,7 +3841,7 @@ Respond ONLY with JSON: {"correct": <boolean>, "feedback_fr": "<one short French
 
 // ─── CHAT SCREEN ──────────────────────────────────────────────────────────────
 
-function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises, onOpenLexicon }) {
+function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExercises, onOpenLexicon }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
@@ -3968,16 +3988,22 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises, onOp
     <div className="min-h-screen flex flex-col" style={{ backgroundColor:'transparent' }}>
       <div className="border-b wl-card sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-3 sm:px-5 py-3 flex items-center gap-3">
-          <button onClick={onChangeAvatar} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--ink)] hover:text-white transition-colors" title="changer">
+          <button onClick={onBackHome || onChangeAvatar} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--ink)] hover:text-white transition-colors" title="retour à l'accueil">
             <ArrowLeft size={16} />
           </button>
           <AnimatedAvatar avatar={avatar} size="sm" speaking={!!speakingText} />
-          <div className="flex-1 min-w-0">
-            <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none">{avatar.name}</div>
+          <button onClick={onChangeAvatar} className="flex-1 min-w-0 text-left hover:opacity-70 transition-opacity" title="changer de prof">
+            <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none flex items-center gap-1.5">
+              {avatar.name}
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-widest"
+                    style={{ fontFamily: 'DM Sans', background: `${lang.accent}18`, color: lang.accent }}>
+                changer
+              </span>
+            </div>
             <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mt-0.5 truncate" style={{ fontFamily:'DM Sans, sans-serif' }}>
               {lang.name} · {level.label.toLowerCase()} · {avatar.location}
             </div>
-          </div>
+          </button>
           <button onClick={() => setShowVoicePicker(true)} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)] relative" title="choisir la voix">
             <span className="text-[10px] font-bold" style={{ fontFamily:'DM Sans, sans-serif' }}>A♪</span>
             {voiceURI && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-700 rounded-full" />}
@@ -5749,6 +5775,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onOpenProfile={() => setStep('profile')}
     onOpenLexicon={() => setStep('lexicon')}
     onResumeLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar); setStep('chat'); }}
+    onChangeAvatarForLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(null); setStep('avatar'); }}
   />;
   if (step === 'level')    return <LevelPicker language={language}
     onSelect={(lv) => { setLevel(lv); setStep('mode'); }}
@@ -5767,19 +5794,16 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onResumeChat={(av) => { setAvatar(av); setStep('chat'); }}
     onBack={() => setStep('level')} />;
   if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
+  // All 4 mode screens return to page 1 (LanguagePicker) on exit
   if (step === 'reader')   return <ReaderScreen lang={language} level={level}
-    onBack={() => setStep('mode')}
+    onBack={() => setStep('language')}
     onOpenLexicon={() => setStep('lexicon')} />;
-  if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('chat')} />;
+  if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('language')} />;
   if (step === 'lexicon')  return <LexiconScreen lang={language} profile={profile}
-    onBack={() => {
-      // Go back to where the user came from: chat > reader > language picker
-      if (avatar) return setStep('chat');
-      if (language) return setStep('reader');
-      return setStep('language');
-    }} />;
+    onBack={() => setStep('language')} />;
   return <ChatScreen lang={language} level={level} avatar={avatar}
     onChangeAvatar={() => setStep('avatar')}
+    onBackHome={() => setStep('language')}
     onOpenExercises={() => setStep('exercises')}
     onOpenLexicon={() => setStep('lexicon')} />;
 }

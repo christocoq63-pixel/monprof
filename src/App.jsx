@@ -545,6 +545,61 @@ async function listAvatarsWithHistory(lang, level) {
   return new Set(ids);
 }
 
+// ─── LEVEL TESTS (persisted in Supabase + localStorage cache) ────────────────
+
+async function saveLevelTestResult(result) {
+  // Local cache (always works, even offline / without Supabase)
+  const cacheKey = 'level_tests_cache';
+  const now = Date.now();
+  const entry = { ...result, taken_at: new Date().toISOString(), _local_id: `local-${now}` };
+  try {
+    const raw = storage.get(cacheKey);
+    const arr = raw ? JSON.parse(raw) : [];
+    arr.unshift(entry);
+    storage.set(cacheKey, JSON.stringify(arr.slice(0, 50)));
+  } catch (e) { /* ignore */ }
+
+  // Supabase persistence
+  if (!supabase) return;
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) return;
+  const { error } = await supabase.from('level_tests').insert({
+    user_id: userData.user.id,
+    language_code: result.language_code,
+    language_name: result.language_name,
+    cefr: result.cefr,
+    score: result.score,
+    level_id: result.level_id,
+    strengths_fr: result.strengths_fr,
+    weaknesses_fr: result.weaknesses_fr,
+    advice_fr: result.advice_fr,
+    transcript: result.transcript,
+    exchanges: result.exchanges,
+    duration_seconds: result.duration_seconds,
+  });
+  if (error) throw error;
+}
+
+async function loadLevelTests(userId) {
+  // Try Supabase first
+  if (supabase && userId) {
+    try {
+      const { data, error } = await supabase
+        .from('level_tests')
+        .select('*')
+        .eq('user_id', userId)
+        .order('taken_at', { ascending: false })
+        .limit(50);
+      if (!error && data) return data;
+    } catch (e) { /* fall through */ }
+  }
+  // Fallback: local cache
+  try {
+    const raw = storage.get('level_tests_cache');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
 function timeSince(ts) {
   if (!ts) return '';
   const diff = Date.now() - ts;
@@ -1333,7 +1388,24 @@ Return ONLY a JSON object, no code fence:
       const lvl = ['A1','A2'].includes(cefr) ? LEVELS.beginner
         : ['B1','B2'].includes(cefr) ? LEVELS.intermediate
         : LEVELS.advanced;
-      setAssessment({ ...parsed, level: lvl });
+
+      const result = { ...parsed, level: lvl };
+      setAssessment(result);
+
+      // Persist the test result to Supabase (fire-and-forget)
+      saveLevelTestResult({
+        language_code: language.code,
+        language_name: language.name,
+        cefr,
+        score: parsed.score ?? null,
+        level_id: lvl.id,
+        strengths_fr: parsed.strengths_fr || '',
+        weaknesses_fr: parsed.weaknesses_fr || '',
+        advice_fr: parsed.advice_fr || '',
+        transcript,
+        exchanges: exchangesCount,
+        duration_seconds: elapsed,
+      }).catch(err => console.warn('Failed to save test result:', err));
     } catch (e) {
       setError(e.message);
       setAssessment({ cefr: 'A2', level: LEVELS.beginner, strengths_fr: '', weaknesses_fr: '', advice_fr: '' });
@@ -1543,6 +1615,62 @@ RULES:
 - Never say "let's move on" or announce the difficulty. Just chat naturally.
 - Avoid yes/no questions — use open questions that reveal grammar and vocabulary.
 - Do NOT end the conversation on your own; the system does it after ~10 exchanges.`;
+}
+
+// Mini-écran : choix de langue pour lancer un test depuis "Mon compte"
+function LanguagePickForTest({ onSelect, onBack }) {
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+      <div className="max-w-2xl mx-auto">
+        <button onClick={onBack}
+          className="flex items-center gap-2 mb-6 text-sm font-bold hover:opacity-70"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> retour
+        </button>
+
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center rounded-full mb-3"
+               style={{ width: 64, height: 64, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 6px 18px rgba(255,56,92,0.3)' }}>
+            <span style={{ fontSize: 28 }}>🎯</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl leading-none"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+            Refaire un <em style={{ color: 'var(--corail)' }}>test</em>
+          </h1>
+          <p className="mt-3 text-[15px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            Choisissez la langue à évaluer
+          </p>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-5 sm:gap-6 px-2">
+          {Object.values(LANGUAGES).map(lang => (
+            <button key={lang.code} onClick={() => onSelect(lang)}
+              className="group relative flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
+              style={{
+                width: '132px', height: '132px',
+                borderRadius: '50%',
+                border: `1.5px solid ${lang.accent}55`,
+                background: `radial-gradient(circle at 30% 30%, ${lang.accent}25, ${lang.accent}18)`,
+                boxShadow: `0 3px 10px ${lang.accent}20`,
+              }}>
+              <span className="absolute inset-0 rounded-full transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                style={{
+                  background: `radial-gradient(circle at 30% 30%, ${lang.accent}, ${lang.accent}DD)`,
+                  boxShadow: `0 10px 28px ${lang.accent}66`,
+                }} />
+              <div className="relative z-10 flex flex-col items-center justify-center px-3 text-center">
+                <span className="text-2xl mb-1 transition-transform duration-300 group-hover:scale-110">{lang.glyph}</span>
+                <span className="text-[15px] sm:text-base font-semibold leading-tight transition-colors duration-300 group-hover:text-white"
+                  style={{ fontFamily: 'Fraunces, Georgia, serif', color: lang.accent }}>
+                  {lang.name}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── STEP 3: AVATAR ───────────────────────────────────────────────────────────
@@ -3242,7 +3370,7 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 
 // ─── PROFILE / MON COMPTE ─────────────────────────────────────────────────────
 
-function ProfileScreen({ profile, onBack, onProfileUpdated }) {
+function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest }) {
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [email, setEmail] = useState(profile?.email || '');
@@ -3261,6 +3389,18 @@ function ProfileScreen({ profile, onBack, onProfileUpdated }) {
   const [error, setError] = useState(null);
   const [pwdError, setPwdError] = useState(null);
   const [pwdSuccess, setPwdSuccess] = useState(false);
+
+  const [tests, setTests] = useState([]);
+  const [loadingTests, setLoadingTests] = useState(true);
+  const [expandedTest, setExpandedTest] = useState(null);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    loadLevelTests(profile.id).then(list => {
+      setTests(list || []);
+      setLoadingTests(false);
+    });
+  }, [profile?.id]);
 
   const saveProfile = async (e) => {
     e.preventDefault();
@@ -3428,9 +3568,127 @@ function ProfileScreen({ profile, onBack, onProfileUpdated }) {
             </button>
           </div>
         </form>
+
+        {/* Section: mes tests de niveau */}
+        <div className="wl-card p-5 sm:p-6 mt-5" style={{ borderRadius: '24px' }}>
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <span style={{ fontSize: 18 }}>🎯</span>
+              <h2 className="text-lg font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                Mes tests de niveau
+              </h2>
+            </div>
+            <button onClick={onStartTest}
+              className="wl-btn-primary flex items-center gap-2"
+              style={{ padding: '10px 16px', fontSize: 13 }}>
+              <RefreshCw size={14} /> Refaire un test
+            </button>
+          </div>
+
+          {loadingTests && (
+            <div className="text-center py-6" style={{ color: 'var(--gris)' }}>
+              <Loader2 size={18} className="animate-spin inline mr-2" />
+              chargement…
+            </div>
+          )}
+
+          {!loadingTests && tests.length === 0 && (
+            <div className="text-center py-6 text-sm" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
+              Aucun test enregistré pour le moment.<br/>
+              Faites votre premier test pour connaître votre niveau ✨
+            </div>
+          )}
+
+          {!loadingTests && tests.length > 0 && (
+            <div className="space-y-2.5">
+              {tests.map((t, i) => {
+                const langObj = LANGUAGES[t.language_code];
+                const langAccent = langObj?.accent || 'var(--corail)';
+                const cefrColor = { A1:'#78716C', A2:'#A78BFA', B1:'#FF385C', B2:'#E88865', C1:'#FCD34D', C2:'#22C55E' }[t.cefr] || 'var(--corail)';
+                const isOpen = expandedTest === (t.id || t._local_id || i);
+                return (
+                  <div key={t.id || t._local_id || i}
+                       style={{
+                         borderRadius: '18px',
+                         background: 'white',
+                         border: `1px solid ${langAccent}33`,
+                         boxShadow: `0 2px 6px ${langAccent}12`,
+                       }}>
+                    <button
+                      onClick={() => setExpandedTest(isOpen ? null : (t.id || t._local_id || i))}
+                      className="w-full flex items-center gap-3 p-3 sm:p-4 text-left hover:bg-black/5 rounded-[18px] transition-colors">
+                      {/* Pastille CEFR */}
+                      <div className="shrink-0 rounded-full flex items-center justify-center text-white font-bold"
+                           style={{
+                             width: 46, height: 46,
+                             background: `radial-gradient(circle at 30% 30%, ${cefrColor}, ${cefrColor}CC)`,
+                             boxShadow: `0 2px 8px ${cefrColor}55`,
+                             fontFamily: 'Fraunces, Georgia, serif',
+                             fontSize: 16,
+                           }}>
+                        {t.cefr}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          <span className="text-base font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                            {langObj?.glyph} {t.language_name || langObj?.name || t.language_code}
+                          </span>
+                          {typeof t.score === 'number' && (
+                            <span className="text-[11px] font-bold" style={{ fontFamily: 'DM Sans', color: cefrColor }}>
+                              {t.score}/100
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] mt-0.5" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                          {formatTestDate(t.taken_at)} · {t.exchanges || '?'} échanges
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-[color:var(--gris)]" style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>→</span>
+                    </button>
+
+                    {isOpen && (
+                      <div className="px-4 pb-4 pt-1 space-y-2 text-[13px]" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                        {t.strengths_fr && (
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#22C55E', fontFamily: 'DM Sans' }}>✓ points forts</span>
+                            <p className="mt-0.5">{t.strengths_fr}</p>
+                          </div>
+                        )}
+                        {t.weaknesses_fr && (
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--corail-2)', fontFamily: 'DM Sans' }}>→ à travailler</span>
+                            <p className="mt-0.5">{t.weaknesses_fr}</p>
+                          </div>
+                        )}
+                        {t.advice_fr && (
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--corail)', fontFamily: 'DM Sans' }}>💡 conseil</span>
+                            <p className="mt-0.5">{t.advice_fr}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
+}
+
+function formatTestDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return `Aujourd'hui à ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const diffDays = Math.floor((now - d) / 86400000);
+  if (diffDays === 1) return "Hier";
+  if (diffDays < 7) return `Il y a ${diffDays} jours`;
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function AuthGate({ children }) {
@@ -3521,7 +3779,11 @@ function MainApp({ profile, signOut, reloadProfile }) {
 
   if (step === 'profile')  return <ProfileScreen profile={profile}
     onBack={() => setStep('language')}
-    onProfileUpdated={reloadProfile} />;
+    onProfileUpdated={reloadProfile}
+    onStartTest={() => setStep('picklangfortest')} />;
+  if (step === 'picklangfortest') return <LanguagePickForTest
+    onBack={() => setStep('profile')}
+    onSelect={(l) => { setLanguage(l); setStep('leveltest'); }} />;
   if (step === 'language') return <LanguagePicker
     profile={profile} signOut={signOut}
     onSelect={(l) => { setLanguage(l); setStep('level'); }}

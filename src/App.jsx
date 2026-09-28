@@ -580,6 +580,70 @@ async function saveLevelTestResult(result) {
   if (error) throw error;
 }
 
+// ─── ERROR LOG (for grammar exercises) ────────────────────────────────────────
+
+// Store every correction to build a "weak points" ledger per lang+level.
+function logError(lang, level, correction) {
+  if (!correction || !correction.original) return;
+  try {
+    const key = `errors:${lang.code}:${level.id}`;
+    const raw = storage.get(key);
+    const arr = raw ? JSON.parse(raw) : [];
+    arr.unshift({
+      ...correction,
+      logged_at: Date.now(),
+    });
+    // Keep max 100 recent errors
+    storage.set(key, JSON.stringify(arr.slice(0, 100)));
+  } catch (e) { /* ignore */ }
+}
+
+function loadRecentErrors(lang, level, limit = 30) {
+  try {
+    const key = `errors:${lang.code}:${level.id}`;
+    const raw = storage.get(key);
+    const arr = raw ? JSON.parse(raw) : [];
+    return arr.slice(0, limit);
+  } catch { return []; }
+}
+
+// Group errors by category to detect patterns
+function summarizeErrors(errors) {
+  const by = {};
+  errors.forEach(e => {
+    const cat = e.category || 'other';
+    if (!by[cat]) by[cat] = { count: 0, samples: [] };
+    by[cat].count += 1;
+    if (by[cat].samples.length < 4) {
+      by[cat].samples.push({ original: e.original, corrected: e.corrected, explanation_fr: e.explanation_fr });
+    }
+  });
+  return Object.entries(by)
+    .map(([category, data]) => ({ category, ...data }))
+    .sort((a, b) => b.count - a.count);
+}
+
+const CATEGORY_LABELS_FR = {
+  past_tense: 'Passé',
+  present_perfect: 'Present perfect',
+  future: 'Futur',
+  conditional: 'Conditionnel',
+  subjunctive: 'Subjonctif',
+  articles: 'Articles',
+  prepositions: 'Prépositions',
+  pronouns: 'Pronoms',
+  gender: 'Genre',
+  plural: 'Pluriel',
+  word_order: 'Ordre des mots',
+  agreement: 'Accord',
+  phrasal_verb: 'Phrasal verbs',
+  false_friend: 'Faux amis',
+  vocabulary: 'Vocabulaire',
+  spelling: 'Orthographe',
+  punctuation: 'Ponctuation',
+  other: 'Divers',
+};
+
 async function loadLevelTests(userId) {
   // Try Supabase first
   if (supabase && userId) {
@@ -737,7 +801,8 @@ CRITICAL OUTPUT FORMAT: Respond ONLY with one valid JSON object, no markdown, no
       "original": "<user's incorrect phrase, as they wrote it>",
       "corrected": "<the same phrase rewritten correctly in ${lang.nativeName}>",
       "spoken_echo": "<a short natural sentence in ${lang.nativeName} the tutor would say aloud to model the correct form, e.g. 'Actually, we say ...' or the equivalent in ${lang.nativeName}>",
-      "explanation_fr": "<short explanation in French with the rule>"
+      "explanation_fr": "<short explanation in French with the rule>",
+      "category": "<one of: past_tense | present_perfect | future | conditional | subjunctive | articles | prepositions | pronouns | gender | plural | word_order | agreement | phrasal_verb | false_friend | vocabulary | spelling | punctuation | other>"
     }
   ]
 }
@@ -1978,12 +2043,21 @@ function AvatarPicker({ language, level, onSelect, onBack }) {
 
 // ─── CORRECTIONS ──────────────────────────────────────────────────────────────
 
-function CorrectionsPanel({ corrections }) {
+function CorrectionsPanel({ corrections, onReplay }) {
   if (!corrections || !corrections.length) return null;
   return (
-    <div className="mt-2 border-l-4 border-amber-700 bg-amber-50/70 pl-3 pr-3 py-2.5 space-y-2.5">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-amber-900" style={{ fontFamily:'DM Sans, sans-serif' }}>
-        <BookOpen size={11} /> correction{corrections.length > 1 ? 's' : ''}
+    <div className="mt-2 rounded-2xl bg-amber-50/70 border border-amber-300/60 pl-3 pr-3 py-2.5 space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-amber-900" style={{ fontFamily:'DM Sans, sans-serif' }}>
+          <BookOpen size={11} /> correction{corrections.length > 1 ? 's' : ''}
+        </div>
+        {onReplay && (
+          <button onClick={onReplay}
+            title="réécouter le prof lire la correction"
+            className="w-7 h-7 rounded-full grid place-items-center hover:bg-amber-200/60 transition-colors">
+            <Volume2 size={13} className="text-amber-900" />
+          </button>
+        )}
       </div>
       {corrections.map((c, i) => (
         <div key={i} className="text-sm" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
@@ -1992,6 +2066,12 @@ function CorrectionsPanel({ corrections }) {
             <span className="text-amber-800">→</span>
             <span className="font-medium text-[color:var(--ink)] italic">{c.corrected}</span>
           </div>
+          {c.spoken_echo && (
+            <div className="mt-1 flex items-start gap-1.5 text-[13px] italic" style={{ color: '#78350F' }}>
+              <Volume2 size={11} className="mt-1 shrink-0" />
+              <span>« {c.spoken_echo} »</span>
+            </div>
+          )}
           <div className="mt-1 text-[color:var(--ink)] text-[13px] leading-snug">{c.explanation_fr}</div>
         </div>
       ))}
@@ -2184,7 +2264,7 @@ function ClickableText({ text, onWordClick, rtl = false }) {
 
 // ─── BUBBLES ──────────────────────────────────────────────────────────────────
 
-function UserMessage({ message, rtl }) {
+function UserMessage({ message, rtl, onReplayCorrection }) {
   return (
     <div className="flex flex-col items-end mb-4">
       <div className="max-w-[85%]">
@@ -2192,7 +2272,11 @@ function UserMessage({ message, rtl }) {
           <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-1" style={{ fontFamily:'DM Sans, sans-serif' }}>vous</div>
           <div className="text-[color:var(--ink)] leading-relaxed" style={{ direction: rtl ? 'rtl' : 'ltr' }}>{message.content}</div>
         </div>
-        <div className="mt-1"><CorrectionsPanel corrections={message.corrections} /></div>
+        <div className="mt-1">
+          <CorrectionsPanel
+            corrections={message.corrections}
+            onReplay={message.corrections?.length ? () => onReplayCorrection?.(message.corrections) : null} />
+        </div>
       </div>
     </div>
   );
@@ -2572,9 +2656,412 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
   );
 }
 
+// ─── EXERCISES SCREEN ─────────────────────────────────────────────────────────
+
+function ExercisesScreen({ lang, level, onBack }) {
+  const [errors, setErrors] = useState([]);
+  const [summary, setSummary] = useState([]);
+  const [selectedCats, setSelectedCats] = useState(null); // null = all top 3
+  const [exercises, setExercises] = useState(null);
+  const [current, setCurrent] = useState(0);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [showResult, setShowResult] = useState(null); // { correct, feedback_fr }
+  const [score, setScore] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState(null);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    const e = loadRecentErrors(lang, level, 30);
+    setErrors(e);
+    setSummary(summarizeErrors(e));
+  }, [lang.code, level.id]);
+
+  const generate = async (categories) => {
+    setLoading(true); setError(null);
+    setExercises(null); setCurrent(0); setUserAnswer(''); setShowResult(null); setScore(0); setDone(false);
+    try {
+      // Pick sample errors from chosen categories
+      const cats = categories?.length ? categories : summary.slice(0, 3).map(s => s.category);
+      const samples = errors
+        .filter(e => cats.includes(e.category || 'other'))
+        .slice(0, 10);
+
+      const system = `You are a language teacher creating targeted grammar exercises for a French speaker learning ${lang.nativeName} (${lang.name}) at ${level.label} level.
+
+${LEVEL_CONSTRAINTS[level.id] || level.prompt}
+
+Their recent mistakes (JSON):
+${JSON.stringify(samples, null, 2)}
+
+Categories to work on: ${cats.map(c => CATEGORY_LABELS_FR[c] || c).join(', ')}
+
+Generate exactly 5 short exercises that target these specific weaknesses. Mix 3 types:
+- "fill_blank": one sentence with a ___ blank to fill (the answer is 1-4 words)
+- "transform": a sentence to rewrite following an instruction (e.g. "Put in the past tense", "Correct the following sentence")
+- "translate": a short French sentence to translate into ${lang.nativeName}
+
+For each exercise, provide the model answer AND acceptable alternative answers.
+
+Respond ONLY with a JSON array, no code fences:
+[
+  {
+    "type": "fill_blank"|"transform"|"translate",
+    "instruction_fr": "<short instruction in French>",
+    "prompt": "<the sentence in ${lang.nativeName} with ___ for fill_blank, or the source sentence to transform, or the French sentence to translate>",
+    "answer": "<the correct answer, plain text, in ${lang.nativeName}>",
+    "alternatives": ["<other acceptable answers, if any>"],
+    "hint_fr": "<one short hint in French to help if the user is stuck>",
+    "category": "<same category taxonomy>"
+  }
+]
+
+Each exercise must clearly target one of the given categories. Keep exercises short, appropriate to level, and pedagogically clear.`;
+
+      const data = await chatWithFallback({
+        system,
+        messages: [{ role: 'user', content: `Generate the 5 exercises now, focused on: ${cats.join(', ')}.` }],
+        maxTokens: 1500,
+      });
+      const raw = data?.content?.[0]?.text || '[]';
+      const cleaned = raw.replace(/```json\s*|```/g, '').trim();
+      const s = cleaned.indexOf('['), e = cleaned.lastIndexOf(']');
+      const parsed = JSON.parse(s !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+      setExercises(parsed);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const check = async () => {
+    if (!userAnswer.trim() || !exercises) return;
+    const ex = exercises[current];
+    setChecking(true);
+    try {
+      // Local quick check first
+      const normalize = (s) => s.toLowerCase().trim().replace(/[.,;!?"']/g, '').replace(/\s+/g, ' ');
+      const acceptable = [ex.answer, ...(ex.alternatives || [])].map(normalize);
+      const userNorm = normalize(userAnswer);
+      let correct = acceptable.includes(userNorm);
+
+      // If not an exact match, ask Claude to judge (tolerates paraphrases)
+      let feedback_fr = '';
+      if (!correct) {
+        const judge = await chatWithFallback({
+          system: `You judge whether a language learner's answer to a grammar exercise is correct.
+Language being learned: ${lang.nativeName}.
+Be lenient on minor typos but strict on grammar and vocabulary.
+Respond ONLY with JSON: {"correct": <boolean>, "feedback_fr": "<one short French sentence explaining what's wrong or confirming, mention the correct form>"}`,
+          messages: [{ role: 'user', content: `Exercise: ${ex.instruction_fr}\nPrompt: ${ex.prompt}\nExpected answer: ${ex.answer}\nAcceptable alternatives: ${(ex.alternatives || []).join(' | ')}\nStudent's answer: ${userAnswer}` }],
+          maxTokens: 200,
+        });
+        const rawJ = judge?.content?.[0]?.text || '{}';
+        const cleaned = rawJ.replace(/```json\s*|```/g, '').trim();
+        const parsed = JSON.parse(cleaned);
+        correct = !!parsed.correct;
+        feedback_fr = parsed.feedback_fr || '';
+      } else {
+        feedback_fr = `✓ Bonne réponse !`;
+      }
+
+      setShowResult({ correct, feedback_fr });
+      if (correct) setScore(s => s + 1);
+    } catch (e) {
+      // Fallback to lenient local judge
+      const okLocal = userAnswer.trim().toLowerCase() === ex.answer.trim().toLowerCase();
+      setShowResult({ correct: okLocal, feedback_fr: okLocal ? '✓ Bonne réponse !' : `La bonne réponse est : « ${ex.answer} »` });
+      if (okLocal) setScore(s => s + 1);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const nextExercise = () => {
+    if (current + 1 < exercises.length) {
+      setCurrent(current + 1);
+      setUserAnswer(''); setShowResult(null);
+    } else {
+      setDone(true);
+    }
+  };
+
+  const accent = lang.accent;
+
+  // ─── Écran d'accueil : choix des catégories ───────────────────────────────
+  if (!exercises && !loading) {
+    return (
+      <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+        <div className="max-w-2xl mx-auto">
+          <button onClick={onBack}
+            className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+            style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            <ArrowLeft size={14} /> retour
+          </button>
+
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center rounded-full mb-3"
+                 style={{ width: 68, height: 68, background: `linear-gradient(135deg, ${accent}, ${accent}CC)`, boxShadow: `0 6px 18px ${accent}55` }}>
+              <span style={{ fontSize: 30 }}>📝</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl leading-none mt-2"
+                style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+              Exercices <em style={{ color: accent }}>sur mesure</em>
+            </h1>
+            <p className="mt-3 text-[15px] max-w-md mx-auto" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              Générés à partir de vos dernières erreurs en {lang.name}
+            </p>
+          </div>
+
+          {errors.length === 0 ? (
+            <div className="wl-card p-8 text-center" style={{ borderRadius: '24px' }}>
+              <div className="text-4xl mb-3">✨</div>
+              <p style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)', fontSize: 16 }}>
+                Aucune erreur enregistrée pour l'instant.<br/>
+                Discutez d'abord avec un prof pour identifier vos points faibles !
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--gris)' }}>
+                vos points à travailler
+              </div>
+              <div className="space-y-2 mb-6">
+                {summary.slice(0, 6).map((s, i) => {
+                  const label = CATEGORY_LABELS_FR[s.category] || s.category;
+                  const isTop = i === 0;
+                  return (
+                    <div key={s.category}
+                         className="flex items-center gap-3 p-3.5"
+                         style={{
+                           borderRadius: '9999px',
+                           background: 'white',
+                           border: `1.5px solid ${isTop ? accent : 'rgba(90,78,69,0.15)'}`,
+                           boxShadow: isTop ? `0 3px 10px ${accent}22` : 'none',
+                         }}>
+                      <div className="rounded-full flex items-center justify-center shrink-0 text-white font-bold"
+                           style={{ width: 36, height: 36, background: isTop ? accent : 'var(--gris)', fontFamily: 'Fraunces, Georgia, serif', fontSize: 14 }}>
+                        {s.count}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)', fontSize: 15, fontWeight: 500 }}>
+                          {label}
+                        </div>
+                        <div className="text-[11px] truncate" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                          {s.count} erreur{s.count > 1 ? 's' : ''} détectée{s.count > 1 ? 's' : ''}
+                        </div>
+                      </div>
+                      {isTop && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-white shrink-0"
+                              style={{ background: accent, fontFamily: 'DM Sans' }}>
+                          priorité
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button onClick={() => generate(null)}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-full text-white transition-all hover:-translate-y-0.5"
+                style={{ background: `linear-gradient(135deg, ${accent}, ${accent}DD)`, boxShadow: `0 6px 20px ${accent}55`, fontFamily: 'DM Sans', fontWeight: 700 }}>
+                🎯 Générer 5 exercices ciblés
+              </button>
+
+              {summary.length > 3 && (
+                <div className="mt-3 text-center text-[12px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                  focus sur les 3 catégories prioritaires
+                </div>
+              )}
+            </>
+          )}
+
+          {error && (
+            <div className="wl-card px-4 py-3 mt-4 text-sm font-semibold text-center"
+                 style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)', background: 'var(--peche)' }}>
+              ⚠️ {error}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Chargement ───────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="text-center">
+          <Loader2 size={28} className="animate-spin inline mb-3" style={{ color: accent }} />
+          <p style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)', fontSize: 18 }}>
+            Le prof prépare vos exercices…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Écran final ──────────────────────────────────────────────────────────
+  if (done) {
+    const pct = Math.round((score / exercises.length) * 100);
+    const compliment = pct === 100 ? 'Parfait !' : pct >= 80 ? 'Excellent !' : pct >= 60 ? 'Bien joué' : pct >= 40 ? 'Continuez' : 'À retravailler';
+    return (
+      <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="text-6xl mb-3">{pct === 100 ? '🏆' : pct >= 60 ? '🎉' : '💪'}</div>
+          <h1 className="text-3xl sm:text-4xl leading-none"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
+            {compliment}
+          </h1>
+          <div className="mt-6 mx-auto rounded-full flex items-center justify-center relative"
+               style={{ width: 160, height: 160, background: `radial-gradient(circle at 30% 30%, ${accent}, ${accent}CC)`, boxShadow: `0 12px 40px ${accent}66` }}>
+            <div className="text-white">
+              <div className="text-5xl font-bold" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>{score}/{exercises.length}</div>
+              <div className="text-[13px] opacity-90 mt-1" style={{ fontFamily: 'DM Sans' }}>{pct}%</div>
+            </div>
+          </div>
+          <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <button onClick={() => generate(null)}
+              className="wl-chip px-6 py-3 flex items-center justify-center gap-2"
+              style={{ fontFamily: 'DM Sans', fontWeight: 700, color: 'var(--ink)' }}>
+              <RefreshCw size={14} /> nouvelle série
+            </button>
+            <button onClick={onBack}
+              className="wl-btn-primary flex-1 flex items-center justify-center gap-2">
+              Retour au chat →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Écran d'exercice en cours ────────────────────────────────────────────
+  const ex = exercises[current];
+  const typeLabel = { fill_blank: 'Complétez', transform: 'Transformez', translate: 'Traduisez' }[ex.type] || 'Exercice';
+
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+      <div className="max-w-2xl mx-auto">
+        <button onClick={onBack}
+          className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> retour
+        </button>
+
+        {/* Progression */}
+        <div className="flex items-center gap-2 mb-6">
+          {exercises.map((_, i) => (
+            <div key={i} className="flex-1 h-1.5 rounded-full transition-colors"
+                 style={{ background: i < current ? accent : (i === current ? `${accent}88` : 'rgba(90,78,69,0.15)') }} />
+          ))}
+        </div>
+
+        <div className="wl-card p-5 sm:p-6" style={{ borderRadius: '24px', border: `1.5px solid ${accent}33` }}>
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest mb-3"
+               style={{ fontFamily: 'DM Sans', color: accent }}>
+            <span className="rounded-full px-2.5 py-1" style={{ background: `${accent}18` }}>
+              exercice {current + 1} / {exercises.length}
+            </span>
+            <span className="rounded-full px-2.5 py-1" style={{ background: `${accent}18` }}>
+              {typeLabel}
+            </span>
+            <span className="rounded-full px-2.5 py-1" style={{ background: 'rgba(90,78,69,0.1)', color: 'var(--gris)' }}>
+              {CATEGORY_LABELS_FR[ex.category] || ex.category}
+            </span>
+          </div>
+
+          <p className="text-[15px] italic mb-3" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
+            {ex.instruction_fr}
+          </p>
+
+          <div className="text-[20px] sm:text-[22px] leading-relaxed mb-4 py-3 px-1"
+               style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+            « {ex.prompt} »
+          </div>
+
+          {!showResult && (
+            <>
+              <textarea
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                placeholder={`votre réponse en ${lang.name.toLowerCase()}…`}
+                rows={2}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); check(); } }}
+                className="w-full px-4 py-3 focus:outline-none resize-none"
+                style={{
+                  fontFamily: 'DM Sans', fontSize: 16,
+                  border: '1px solid rgba(90,78,69,0.2)',
+                  borderRadius: '18px',
+                  background: 'white',
+                }}
+              />
+
+              {ex.hint_fr && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider hover:opacity-70"
+                           style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                    💡 indice
+                  </summary>
+                  <div className="mt-2 p-3 rounded-2xl text-[13px]"
+                       style={{ fontFamily: 'Fraunces, Georgia, serif', background: `${accent}12`, color: 'var(--ink)' }}>
+                    {ex.hint_fr}
+                  </div>
+                </details>
+              )}
+
+              <button onClick={check} disabled={checking || !userAnswer.trim()}
+                className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-full text-white transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0"
+                style={{ background: `linear-gradient(135deg, ${accent}, ${accent}DD)`, fontFamily: 'DM Sans', fontWeight: 700 }}>
+                {checking && <Loader2 size={16} className="animate-spin" />}
+                {checking ? 'vérification…' : 'Valider'}
+              </button>
+            </>
+          )}
+
+          {showResult && (
+            <div className="mt-2">
+              <div className="p-4 rounded-2xl"
+                   style={{
+                     background: showResult.correct ? '#DCFCE7' : '#FEE2E2',
+                     border: `1px solid ${showResult.correct ? '#86EFAC' : '#FCA5A5'}`,
+                   }}>
+                <div className="flex items-center gap-2 text-sm font-bold mb-2"
+                     style={{ fontFamily: 'DM Sans', color: showResult.correct ? '#15803D' : '#B91C1C' }}>
+                  {showResult.correct ? (<><Check size={16} /> Bravo !</>) : (<><X size={16} /> Pas tout à fait</>)}
+                </div>
+                <div className="text-[13px]" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                  {showResult.feedback_fr}
+                </div>
+                {!showResult.correct && (
+                  <div className="mt-2 text-[14px] italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                    Réponse attendue&nbsp;: <strong>« {ex.answer} »</strong>
+                  </div>
+                )}
+              </div>
+
+              <button onClick={nextExercise}
+                className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-full text-white transition-all hover:-translate-y-0.5"
+                style={{ background: `linear-gradient(135deg, ${accent}, ${accent}DD)`, fontFamily: 'DM Sans', fontWeight: 700 }}>
+                {current + 1 < exercises.length ? 'Exercice suivant →' : 'Voir le résultat 🏁'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 text-center text-[13px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          Score : <strong style={{ color: accent }}>{score}</strong> / {current + (showResult ? 1 : 0)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── CHAT SCREEN ──────────────────────────────────────────────────────────────
 
-function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
+function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
@@ -2675,7 +3162,9 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
         if (lastU !== -1) upd[lastU] = { ...upd[lastU], corrections: parsed.corrections || [] };
         return [...upd, { role:'assistant', reply: parsed.reply || '(no reply)', translation: parsed.fr_translation || '', corrections: [] }];
       });
-      if (autoSpeak && parsed.reply) speakFor(parsed.reply);
+      // Log errors for the grammar-exercises generator
+      (parsed.corrections || []).forEach(c => logError(lang, level, c));
+      if (autoSpeak && parsed.reply) speakReplyWithCorrections(parsed.reply, parsed.corrections || []);
     } catch (err) {
       setMessages(prev => [...prev, { role:'assistant', reply:'…', translation:"Désolé, problème de connexion.", corrections: [] }]);
     } finally {
@@ -2744,7 +3233,11 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar }) {
             </div>
           )}
           {messages.map((m, i) => m.role === 'user'
-            ? <UserMessage key={i} message={m} rtl={lang.rtl} />
+            ? <UserMessage key={i} message={m} rtl={lang.rtl}
+                onReplayCorrection={(corrs) => {
+                  const items = corrs.map(c => ({ text: c.spoken_echo || c.corrected })).filter(x => x.text);
+                  if (items.length) speakSequence(items, avatar, lang, voiceURI);
+                }} />
             : <AssistantMessage key={i} message={m} avatar={avatar} lang={lang}
                 onSpeak={() => speakFor(m.reply)}
                 speaking={speakingText === m.reply}
@@ -2787,16 +3280,19 @@ const READER_TOPICS = [
 
 async function generateReaderText(lang, level, topic, { onPartial } = {}) {
   const lengthByLevel = {
-    beginner: '4 short simple sentences (10-12 words max each)',
-    intermediate: '5-6 sentences with varied structure',
-    advanced: '6-7 sentences, rich vocabulary',
+    beginner: '4 short simple sentences (5-10 words max each)',
+    intermediate: '5-6 sentences with varied structure (8-18 words each)',
+    advanced: '6-7 sentences, rich vocabulary and complex structures',
   };
   const system = `You write short reading passages for French speakers learning ${lang.nativeName} (${lang.name}).
-Level: ${level.prompt}
+
+${LEVEL_CONSTRAINTS[level.id] || level.prompt}
+
 Length: ${lengthByLevel[level.id]}. KEEP IT SHORT.
 Topic: ${topic.label}.
 
 Write a self-contained passage in ${lang.nativeName}${lang.code === 'mfe' ? ' (Kreol Morisien, authentic Mauritian Creole)' : ''}.
+The vocabulary AND grammar must STRICTLY respect the level constraints above — never exceed them.
 Also provide the full French translation.
 Give the passage a short title (in ${lang.nativeName}).
 

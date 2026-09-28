@@ -4661,9 +4661,10 @@ function useAuth() {
   const signOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
-    // Clear the local "resume" pointer so the next account signing in on this
-    // browser does not see the previous user's session banner.
-    try { localStorage.removeItem(META_KEY); } catch {}
+    // We do NOT clear META_KEY on sign-out anymore: the session pointer is
+    // tagged with the user_id, so loadLastSession(userId) already filters
+    // out foreign sessions. Keeping it means the same user reconnecting on
+    // this browser lands directly on Screen 3 with their conversation ready.
     setSession(null); setProfile(null);
   };
 

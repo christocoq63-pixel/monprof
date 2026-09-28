@@ -4466,7 +4466,9 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
       <div className="max-w-4xl mx-auto">
-        <StepHeader step={3} total={4} label="mode" onBack={onBack} />
+        {/* No back arrow on Screen 3: once a language + level are set, the user
+             changes language via the "autre langue" pill, or level from Mon compte. */}
+        <StepHeader step={3} total={4} label="mode" />
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
             <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
@@ -5960,7 +5962,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onSaved={(d) => { setDeviceChoice(d); setStep(hasDeviceChoice ? 'profile' : 'language'); }}
     onSkip={hasDeviceChoice ? () => setStep('profile') : null} />;
   if (step === 'profile')  return <ProfileScreen profile={profile}
-    onBack={() => setStep('language')}
+    onBack={() => setStep(language ? 'mode' : 'language')}
     onProfileUpdated={reloadProfile}
     onStartTest={() => setStep('picklangfortest')}
     onManualLevel={() => setStep('manuallevel')}

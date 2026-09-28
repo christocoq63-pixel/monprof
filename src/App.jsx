@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle, LogOut, Mail, Lock, User, UserCircle, Calendar, MapPin, Phone, Globe2, Check } from 'lucide-react';
+import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle, LogOut, Mail, Lock, User, UserCircle, Calendar, MapPin, Phone, Globe2, Check, Eye as EyeIcon, EyeOff as EyeOffIcon } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 // ─── COUNTRY DIAL CODES ───────────────────────────────────────────────────────
@@ -583,27 +583,111 @@ async function saveLevelTestResult(result) {
 // ─── ERROR LOG (for grammar exercises) ────────────────────────────────────────
 
 // Store every correction to build a "weak points" ledger per lang+level.
-function logError(lang, level, correction) {
+// Persists to Supabase when a user session is available; always mirrors in localStorage.
+async function logError(lang, level, correction) {
   if (!correction || !correction.original) return;
+
+  // Local cache (always)
   try {
     const key = `errors:${lang.code}:${level.id}`;
     const raw = storage.get(key);
     const arr = raw ? JSON.parse(raw) : [];
-    arr.unshift({
-      ...correction,
-      logged_at: Date.now(),
-    });
-    // Keep max 100 recent errors
+    arr.unshift({ ...correction, logged_at: Date.now() });
     storage.set(key, JSON.stringify(arr.slice(0, 100)));
   } catch (e) { /* ignore */ }
+
+  // Supabase (fire-and-forget)
+  if (!supabase) return;
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+    await supabase.from('user_errors').insert({
+      user_id: userData.user.id,
+      language_code: lang.code,
+      level_id: level.id,
+      original: correction.original,
+      corrected: correction.corrected,
+      spoken_echo: correction.spoken_echo || null,
+      explanation_fr: correction.explanation_fr,
+      category: correction.category || 'other',
+    });
+  } catch (e) { /* silent — the local cache already saved it */ }
 }
 
-function loadRecentErrors(lang, level, limit = 30) {
+async function loadRecentErrors(lang, level, limit = 30) {
+  // Try Supabase first, then fall back to localStorage.
+  if (supabase) {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        const { data, error } = await supabase
+          .from('user_errors')
+          .select('*')
+          .eq('user_id', userData.user.id)
+          .eq('language_code', lang.code)
+          .eq('level_id', level.id)
+          .order('logged_at', { ascending: false })
+          .limit(limit);
+        if (!error && data && data.length) return data;
+      }
+    } catch (e) { /* fall through */ }
+  }
+  // Fallback: localStorage
   try {
     const key = `errors:${lang.code}:${level.id}`;
     const raw = storage.get(key);
     const arr = raw ? JSON.parse(raw) : [];
     return arr.slice(0, limit);
+  } catch { return []; }
+}
+
+// Save the result of a completed exercise session
+async function saveExerciseSession({ lang, level, categories, exercises, score }) {
+  const record = {
+    language_code: lang.code,
+    level_id: level.id,
+    categories: categories,
+    exercises: exercises,
+    score: score,
+    total: exercises.length,
+    completed_at: new Date().toISOString(),
+  };
+
+  // Local cache
+  try {
+    const raw = storage.get('exercise_sessions');
+    const arr = raw ? JSON.parse(raw) : [];
+    arr.unshift(record);
+    storage.set('exercise_sessions', JSON.stringify(arr.slice(0, 50)));
+  } catch (e) { /* ignore */ }
+
+  // Supabase
+  if (!supabase) return;
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+    await supabase.from('exercise_sessions').insert({
+      user_id: userData.user.id,
+      ...record,
+    });
+  } catch (e) { /* silent */ }
+}
+
+async function loadExerciseSessions(userId, limit = 20) {
+  if (supabase && userId) {
+    try {
+      const { data, error } = await supabase
+        .from('exercise_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('completed_at', { ascending: false })
+        .limit(limit);
+      if (!error && data) return data;
+    } catch (e) { /* fall through */ }
+  }
+  try {
+    const raw = storage.get('exercise_sessions');
+    return raw ? JSON.parse(raw).slice(0, limit) : [];
   } catch { return []; }
 }
 
@@ -1497,6 +1581,7 @@ function LevelTestScreen({ language, onLevelDetermined, onBack }) {
           system: buildTestSystem(language),
           messages: [{ role: 'user', content: opening }],
           maxTokens: 120,
+          cache: true,
         });
         const text = data?.content?.[0]?.text?.trim() || `Hello! How are you today?`;
         setMessages([{ role: 'assistant', text }]);
@@ -1528,6 +1613,7 @@ function LevelTestScreen({ language, onLevelDetermined, onBack }) {
           content: m.text,
         })),
         maxTokens: 150,
+        cache: true,
       });
       const text = data?.content?.[0]?.text?.trim() || '...';
       setMessages(m => [...m, { role: 'assistant', text }]);
@@ -2082,19 +2168,29 @@ function CorrectionsPanel({ corrections, onReplay }) {
 // ─── CLICKABLE WORDS + EXPLAIN POPUP ─────────────────────────────────────────
 
 // Attempts a request with a fast model first, then falls back to a reliable one.
-async function chatWithFallback({ system, messages, maxTokens = 500 }) {
+// Wrap a string system prompt as an array of content blocks with cache_control.
+// This enables Anthropic prompt caching: the system portion is billed at ~10%
+// on cache hits (5-minute TTL by default), instead of full price.
+function wrapSystemForCaching(system, cache) {
+  if (!cache) return system;
+  const text = typeof system === 'string' ? system : (Array.isArray(system) ? system.map(b => b.text || '').join('\n') : String(system));
+  return [{ type: 'text', text, cache_control: { type: 'ephemeral' } }];
+}
+
+async function chatWithFallback({ system, messages, maxTokens = 500, cache = false }) {
   const models = [
     'claude-haiku-4-5',           // fastest
     'claude-3-5-haiku-latest',    // fast, widely available fallback
     'claude-sonnet-4-20250514',   // reliable last resort
   ];
+  const sys = wrapSystemForCaching(system, cache);
   let lastError = null;
   for (const model of models) {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages }),
+        body: JSON.stringify({ model, max_tokens: maxTokens, system: sys, messages }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -2115,8 +2211,20 @@ async function chatWithFallback({ system, messages, maxTokens = 500 }) {
   throw lastError || new Error('All models failed');
 }
 
-// Fetch a word explanation via our API
+// Fetch a word explanation via our API — with a persistent cache to avoid
+// re-billing the same word twice for a given user.
 async function explainWord(word, context, lang) {
+  const normalized = word.toLowerCase().replace(/[^\p{L}\p{N}-]/gu, '').trim();
+  const cacheKey = `word:${lang.code}:${normalized}`;
+  // Try local cache first
+  try {
+    const cached = storage.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.translation) return parsed;
+    }
+  } catch { /* ignore */ }
+
   const systemPrompt = `You are a language tutor helping a French speaker learn ${lang.nativeName} (${lang.name} in French).
 The user just clicked on the word "${word}" appearing in this sentence: "${context}".
 Give:
@@ -2142,7 +2250,11 @@ Respond ONLY with a JSON object, no code fences:
   const textOut = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
   const cleaned = textOut.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
   const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
-  return JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+  const parsed = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+
+  // Cache the result — same word in same language usually gets the same explanation
+  try { storage.set(cacheKey, JSON.stringify(parsed)); } catch { /* ignore */ }
+  return parsed;
 }
 
 function WordExplainPopup({ word, context, lang, onClose, onSpeak }) {
@@ -2673,9 +2785,14 @@ function ExercisesScreen({ lang, level, onBack }) {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    const e = loadRecentErrors(lang, level, 30);
-    setErrors(e);
-    setSummary(summarizeErrors(e));
+    let alive = true;
+    (async () => {
+      const e = await loadRecentErrors(lang, level, 30);
+      if (!alive) return;
+      setErrors(e);
+      setSummary(summarizeErrors(e));
+    })();
+    return () => { alive = false; };
   }, [lang.code, level.id]);
 
   const generate = async (categories) => {
@@ -2785,6 +2902,11 @@ Respond ONLY with JSON: {"correct": <boolean>, "feedback_fr": "<one short French
       setUserAnswer(''); setShowResult(null);
     } else {
       setDone(true);
+      // Persist the completed session (fire-and-forget)
+      const finalScore = score; // already up-to-date at this point
+      const cats = [...new Set(exercises.map(e => e.category))];
+      saveExerciseSession({ lang, level, categories: cats, exercises, score: finalScore })
+        .catch(err => console.warn('Failed to save exercise session:', err));
     }
   };
 
@@ -3140,12 +3262,22 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onOpenExercises }) {
     setLoading(true);
 
     try {
-      const apiMessages = newMessages.map(m => m.role === 'user' ? { role:'user', content: m.content } : { role:'assistant', content: m.reply });
-      // Uses chatWithFallback: Haiku first (fast + cheap), Sonnet only if Haiku unavailable
+      // Optimization: sliding window on history. Anything beyond the last 15
+      // exchanges (30 messages) is dropped. The greeting stays as message 0
+      // for continuity.
+      let trimmed = newMessages;
+      if (newMessages.length > 32) {
+        trimmed = [newMessages[0], ...newMessages.slice(-30)];
+      }
+      const apiMessages = trimmed.map(m => m.role === 'user' ? { role:'user', content: m.content } : { role:'assistant', content: m.reply });
+      // Uses chatWithFallback: Haiku first (fast + cheap), Sonnet only if Haiku unavailable.
+      // Prompt caching is enabled: the system prompt (avatar + level + rules)
+      // is stable across turns, so it hits the Anthropic cache (~10% billing).
       const data = await chatWithFallback({
         system: buildSystemPrompt(lang, level, avatar),
         messages: apiMessages,
         maxTokens: 1000,
+        cache: true,
       });
       const textOut = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
       let parsed;
@@ -3316,13 +3448,15 @@ Respond ONLY with JSON, no code fences. Emit fields IN THIS ORDER — title firs
   let accumulated = '';
   let streamSucceeded = false;
 
+  // Wrap the reader system prompt for caching — stable across topics for the same lang+level.
+  const cachedSystem = wrapSystemForCaching(system, true);
   for (const model of streamingModels) {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model, max_tokens: 800, system,
+          model, max_tokens: 800, system: cachedSystem,
           messages: [{ role: 'user', content: `Give me a new passage about "${topic.label}".` }],
           stream: true,
         }),
@@ -3808,11 +3942,15 @@ function WelcomeScreen({ onLogin, onSignup }) {
 }
 
 function AuthField({ icon: Icon, type, placeholder, value, onChange, autoComplete, disabled }) {
+  const isPassword = type === 'password';
+  const [reveal, setReveal] = useState(false);
+  const effectiveType = isPassword ? (reveal ? 'text' : 'password') : type;
+
   return (
     <div className="flex items-center gap-3 wl-card px-4 py-3 rounded-2xl">
       {Icon && <Icon size={16} style={{ color: 'var(--gris)' }} />}
       <input
-        type={type}
+        type={effectiveType}
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -3821,6 +3959,18 @@ function AuthField({ icon: Icon, type, placeholder, value, onChange, autoComplet
         className="flex-1 bg-transparent focus:outline-none text-base disabled:opacity-60"
         style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, color: 'var(--ink)' }}
       />
+      {isPassword && !disabled && value && (
+        <button
+          type="button"
+          onClick={() => setReveal(r => !r)}
+          className="w-7 h-7 grid place-items-center rounded-full hover:bg-black/5 transition-colors shrink-0"
+          title={reveal ? 'masquer le mot de passe' : 'afficher le mot de passe'}
+          aria-label={reveal ? 'masquer le mot de passe' : 'afficher le mot de passe'}>
+          {reveal
+            ? <EyeOffIcon size={16} style={{ color: 'var(--gris)' }} />
+            : <EyeIcon size={16} style={{ color: 'var(--gris)' }} />}
+        </button>
+      )}
     </div>
   );
 }

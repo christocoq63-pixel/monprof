@@ -1342,7 +1342,7 @@ function StepHeader({ step, total, label, onBack }) {
 
 // ─── STEP 1: LANGUAGE ─────────────────────────────────────────────────────────
 
-function LanguagePicker({ onSelect, onResumeLast, profile, signOut, onOpenProfile }) {
+function LanguagePicker({ onSelect, onResumeLast, profile, signOut, onOpenProfile, onOpenLexicon }) {
   const [lastSession, setLastSession] = useState(null);
 
   useEffect(() => {
@@ -1376,6 +1376,10 @@ function LanguagePicker({ onSelect, onResumeLast, profile, signOut, onOpenProfil
               </span>
             </button>
             <div className="flex items-center gap-4">
+              <button onClick={onOpenLexicon}
+                className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                <span style={{ fontSize: 13 }}>📚</span> mon lexique
+              </button>
               <button onClick={onOpenProfile}
                 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
                 <UserCircle size={12} /> mon compte
@@ -3019,7 +3023,7 @@ function LexiconScreen({ lang, profile, onBack }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
-  const [scope, setScope] = useState(lang?.code || 'all'); // 'all' or a language code
+  const [scope, setScope] = useState('all'); // 'all' or a language code — default 'all' so an empty per-lang filter never hides all entries
   const [expanded, setExpanded] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const { speak } = useSpeech();
@@ -4973,7 +4977,7 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 
 // ─── PROFILE / MON COMPTE ─────────────────────────────────────────────────────
 
-function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onChangeDevice, device }) {
+function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onChangeDevice, device, onOpenLexicon }) {
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [email, setEmail] = useState(profile?.email || '');
@@ -5137,6 +5141,33 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onChang
             </button>
           </div>
         </form>
+
+        {/* Section: lexique */}
+        {onOpenLexicon && (
+          <button onClick={onOpenLexicon}
+            className="w-full text-left wl-card p-5 sm:p-6 mt-5 flex items-center gap-4 hover:-translate-y-0.5 transition-all group"
+            style={{ borderRadius: '24px', border: '1.5px solid rgba(255, 56, 92, 0.22)' }}>
+            <div className="rounded-full flex items-center justify-center shrink-0"
+                 style={{ width: 56, height: 56, background: 'linear-gradient(135deg, #FF385C22, #FF385C11)' }}>
+              <span style={{ fontSize: 28 }}>📚</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                  Mon lexique
+                </h2>
+                <span className="text-[10px] font-bold uppercase tracking-widest"
+                      style={{ fontFamily: 'DM Sans', color: 'var(--corail)' }}>
+                  toutes langues
+                </span>
+              </div>
+              <p className="text-[13px] mt-0.5" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                Tous les mots dont vous avez demandé la traduction
+              </p>
+            </div>
+            <span className="shrink-0 group-hover:translate-x-1 transition-transform" style={{ color: 'var(--corail)', fontFamily: 'Fraunces, Georgia, serif', fontSize: 20 }}>→</span>
+          </button>
+        )}
 
         {/* Section: appareil */}
         {onChangeDevice && (() => {
@@ -5443,6 +5474,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onProfileUpdated={reloadProfile}
     onStartTest={() => setStep('picklangfortest')}
     onChangeDevice={() => setStep('device')}
+    onOpenLexicon={() => setStep('lexicon')}
     device={deviceChoice} />;
   if (step === 'picklangfortest') return <LanguagePickForTest
     onBack={() => setStep('profile')}
@@ -5451,6 +5483,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
     profile={profile} signOut={signOut}
     onSelect={(l) => { setLanguage(l); setStep('level'); }}
     onOpenProfile={() => setStep('profile')}
+    onOpenLexicon={() => setStep('lexicon')}
     onResumeLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar); setStep('chat'); }}
   />;
   if (step === 'level')    return <LevelPicker language={language}
@@ -5469,7 +5502,12 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onOpenLexicon={() => setStep('lexicon')} />;
   if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('chat')} />;
   if (step === 'lexicon')  return <LexiconScreen lang={language} profile={profile}
-    onBack={() => setStep(avatar ? 'chat' : 'reader')} />;
+    onBack={() => {
+      // Go back to where the user came from: chat > reader > language picker
+      if (avatar) return setStep('chat');
+      if (language) return setStep('reader');
+      return setStep('language');
+    }} />;
   return <ChatScreen lang={language} level={level} avatar={avatar}
     onChangeAvatar={() => setStep('avatar')}
     onOpenExercises={() => setStep('exercises')}

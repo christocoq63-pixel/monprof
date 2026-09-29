@@ -404,40 +404,86 @@ const LANGUAGES = {
 };
 
 // Face features per avatar — gives each character a distinct look
+// Chaque avatar a un look bien identifiable : hair, hairColor, skin — dérivé
+// de sa nationalité + profil, et différentes silhouettes/palettes pour éviter
+// que les personnages se ressemblent.
 const FACES = {
-  emma:    { eyes:'lashes', mouth:'wide-smile', accessory:null,            blush:true },
-  marcus:  { eyes:'round',  mouth:'neutral',    accessory:'glasses-square' },
-  hannah:  { eyes:'round',  mouth:'wide-smile', accessory:null,            freckles:true },
-  oliver:  { eyes:'round',  mouth:'smirk',      accessory:'glasses-round', moustache:true },
-  priya:   { eyes:'lashes', mouth:'smile',      accessory:'bindi' },
-  karim:   { eyes:'round',  mouth:'neutral',    accessory:'beard' },
-  lucia:   { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick' },
-  diego:   { eyes:'round',  mouth:'smile',      accessory:'beard' },
-  carmen:  { eyes:'round',  mouth:'wide-smile', accessory:null },
-  lena:    { eyes:'round',  mouth:'smile',      accessory:null },
-  klaus:   { eyes:'round',  mouth:'neutral',    accessory:'glasses-square' },
-  anja:    { eyes:'round',  mouth:'wide-smile', accessory:null },
-  giulia:  { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick' },
-  marco:   { eyes:'round',  mouth:'smirk',      accessory:null },
-  sofia:   { eyes:'round',  mouth:'wide-smile', accessory:null },
-  rafael:  { eyes:'round',  mouth:'wide-smile', accessory:'beard' },
-  beatriz: { eyes:'lashes', mouth:'smile',      accessory:null },
-  joao:    { eyes:'round',  mouth:'smile',      accessory:'glasses-round' },
-  yuki:    { eyes:'oval',   mouth:'smile',      accessory:null,            blush:true },
-  takeshi: { eyes:'oval',   mouth:'neutral',    accessory:null },
-  aiko:    { eyes:'oval',   mouth:'wide-smile', accessory:null },
-  mei:     { eyes:'oval',   mouth:'smile',      accessory:null },
-  wei:     { eyes:'oval',   mouth:'neutral',    accessory:'glasses-square' },
-  lin:     { eyes:'oval',   mouth:'smile',      accessory:null },
-  layla:   { eyes:'lashes', mouth:'smile',      accessory:null },
-  omar:    { eyes:'round',  mouth:'neutral',    accessory:'beard' },
-  anais:   { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick' },
-  ravi:    { eyes:'round',  mouth:'smile',      accessory:null },
-  marie:   { eyes:'round',  mouth:'wide-smile', accessory:null },
-  lea:     { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick' },
-  antoine: { eyes:'round',  mouth:'smile',      accessory:'glasses-square' },
-  fatou:   { eyes:'lashes', mouth:'wide-smile', accessory:null },
-  marie_fr:{ eyes:'round',  mouth:'wide-smile', accessory:null },
+  // ─── Anglais ─────────────────────────────
+  emma:    { eyes:'lashes', mouth:'wide-smile', accessory:null,            blush:true,
+             hair:'wave',    hairColor:'ginger',   skin:'light' },
+  marcus:  { eyes:'round',  mouth:'neutral',    accessory:'glasses-square',
+             hair:'quiff',   hairColor:'darkbrown',skin:'light' },
+  hannah:  { eyes:'round',  mouth:'wide-smile', accessory:null,            freckles:true,
+             hair:'long',    hairColor:'ginger',   skin:'light' },
+  oliver:  { eyes:'round',  mouth:'smirk',      accessory:'glasses-round', moustache:true,
+             hair:'wave-m',  hairColor:'grey',     skin:'light' },
+  priya:   { eyes:'lashes', mouth:'smile',      accessory:'bindi',
+             hair:'long',    hairColor:'black',    skin:'medium' },
+  karim:   { eyes:'round',  mouth:'neutral',    accessory:'beard',
+             hair:'short',   hairColor:'black',    skin:'tan' },
+  // ─── Espagnol ────────────────────────────
+  lucia:   { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick',
+             hair:'wave',    hairColor:'darkbrown',skin:'peach' },
+  diego:   { eyes:'round',  mouth:'smile',      accessory:'beard',
+             hair:'curly-m', hairColor:'chestnut', skin:'peach' },
+  carmen:  { eyes:'round',  mouth:'wide-smile', accessory:null,
+             hair:'bob',     hairColor:'black',    skin:'medium' },
+  // ─── Allemand ────────────────────────────
+  lena:    { eyes:'round',  mouth:'smile',      accessory:null,
+             hair:'ponytail',hairColor:'blonde',   skin:'light' },
+  klaus:   { eyes:'round',  mouth:'neutral',    accessory:'glasses-square',
+             hair:'crew',    hairColor:'blonde',   skin:'light' },
+  anja:    { eyes:'round',  mouth:'wide-smile', accessory:null,
+             hair:'bob',     hairColor:'platinum', skin:'light' },
+  // ─── Italien ─────────────────────────────
+  giulia:  { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick',
+             hair:'curly',   hairColor:'chestnut', skin:'peach' },
+  marco:   { eyes:'round',  mouth:'smirk',      accessory:null,
+             hair:'wave-m',  hairColor:'darkbrown',skin:'peach' },
+  sofia:   { eyes:'round',  mouth:'wide-smile', accessory:null,
+             hair:'long',    hairColor:'chestnut', skin:'peach' },
+  // ─── Portugais ───────────────────────────
+  rafael:  { eyes:'round',  mouth:'wide-smile', accessory:'beard',
+             hair:'short',   hairColor:'darkbrown',skin:'medium' },
+  beatriz: { eyes:'lashes', mouth:'smile',      accessory:null,
+             hair:'ponytail',hairColor:'brown',    skin:'peach' },
+  joao:    { eyes:'round',  mouth:'smile',      accessory:'glasses-round',
+             hair:'short',   hairColor:'brown',    skin:'medium' },
+  // ─── Japonais ────────────────────────────
+  yuki:    { eyes:'oval',   mouth:'smile',      accessory:null,            blush:true,
+             hair:'bob',     hairColor:'black',    skin:'light' },
+  takeshi: { eyes:'oval',   mouth:'neutral',    accessory:null,
+             hair:'crew',    hairColor:'black',    skin:'light' },
+  aiko:    { eyes:'oval',   mouth:'wide-smile', accessory:null,
+             hair:'buns',    hairColor:'black',    skin:'light' },
+  // ─── Mandarin ────────────────────────────
+  mei:     { eyes:'oval',   mouth:'smile',      accessory:null,
+             hair:'long',    hairColor:'black',    skin:'light' },
+  wei:     { eyes:'oval',   mouth:'neutral',    accessory:'glasses-square',
+             hair:'short',   hairColor:'black',    skin:'light' },
+  lin:     { eyes:'oval',   mouth:'smile',      accessory:null,
+             hair:'ponytail',hairColor:'black',    skin:'light' },
+  // ─── Arabe ───────────────────────────────
+  layla:   { eyes:'lashes', mouth:'smile',      accessory:null,
+             hair:'hijab',   hairColor:'red',      skin:'peach' },
+  omar:    { eyes:'round',  mouth:'neutral',    accessory:'beard',
+             hair:'short',   hairColor:'black',    skin:'tan' },
+  // ─── Mauricien ───────────────────────────
+  anais:   { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick',
+             hair:'long',    hairColor:'black',    skin:'tan' },
+  ravi:    { eyes:'round',  mouth:'smile',      accessory:null,
+             hair:'short',   hairColor:'black',    skin:'tan' },
+  marie:   { eyes:'round',  mouth:'wide-smile', accessory:null,
+             hair:'curly',   hairColor:'black',    skin:'brown' },
+  // ─── Français ────────────────────────────
+  lea:     { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick',
+             hair:'wave',    hairColor:'blonde',   skin:'light' },
+  antoine: { eyes:'round',  mouth:'smile',      accessory:'glasses-square',
+             hair:'short',   hairColor:'darkbrown',skin:'light' },
+  fatou:   { eyes:'lashes', mouth:'wide-smile', accessory:'headband-tails',
+             hair:'headband-tails', hairColor:'black', skin:'deep' },
+  marie_fr:{ eyes:'round',  mouth:'wide-smile', accessory:null,
+             hair:'bob',     hairColor:'brown',    skin:'light' },
 };
 
 const LEVELS = {
@@ -1342,7 +1388,7 @@ const SKIN_TONES = {
 const HAIR_C_KEYS = Object.keys(HAIR_COLORS);
 const SKIN_KEYS   = Object.keys(SKIN_TONES);
 const HAIRS_F = ['bob', 'long', 'ponytail', 'buns', 'curly', 'wave'];
-const HAIRS_M = ['short', 'quiff', 'crew', 'curly-m', 'wave-m', 'bald'];
+const HAIRS_M = ['short', 'quiff', 'crew', 'curly-m', 'wave-m', 'bald', 'spike', 'cap', 'headphones'];
 
 // Deterministic pick from id — same avatar always gets the same look.
 function _hashN(s) { let h = 0; for (let i = 0; i < s.length; i++) h = ((h * 31) + s.charCodeAt(i)) | 0; return Math.abs(h); }
@@ -1361,40 +1407,113 @@ function HairPath({ style, color }) {
   const s = { stroke: '#1a1a1a', strokeWidth: 2.5, strokeLinejoin: 'round' };
   switch (style) {
     case 'bald':
-      return null;
+      // Just a subtle shine on top of the scalp
+      return <ellipse cx={50} cy={20} rx={6} ry={2.5} fill="white" opacity="0.4"/>;
     case 'crew':
-      return <path d="M 20 26 Q 50 18 80 26 L 80 32 Q 50 26 20 32 Z" fill={color} {...s}/>;
+      // Very short buzz cut — a thin cap hugging the skull
+      return <path d="M 22 30 Q 22 18 50 16 Q 78 18 78 30 L 76 28 Q 66 22 50 22 Q 34 22 24 28 Z" fill={color} {...s}/>;
     case 'short':
-      return <path d="M 18 38 Q 18 12 50 12 Q 82 12 82 38 L 80 32 Q 74 22 50 20 Q 26 22 20 32 Z" fill={color} {...s}/>;
+      // Classic short cut with side part
+      return <path d="M 18 38 Q 16 10 50 10 Q 84 10 82 38 L 78 30 Q 72 22 50 20 Q 28 22 22 30 Z M 40 16 L 62 16 L 60 22 L 42 22 Z" fill={color} {...s}/>;
     case 'quiff':
-      return <path d="M 18 40 Q 18 10 50 10 Q 82 10 82 40 L 78 30 Q 66 16 50 14 Q 34 16 22 30 Z M 40 14 Q 50 4 60 14 Q 55 12 50 12 Q 45 12 40 14 Z" fill={color} {...s}/>;
-    case 'curly-m':
-      return <path d="M 16 40 Q 8 26 20 18 Q 22 10 34 14 Q 40 4 50 12 Q 60 4 66 14 Q 78 10 80 18 Q 92 26 84 40 Q 78 30 72 28 Q 76 20 68 20 Q 62 14 56 18 Q 50 12 44 18 Q 38 14 32 20 Q 24 20 28 28 Q 22 30 16 40 Z" fill={color} {...s}/>;
-    case 'wave-m':
-      return <path d="M 18 40 Q 18 14 50 14 Q 82 14 82 40 Q 76 22 66 26 Q 58 20 50 24 Q 42 20 34 26 Q 24 22 18 40 Z" fill={color} {...s}/>;
-    case 'bob':
-      return <path d="M 14 52 Q 12 18 50 12 Q 88 18 86 52 L 82 32 Q 74 22 50 20 Q 26 22 18 32 Z" fill={color} {...s}/>;
-    case 'long':
-      return <path d="M 10 72 Q 6 20 50 10 Q 94 20 90 72 L 82 40 Q 76 22 50 18 Q 24 22 18 40 Z" fill={color} {...s}/>;
-    case 'ponytail':
+      // High pompadour with a visible tuft/wave in front
       return (
-        <g>
-          <path d="M 18 40 Q 14 14 50 12 Q 86 14 82 40 L 78 32 Q 74 22 50 20 Q 26 22 22 32 Z" fill={color} {...s}/>
-          <ellipse cx="88" cy="40" rx="7" ry="14" fill={color} transform="rotate(25 88 40)" {...s}/>
+        <g {...s}>
+          <path d="M 18 42 Q 18 12 50 8 Q 82 12 82 42 L 78 32 Q 68 18 50 16 Q 32 18 22 32 Z" fill={color}/>
+          <path d="M 34 14 Q 40 2 52 6 Q 62 10 68 14 Q 60 8 50 10 Q 42 6 34 14 Z" fill={color}/>
+        </g>
+      );
+    case 'curly-m':
+      // Big fluffy afro-like curls — many round bumps
+      return (
+        <g {...s}>
+          <path d="M 14 42 Q 6 30 16 20 Q 18 8 32 12 Q 40 2 50 10 Q 60 2 68 12 Q 82 8 84 20 Q 94 30 86 42 Q 80 30 72 30 Q 78 22 68 22 Q 60 14 52 20 Q 50 12 48 20 Q 40 14 32 22 Q 22 22 28 30 Q 20 30 14 42 Z" fill={color}/>
+          <circle cx="24" cy="20" r="4" fill={color}/>
+          <circle cx="76" cy="20" r="4" fill={color}/>
+        </g>
+      );
+    case 'wave-m':
+      // Side-swept wave (fringe swept)
+      return <path d="M 18 40 Q 18 12 50 10 Q 82 12 82 40 Q 76 22 66 24 Q 60 18 50 22 Q 40 30 30 24 Q 22 20 18 40 Z" fill={color} {...s}/>;
+    case 'spike':
+      // Spiky punk hair — jagged edges pointing up
+      return <path d="M 20 34 L 18 20 L 26 30 L 30 12 L 36 28 L 42 8 L 48 26 L 54 8 L 60 28 L 66 12 L 70 30 L 78 20 L 76 34 Q 74 28 50 24 Q 26 28 20 34 Z" fill={color} {...s}/>;
+    case 'bob':
+      // Chin-length bob framing the face
+      return <path d="M 12 54 Q 10 16 50 8 Q 90 16 88 54 L 82 30 Q 72 20 50 18 Q 28 20 18 30 Z" fill={color} {...s}/>;
+    case 'long':
+      // Long straight hair past the shoulders
+      return <path d="M 8 78 Q 4 18 50 8 Q 96 18 92 78 L 82 40 Q 74 22 50 18 Q 26 22 18 40 Z" fill={color} {...s}/>;
+    case 'ponytail':
+      // Hair pulled back with a side ponytail
+      return (
+        <g {...s}>
+          <path d="M 20 40 Q 16 14 50 10 Q 84 14 80 40 L 76 30 Q 70 22 50 20 Q 30 22 24 30 Z" fill={color}/>
+          <ellipse cx="90" cy="42" rx="8" ry="16" fill={color} transform="rotate(28 90 42)"/>
         </g>
       );
     case 'buns':
+      // Twin side buns (playful)
       return (
-        <g>
-          <path d="M 18 40 Q 14 14 50 12 Q 86 14 82 40 L 78 32 Q 74 22 50 20 Q 26 22 22 32 Z" fill={color} {...s}/>
-          <circle cx="18" cy="20" r="9" fill={color} {...s}/>
-          <circle cx="82" cy="20" r="9" fill={color} {...s}/>
+        <g {...s}>
+          <path d="M 22 42 Q 18 18 50 12 Q 82 18 78 42 L 74 32 Q 68 22 50 20 Q 32 22 26 32 Z" fill={color}/>
+          <circle cx="18" cy="18" r="10" fill={color}/>
+          <circle cx="82" cy="18" r="10" fill={color}/>
         </g>
       );
     case 'curly':
-      return <path d="M 12 40 Q 8 20 22 14 Q 30 4 42 12 Q 50 2 58 12 Q 70 4 78 14 Q 92 20 88 40 Q 82 30 78 28 Q 82 20 74 20 Q 68 14 60 18 Q 54 12 50 18 Q 46 12 40 18 Q 32 14 26 20 Q 18 20 22 28 Q 18 30 12 40 Z" fill={color} {...s}/>;
+      // Big fluffy curls (female afro-style)
+      return (
+        <g {...s}>
+          <path d="M 10 42 Q 4 20 20 12 Q 26 2 40 8 Q 50 0 60 8 Q 74 2 80 12 Q 96 20 90 42 Q 84 30 78 30 Q 84 20 74 20 Q 68 12 60 18 Q 54 8 50 16 Q 46 8 40 18 Q 32 12 26 20 Q 16 20 22 30 Q 16 30 10 42 Z" fill={color}/>
+          <circle cx="16" cy="22" r="4" fill={color}/>
+          <circle cx="84" cy="22" r="4" fill={color}/>
+        </g>
+      );
     case 'wave':
-      return <path d="M 12 60 Q 8 16 50 12 Q 92 16 88 60 L 82 36 Q 74 22 50 20 Q 26 22 18 36 Z" fill={color} {...s}/>;
+      // Wavy long hair
+      return <path d="M 10 60 Q 6 14 50 10 Q 94 14 90 60 L 82 34 Q 74 22 50 20 Q 26 22 18 34 Z" fill={color} {...s}/>;
+    case 'headband-tails':
+      // Two low ponytails with a headband on top
+      return (
+        <g {...s}>
+          {/* Base hair */}
+          <path d="M 20 42 Q 16 16 50 12 Q 84 16 80 42 L 76 30 Q 70 22 50 20 Q 30 22 24 30 Z" fill={color}/>
+          {/* Two low side puffs */}
+          <ellipse cx="14" cy="52" rx="6" ry="10" fill={color}/>
+          <ellipse cx="86" cy="52" rx="6" ry="10" fill={color}/>
+          {/* Headband on top */}
+          <path d="M 20 18 Q 50 8 80 18 L 82 24 Q 50 14 18 24 Z" fill="#EC4899" stroke="#1a1a1a" strokeWidth="2"/>
+        </g>
+      );
+    case 'hijab':
+      // Scarf covering the head and neck
+      return (
+        <g {...s}>
+          <path d="M 8 40 Q 4 4 50 4 Q 96 4 92 40 L 92 70 Q 88 76 82 76 L 68 76 L 68 68 L 32 68 L 32 76 L 18 76 Q 12 76 8 70 Z"
+                fill={color === '#B91C1C' ? '#B91C1C' : color}/>
+          {/* Fold detail */}
+          <path d="M 32 68 Q 50 62 68 68" stroke="#1a1a1a" strokeWidth="2" fill="none"/>
+        </g>
+      );
+    case 'cap':
+      // Baseball cap
+      return (
+        <g {...s}>
+          <path d="M 22 32 Q 22 12 50 10 Q 78 12 78 32 L 78 28 Q 72 20 50 18 Q 28 20 22 28 Z" fill={color}/>
+          <ellipse cx="70" cy="34" rx="18" ry="4" fill={color}/>
+        </g>
+      );
+    case 'headphones':
+      // Big over-ear headphones
+      return (
+        <g {...s}>
+          <path d="M 22 32 Q 22 14 50 12 Q 78 14 78 32 L 76 28 Q 70 22 50 20 Q 30 22 24 28 Z" fill={color}/>
+          <path d="M 12 44 Q 12 20 50 18 Q 88 20 88 44" stroke="#4B5563" strokeWidth="5" fill="none" strokeLinecap="round"/>
+          <ellipse cx="12" cy="48" rx="6" ry="9" fill="#4B5563"/>
+          <ellipse cx="88" cy="48" rx="6" ry="9" fill="#4B5563"/>
+        </g>
+      );
     default:
       return <path d="M 18 38 Q 18 12 50 12 Q 82 12 82 38 L 78 30 Q 70 20 50 18 Q 30 20 22 30 Z" fill={color} {...s}/>;
   }

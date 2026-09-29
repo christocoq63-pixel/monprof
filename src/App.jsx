@@ -1274,18 +1274,29 @@ function useRecognition(srLocale) {
   const listen = ({ onInterim, onFinal, onEnd, onError }) => {
     const r = recRef.current;
     if (!r) return;
+    // Cumulative full-final transcript (rebuilt from all isFinal items every time).
+    // Key fix for Android: many mobile engines mark intermediate chunks as final,
+    // and each new result already includes ALL previous final text. Instead of
+    // trying to compute deltas (which was double-appending), we always rebuild
+    // the full transcript from scratch and REPLACE — never append.
     let finalText = '';
     r.onresult = (e) => {
       let interim = '';
-      let newFinal = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      let cumulativeFinal = '';
+      // Iterate over ALL results (not just from resultIndex) so we always
+      // rebuild the full final text — safe against Android's behavior of
+      // re-emitting old finals in later result events.
+      for (let i = 0; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) newFinal += t;
+        if (e.results[i].isFinal) cumulativeFinal += t + ' ';
         else interim += t;
       }
-      if (newFinal) {
-        finalText += newFinal;
-        onFinal?.(newFinal, finalText); // pass chunk and cumulative
+      cumulativeFinal = cumulativeFinal.trim();
+      if (cumulativeFinal && cumulativeFinal !== finalText) {
+        finalText = cumulativeFinal;
+        // Pass the full cumulative final as BOTH chunk and cumulative — callers
+        // should REPLACE their stored transcript with this value, not append.
+        onFinal?.(cumulativeFinal, cumulativeFinal);
       }
       if (interim) onInterim?.(interim);
     };
@@ -3264,6 +3275,10 @@ function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeakin
     }, SILENCE_MS);
   };
 
+  // Remember what was already typed BEFORE recording started, so we can
+  // prepend it to the recognized speech (avoids losing what the user typed).
+  const priorTextRef = useRef('');
+
   const startListening = () => {
     if (!supported) { setMicError('other'); return; }
     if (recording || disabled) return;
@@ -3271,17 +3286,22 @@ function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeakin
     setInterim('');
     setRecording(true);
     submittedRef.current = false;
-    accumulatedRef.current = text || '';
+    priorTextRef.current = text || '';
+    accumulatedRef.current = priorTextRef.current;
     listen({
       onInterim: (t) => {
         setInterim(t);
         // Any speech → reset silence timer
         armSilenceTimer();
       },
-      onFinal: (chunk) => {
-        accumulatedRef.current = (accumulatedRef.current
-          ? accumulatedRef.current + ' '
-          : '') + chunk.trim();
+      // On mobile (Android), each final callback carries the CUMULATIVE
+      // full transcript, not a delta. So we REPLACE (never append) — this
+      // fixes the "why why I why I am why I am leaving…" duplication bug.
+      onFinal: (fullFinal) => {
+        const prior = priorTextRef.current;
+        accumulatedRef.current = prior
+          ? (prior + ' ' + fullFinal).trim()
+          : fullFinal;
         setText(accumulatedRef.current);
         setInterim('');
         armSilenceTimer();

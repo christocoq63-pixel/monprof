@@ -516,6 +516,42 @@ async function clearConversation(lang, level, avatar) {
   storage.del(storageKey(lang, level, avatar));
 }
 
+// ─── SCÉNARIOS : cache local (openings + conversations) ──────────────────────
+
+const scenarioOpeningKey = (lang, level, avatar, scenario) =>
+  `scen_open:${lang.code}:${level.id}:${avatar.id}:${scenario.id}`;
+
+const scenarioConvKey = (lang, level, avatar, scenario) =>
+  `scen_chat:${lang.code}:${level.id}:${avatar.id}:${scenario.id}`;
+
+// Cache l'opening line d'un scénario (réutilisée à chaque relance → 0 tokens)
+function loadScenarioOpening(lang, level, avatar, scenario) {
+  try {
+    const raw = storage.get(scenarioOpeningKey(lang, level, avatar, scenario));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function saveScenarioOpening(lang, level, avatar, scenario, data) {
+  try { storage.set(scenarioOpeningKey(lang, level, avatar, scenario), JSON.stringify(data)); } catch {}
+}
+function clearScenarioOpening(lang, level, avatar, scenario) {
+  storage.del(scenarioOpeningKey(lang, level, avatar, scenario));
+}
+
+// Cache la conversation d'un scénario en cours (résume en cliquant à nouveau)
+async function loadScenarioConversation(lang, level, avatar, scenario) {
+  try {
+    const raw = storage.get(scenarioConvKey(lang, level, avatar, scenario));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+async function saveScenarioConversation(lang, level, avatar, scenario, messages /* userId */) {
+  try { storage.set(scenarioConvKey(lang, level, avatar, scenario), JSON.stringify(messages)); } catch {}
+}
+async function clearScenarioConversation(lang, level, avatar, scenario) {
+  storage.del(scenarioConvKey(lang, level, avatar, scenario));
+}
+
 async function loadStats(lang, level, avatar) {
   const raw = storage.get(statsKey(lang, level, avatar));
   if (!raw) return null;
@@ -4154,8 +4190,30 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
     initDone.current = false;
     setResumedFrom(null);
     (async () => {
-      // Scenarios always start fresh — no resume
+      // Scenario mode: try to resume an in-progress role-play; else use a
+      // cached opening line if we have one; else generate & cache.
       if (scenario) {
+        const savedScen = await loadScenarioConversation(lang, level, avatar, scenario);
+        if (savedScen && savedScen.length > 0) {
+          setMessages(savedScen);
+          if (autoSpeak) {
+            const lastAssistant = [...savedScen].reverse().find(m => m.role === 'assistant');
+            if (lastAssistant?.reply) setTimeout(() => speakFor(lastAssistant.reply), 700);
+          }
+          initDone.current = true;
+          return;
+        }
+
+        // No saved conversation — try cached opening line (saves tokens on replay)
+        const cachedOpening = loadScenarioOpening(lang, level, avatar, scenario);
+        if (cachedOpening) {
+          setMessages([{ role: 'assistant', reply: cachedOpening.reply, translation: cachedOpening.fr_translation || '', corrections: [] }]);
+          setTimeout(() => speakFor(cachedOpening.reply), 500);
+          initDone.current = true;
+          return;
+        }
+
+        // First run for this (lang+level+avatar+scenario) — generate + cache
         setMessages([]);
         setLoading(true);
         try {
@@ -4170,6 +4228,10 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
           const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
           const parsed = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
           setMessages([{ role: 'assistant', reply: parsed.reply || '(no reply)', translation: parsed.fr_translation || '', corrections: [] }]);
+          saveScenarioOpening(lang, level, avatar, scenario, {
+            reply: parsed.reply,
+            fr_translation: parsed.fr_translation || '',
+          });
           setTimeout(() => speakFor(parsed.reply), 500);
         } catch (err) {
           setMessages([{ role: 'assistant', reply: '…', translation: 'Désolé, problème pour lancer le scénario.', corrections: [] }]);
@@ -4204,13 +4266,17 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
     // eslint-disable-next-line
   }, [avatar.id, lang.code, level.id, scenario?.id]);
 
-  // Auto-save on every message change (after initial load). Passing the userId
-  // so the "reprendre" banner on the home screen only shows for the right user.
-  // In scenario mode we don't persist — a scenario is a stand-alone role-play.
+  // Auto-save on every message change (after initial load).
+  // Normal chat → saves to the main conversation + META (drives "reprendre").
+  // Scenario mode → saves to a scenario-scoped key (does NOT touch META, so
+  // the home screen still shows the last real conversation, not a scenario).
   useEffect(() => {
     if (!initDone.current) return;
     if (messages.length < 1) return;
-    if (scenario) return;
+    if (scenario) {
+      saveScenarioConversation(lang, level, avatar, scenario, messages, profile?.id);
+      return;
+    }
     saveConversation(lang, level, avatar, messages, profile?.id);
   }, [messages, lang.code, level.id, avatar.id, profile?.id, scenario?.id]);
 
@@ -4272,6 +4338,41 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
       if (!window.confirm("Effacer cette conversation et recommencer à zéro ?")) return;
     }
     stop();
+
+    if (scenario) {
+      // Reset the scenario: clear the saved conversation AND the cached opening,
+      // then re-fetch a fresh opening line.
+      await clearScenarioConversation(lang, level, avatar, scenario);
+      clearScenarioOpening(lang, level, avatar, scenario);
+      setResumedFrom(null);
+      setMessages([]);
+      // Trigger the same initial-load path by bumping initDone
+      initDone.current = false;
+      setLoading(true);
+      try {
+        const data = await chatWithFallback({
+          system: buildScenarioSystemPrompt(lang, level, avatar, scenario),
+          messages: [{ role: 'user', content: `Please open the scenario now with your first line as ${scenario.role}. Do not greet the learner as a teacher — jump straight into the role.` }],
+          maxTokens: 300,
+          cache: true,
+        });
+        const raw = data?.content?.[0]?.text || '';
+        const cleaned = raw.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+        const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
+        const parsed = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+        setMessages([{ role: 'assistant', reply: parsed.reply || '(no reply)', translation: parsed.fr_translation || '', corrections: [] }]);
+        saveScenarioOpening(lang, level, avatar, scenario, {
+          reply: parsed.reply,
+          fr_translation: parsed.fr_translation || '',
+        });
+        setTimeout(() => speakFor(parsed.reply), 400);
+      } finally {
+        setLoading(false);
+        initDone.current = true;
+      }
+      return;
+    }
+
     await clearConversation(lang, level, avatar);
     setResumedFrom(null);
     const g = avatar.greetings[Math.floor(Math.random() * avatar.greetings.length)];
@@ -4831,7 +4932,7 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
   const modes = [
     { id: 'chat',      label: 'Discuter',   icon: MessageCircle, emoji: '💬',
       desc: "Conversation vocale avec un interlocuteur virtuel. Il vous répond, corrige vos erreurs et explique." },
-    { id: 'scenarios', label: 'Scénarios',  icon: null,          emoji: '🎭',
+    { id: 'scenarios', label: 'Scénarios',  icon: null,          emoji: '🎭', badge: 'nouveau',
       desc: "Situations réelles : restaurant, hôtel, entretien, chez le médecin. Le prof joue un rôle." },
     { id: 'reader',    label: 'Lire',       icon: BookText,      emoji: '📖',
       desc: "Textes générés à votre niveau, sur le sujet de votre choix. Touchez chaque mot pour sa traduction." },
@@ -4958,13 +5059,20 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
             const Icon = m.icon;
             return (
               <button key={m.id} onClick={() => onSelect(m.id)}
-                className="text-left hover:-translate-y-1 transition-all p-5 flex flex-col gap-3 items-start group"
+                className="relative text-left hover:-translate-y-1 transition-all p-5 flex flex-col gap-3 items-start group"
                 style={{
                   borderRadius: '24px',
                   background: 'white',
                   border: `1.5px solid ${language.accent}44`,
                   boxShadow: `0 3px 12px ${language.accent}18`,
                 }}>
+                {m.badge && (
+                  <span
+                    className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full text-white shadow"
+                    style={{ fontFamily: 'DM Sans', background: language.accent, boxShadow: `0 3px 10px ${language.accent}88` }}>
+                    {m.badge}
+                  </span>
+                )}
                 <div className="rounded-full grid place-items-center text-white group-hover:scale-105 transition-transform"
                      style={{
                        width: 60, height: 60,
@@ -5754,7 +5862,8 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManua
           if (k.startsWith('chat:') || k.startsWith('stats:') || k.startsWith('errors:')
               || k.startsWith('word:') || k === 'meta:lastSession' || k === 'lexicon'
               || k === 'level_tests_cache' || k === 'exercise_sessions'
-              || k === 'device_choice' || k.startsWith('voice:')) {
+              || k === 'device_choice' || k.startsWith('voice:')
+              || k.startsWith('scen_open:') || k.startsWith('scen_chat:')) {
             localStorage.removeItem(k);
           }
         });

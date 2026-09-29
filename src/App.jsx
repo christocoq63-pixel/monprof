@@ -908,6 +908,50 @@ CRITICAL OUTPUT FORMAT: Respond ONLY with one valid JSON object, no markdown, no
 
 If no errors, return "corrections": []. Never wrap the JSON in backticks. Never add text outside the JSON.`;
 
+// System prompt for scenario mode — the teacher plays a specific role
+const buildScenarioSystemPrompt = (lang, level, avatar, scenario) => `You are playing a role in a language-learning scenario.
+
+Character to play: ${scenario.role}
+The learner is: ${scenario.userRole}
+Scenario: "${scenario.title}" — ${scenario.description}
+
+You are ${avatar.name}, a ${avatar.age}-year-old from ${avatar.location}, but in this scenario you play the character above. Adopt that character's tone and vocabulary while keeping your general warmth.
+
+The learner is a French speaker learning ${lang.nativeName} (${lang.name} in French).
+
+${LEVEL_CONSTRAINTS[level.id] || level.prompt}
+
+RULES OF THE ROLE-PLAY:
+- Speak ONLY in ${lang.nativeName} when playing the character. ${lang.code === 'mfe' ? 'IMPORTANT: use authentic Kreol Morisien.' : ''}
+- Stay in character: use the vocabulary, register and typical phrases of the role.
+- Start the scenario by initiating the interaction in a natural way (e.g. a waiter would say "Welcome, how many people?"; a doctor would say "What brings you in today?").
+- Keep each reply short: 1–3 sentences. End with a question or line that pushes the learner to reply.
+- Match your vocabulary and complexity STRICTLY to the level constraints above.
+- If the learner is stuck or writes in French, gently prompt in ${lang.nativeName} and offer one short model sentence.
+
+ERROR CORRECTION (mandatory, in French):
+- Detect ANY real error in the user's ${lang.nativeName}: grammar, tense, vocab, preposition, gender, spelling, etc.
+- Give a brief French explanation with the underlying rule.
+- Produce a natural spoken echo — how a native would rephrase the whole sentence correctly.
+
+CRITICAL OUTPUT FORMAT: Respond ONLY with one valid JSON object, no markdown, no code fences, no preamble. Schema:
+
+{
+  "reply": "<your in-character response in ${lang.nativeName}>",
+  "fr_translation": "<a natural French translation of your reply>",
+  "corrections": [
+    {
+      "original": "<user's incorrect phrase>",
+      "corrected": "<the phrase rewritten correctly>",
+      "spoken_echo": "<a short natural sentence the tutor would say aloud>",
+      "explanation_fr": "<short French explanation with the rule>",
+      "category": "<one of: past_tense | present_perfect | future | conditional | subjunctive | articles | prepositions | pronouns | gender | plural | word_order | agreement | phrasal_verb | false_friend | vocabulary | spelling | punctuation | other>"
+    }
+  ]
+}
+
+If no errors, return "corrections": []. Never wrap the JSON in backticks. Never add text outside the JSON.`;
+
 // ─── HOOKS ────────────────────────────────────────────────────────────────────
 
 // Heuristic: guess a voice's gender from its name.
@@ -3212,6 +3256,211 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
 
 // ─── LEXICON SCREEN ──────────────────────────────────────────────────────────
 
+// ─── SCENARIOS SCREEN ─────────────────────────────────────────────────────────
+
+function ScenariosScreen({ lang, level, onBack, onStartScenario }) {
+  const [scope, setScope] = useState(level?.id || 'all'); // 'all' or a level id
+  const [selected, setSelected] = useState(null);
+
+  const scenarios = scope === 'all'
+    ? SCENARIOS
+    : SCENARIOS.filter(s => s.level === scope);
+
+  // Group by level for display when scope === 'all'
+  const groups = scope === 'all'
+    ? Object.values(LEVELS).map(lv => ({ lv, items: SCENARIOS.filter(s => s.level === lv.id) })).filter(g => g.items.length)
+    : [{ lv: LEVELS[scope], items: scenarios }];
+
+  // ─── Scenario detail view ─────────────────────────────────────
+  if (selected) {
+    return (
+      <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+        <div className="max-w-2xl mx-auto">
+          <button onClick={() => setSelected(null)}
+            className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+            style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            <ArrowLeft size={14} /> retour
+          </button>
+
+          {/* Cover */}
+          <div className="flex items-start gap-4 mb-5">
+            <div className="rounded-3xl flex items-center justify-center shrink-0"
+                 style={{
+                   width: 110, height: 130,
+                   background: `linear-gradient(135deg, ${lang.accent}44, ${lang.accent}22)`,
+                   border: `1.5px solid ${lang.accent}55`,
+                   fontSize: 54,
+                 }}>
+              {selected.emoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                scénario · {lang.name}
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-medium leading-tight" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                {selected.title}
+              </h1>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className="text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
+                      style={{ fontFamily: 'DM Sans', background: `${lang.accent}18`, color: lang.accent }}>
+                  {LEVELS[selected.level].label}
+                </span>
+                <span className="text-[11px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                  ⏱ ~{selected.duration} min · 📖 ~{selected.vocabCount} mots
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="wl-card p-4 sm:p-5 mb-4" style={{ borderRadius: '20px' }}>
+            <div className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              À propos du scénario
+            </div>
+            <p style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)', fontSize: 15, lineHeight: 1.5 }}>
+              {selected.description}
+            </p>
+          </div>
+
+          {/* Roles */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="p-4 rounded-2xl" style={{ background: `${lang.accent}12`, border: `1px solid ${lang.accent}33` }}>
+              <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'DM Sans', color: lang.accent }}>
+                le prof joue
+              </div>
+              <p className="text-[13px]" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                {selected.role}
+              </p>
+            </div>
+            <div className="p-4 rounded-2xl" style={{ background: 'white', border: '1px solid rgba(90,78,69,0.15)' }}>
+              <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                vous jouez
+              </div>
+              <p className="text-[13px]" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                {selected.userRole}
+              </p>
+            </div>
+          </div>
+
+          <button onClick={() => onStartScenario?.(selected)}
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-full text-white transition-all hover:-translate-y-0.5"
+            style={{ background: `linear-gradient(135deg, ${lang.accent}, ${lang.accent}DD)`, boxShadow: `0 6px 20px ${lang.accent}55`, fontFamily: 'DM Sans', fontWeight: 700 }}>
+            🎬 Commencer le scénario
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Scenario list view ───────────────────────────────────────
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+      <div className="max-w-3xl mx-auto">
+        <button onClick={onBack}
+          className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> retour
+        </button>
+
+        <div className="mb-6">
+          <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            {lang.name} · situations
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-medium leading-none tracking-tight" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+            <em>Scénarios</em> de conversation
+          </h1>
+          <p className="mt-2 text-[14px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            Situations réelles où le prof joue un rôle — restaurant, hôtel, entretien, etc.
+          </p>
+        </div>
+
+        {/* Filtres par niveau */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <button onClick={() => setScope('all')}
+            className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all"
+            style={{
+              fontFamily: 'DM Sans',
+              background: scope === 'all' ? lang.accent : 'white',
+              color: scope === 'all' ? 'white' : lang.accent,
+              border: `1.5px solid ${lang.accent}${scope === 'all' ? '' : '55'}`,
+            }}>
+            tous les niveaux
+          </button>
+          {Object.values(LEVELS).map(lv => {
+            const active = scope === lv.id;
+            return (
+              <button key={lv.id} onClick={() => setScope(lv.id)}
+                className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all"
+                style={{
+                  fontFamily: 'DM Sans',
+                  background: active ? lang.accent : 'white',
+                  color: active ? 'white' : 'var(--gris)',
+                  border: `1.5px solid ${active ? lang.accent : 'rgba(90,78,69,0.2)'}`,
+                }}>
+                {lv.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Grouped list */}
+        {groups.map(g => (
+          <div key={g.lv.id} className="mb-6">
+            {scope === 'all' && (
+              <div className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                {g.lv.label} · {g.lv.sublabel}
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {g.items.map(s => (
+                <button key={s.id} onClick={() => setSelected(s)}
+                  className="text-left p-4 flex items-center gap-3 hover:-translate-y-0.5 transition-all group"
+                  style={{
+                    borderRadius: '20px',
+                    background: 'white',
+                    border: `1px solid ${lang.accent}33`,
+                    boxShadow: `0 2px 8px ${lang.accent}10`,
+                  }}>
+                  <div className="rounded-2xl flex items-center justify-center shrink-0"
+                       style={{
+                         width: 60, height: 68,
+                         background: `linear-gradient(135deg, ${lang.accent}33, ${lang.accent}18)`,
+                         fontSize: 32,
+                       }}>
+                    {s.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }} className="text-base font-medium leading-tight">
+                      {s.title}
+                    </div>
+                    <div className="text-[11px] mt-1" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                      ⏱ ~{s.duration} min · 📖 ~{s.vocabCount} mots
+                    </div>
+                    {/* Level bars indicator */}
+                    <div className="flex items-center gap-0.5 mt-1.5">
+                      {['beginner','intermediate','advanced'].map((lvId, i) => {
+                        const isActive = ['beginner','intermediate','advanced'].indexOf(s.level) >= i;
+                        return (
+                          <span key={lvId}
+                            className="rounded-full"
+                            style={{
+                              width: 8, height: 8,
+                              background: isActive ? lang.accent : `${lang.accent}22`,
+                            }} />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function LexiconScreen({ lang, profile, onBack }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3858,7 +4107,7 @@ Respond ONLY with JSON: {"correct": <boolean>, "feedback_fr": "<one short French
 
 // ─── CHAT SCREEN ──────────────────────────────────────────────────────────────
 
-function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExercises, onOpenLexicon, profile }) {
+function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExercises, onOpenLexicon, profile, scenario }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
@@ -3905,11 +4154,45 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
     initDone.current = false;
     setResumedFrom(null);
     (async () => {
+      // Scenarios always start fresh — no resume
+      if (scenario) {
+        setMessages([]);
+        setLoading(true);
+        try {
+          const data = await chatWithFallback({
+            system: buildScenarioSystemPrompt(lang, level, avatar, scenario),
+            messages: [{ role: 'user', content: `Please open the scenario now with your first line as ${scenario.role}. Do not greet the learner as a teacher — jump straight into the role.` }],
+            maxTokens: 300,
+            cache: true,
+          });
+          const raw = data?.content?.[0]?.text || '';
+          const cleaned = raw.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+          const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
+          const parsed = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+          setMessages([{ role: 'assistant', reply: parsed.reply || '(no reply)', translation: parsed.fr_translation || '', corrections: [] }]);
+          setTimeout(() => speakFor(parsed.reply), 500);
+        } catch (err) {
+          setMessages([{ role: 'assistant', reply: '…', translation: 'Désolé, problème pour lancer le scénario.', corrections: [] }]);
+        } finally {
+          setLoading(false);
+        }
+        initDone.current = true;
+        return;
+      }
+
       const saved = await loadConversation(lang, level, avatar);
       if (saved && saved.length > 0) {
         setMessages(saved);
         const stats = await loadStats(lang, level, avatar);
         setResumedFrom(stats?.lastVisit || null);
+        // Re-read the last teacher phrase aloud, so the user picks up the
+        // conversation exactly where they left it — audio, not just text.
+        if (autoSpeak) {
+          const lastAssistant = [...saved].reverse().find(m => m.role === 'assistant');
+          if (lastAssistant?.reply) {
+            setTimeout(() => speakFor(lastAssistant.reply), 700);
+          }
+        }
       } else {
         const g = avatar.greetings[Math.floor(Math.random() * avatar.greetings.length)];
         setMessages([{ role:'assistant', reply: g.t, translation: g.fr, corrections: [] }]);
@@ -3919,15 +4202,17 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
     })();
     return () => stop();
     // eslint-disable-next-line
-  }, [avatar.id, lang.code, level.id]);
+  }, [avatar.id, lang.code, level.id, scenario?.id]);
 
   // Auto-save on every message change (after initial load). Passing the userId
   // so the "reprendre" banner on the home screen only shows for the right user.
+  // In scenario mode we don't persist — a scenario is a stand-alone role-play.
   useEffect(() => {
     if (!initDone.current) return;
     if (messages.length < 1) return;
+    if (scenario) return;
     saveConversation(lang, level, avatar, messages, profile?.id);
-  }, [messages, lang.code, level.id, avatar.id, profile?.id]);
+  }, [messages, lang.code, level.id, avatar.id, profile?.id, scenario?.id]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages, loading]);
 
@@ -3950,7 +4235,9 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
       // Prompt caching is enabled: the system prompt (avatar + level + rules)
       // is stable across turns, so it hits the Anthropic cache (~10% billing).
       const data = await chatWithFallback({
-        system: buildSystemPrompt(lang, level, avatar),
+        system: scenario
+          ? buildScenarioSystemPrompt(lang, level, avatar, scenario)
+          : buildSystemPrompt(lang, level, avatar),
         messages: apiMessages,
         maxTokens: 1000,
         cache: true,
@@ -4013,13 +4300,23 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
           <button onClick={onChangeAvatar} className="flex-1 min-w-0 text-left hover:opacity-70 transition-opacity" title="changer de prof">
             <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none flex items-center gap-1.5">
               {avatar.name}
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-widest"
-                    style={{ fontFamily: 'DM Sans', background: `${lang.accent}18`, color: lang.accent }}>
-                changer
-              </span>
+              {!scenario && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-widest"
+                      style={{ fontFamily: 'DM Sans', background: `${lang.accent}18`, color: lang.accent }}>
+                  changer
+                </span>
+              )}
+              {scenario && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-widest flex items-center gap-1"
+                      style={{ fontFamily: 'DM Sans', background: `${lang.accent}`, color: 'white' }}>
+                  🎭 {scenario.title}
+                </span>
+              )}
             </div>
             <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mt-0.5 truncate" style={{ fontFamily:'DM Sans, sans-serif' }}>
-              {lang.name} · {level.label.toLowerCase()} · {avatar.location}
+              {scenario
+                ? <>joue : {scenario.role}</>
+                : <>{lang.name} · {level.label.toLowerCase()} · {avatar.location}</>}
             </div>
           </button>
           <button onClick={() => setShowVoicePicker(true)} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)] relative" title="choisir la voix">
@@ -4057,9 +4354,15 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-3 sm:px-5 py-5">
           {resumedFrom && (
-            <div className="border-l-4 border-stone-400 pl-3 py-2 mb-4 bg-stone-100/70 flex items-center gap-2 text-[11px] uppercase tracking-widest text-[color:var(--gris)]" style={{ fontFamily:'DM Sans, sans-serif' }}>
+            <div className="rounded-2xl pl-3 pr-3 py-2 mb-4 flex items-center gap-2 text-[11px] uppercase tracking-widest"
+                 style={{ fontFamily:'DM Sans, sans-serif', background: `${avatar.color}18`, color: avatar.color, border: `1px solid ${avatar.color}33` }}>
               <span>📖</span>
               <span>reprise · dernière visite {timeSince(resumedFrom)}</span>
+              {autoSpeak && (
+                <span className="flex items-center gap-1 ml-auto" style={{ opacity: 0.85 }}>
+                  <Volume2 size={11} /> dernière phrase relue
+                </span>
+              )}
             </div>
           )}
           {messages.map((m, i) => m.role === 'user'
@@ -4109,6 +4412,73 @@ const READER_TOPICS = [
   { id: 'news',     label: 'Actualité',             icon: '📰' },
   { id: 'science',  label: 'Sciences',              icon: '🔬' },
   { id: 'story',    label: 'Petite histoire',       icon: '📖' },
+];
+
+// ─── SCÉNARIOS (situations de conversation guidée) ───────────────────────────
+
+const SCENARIOS = [
+  // ─── DÉBUTANT (A1–A2) ───────────────────────────────────────────
+  { id: 'introduce', title: 'Se présenter', emoji: '👋', level: 'beginner', duration: 5, vocabCount: 30,
+    description: "Dire bonjour, donner son prénom, son âge, sa nationalité, son travail. Le B.A.-BA de la conversation.",
+    role: 'a friendly stranger you meet at a café', userRole: 'the traveler' },
+  { id: 'directions', title: 'Demander son chemin', emoji: '🗺️', level: 'beginner', duration: 6, vocabCount: 45,
+    description: "Trouver la gare, le musée, la pharmacie. Comprendre à droite, à gauche, tout droit.",
+    role: 'a passer-by in the street', userRole: 'a lost tourist' },
+  { id: 'cafe', title: 'Commander au café', emoji: '☕', level: 'beginner', duration: 5, vocabCount: 35,
+    description: "Un café, un thé, un croissant, l'addition. Les premières phrases utiles au comptoir.",
+    role: 'the barista', userRole: 'the customer' },
+  { id: 'hotel_checkin', title: "Arriver à l'hôtel", emoji: '🏨', level: 'beginner', duration: 7, vocabCount: 50,
+    description: "Donner son nom, montrer sa réservation, prendre la clé, demander le petit-déjeuner.",
+    role: 'the hotel receptionist', userRole: 'the guest checking in' },
+  { id: 'taxi', title: 'Prendre un taxi', emoji: '🚕', level: 'beginner', duration: 5, vocabCount: 30,
+    description: "Donner l'adresse, comprendre le prix, dire arrêtez-vous ici.",
+    role: 'the taxi driver', userRole: 'the passenger' },
+  { id: 'shopping_basic', title: 'Au supermarché', emoji: '🛒', level: 'beginner', duration: 6, vocabCount: 40,
+    description: "Demander un produit, comprendre le prix, payer en espèces ou en carte.",
+    role: 'the cashier', userRole: 'the shopper' },
+
+  // ─── INTERMÉDIAIRE (B1–B2) ──────────────────────────────────────
+  { id: 'restaurant', title: 'Au restaurant', emoji: '🍽️', level: 'intermediate', duration: 10, vocabCount: 80,
+    description: "Réserver une table, commander plats et boissons, poser des questions sur la carte, demander l'addition.",
+    role: 'a friendly waiter/waitress', userRole: 'the customer' },
+  { id: 'pharmacy', title: 'À la pharmacie', emoji: '💊', level: 'intermediate', duration: 8, vocabCount: 60,
+    description: "Décrire un symptôme, demander un médicament, comprendre la posologie.",
+    role: 'the pharmacist', userRole: 'a person feeling unwell' },
+  { id: 'car_rental', title: 'Louer une voiture', emoji: '🚗', level: 'intermediate', duration: 10, vocabCount: 70,
+    description: "Choisir un modèle, comprendre l'assurance, discuter du prix par jour et par kilomètre.",
+    role: 'the rental agent', userRole: 'the driver' },
+  { id: 'vacation_planning', title: 'Planifier des vacances', emoji: '🏖️', level: 'intermediate', duration: 12, vocabCount: 90,
+    description: "Parler de dates, budget, destination, activités, moyens de transport.",
+    role: 'a travel agent', userRole: 'the traveler making plans' },
+  { id: 'small_talk', title: 'Discussion informelle', emoji: '💬', level: 'intermediate', duration: 10, vocabCount: 75,
+    description: "Météo, week-end, projets, loisirs — le small-talk pour tisser du lien.",
+    role: "a colleague you've just met", userRole: 'the newcomer at work' },
+  { id: 'phone_reservation', title: 'Réserver par téléphone', emoji: '📞', level: 'intermediate', duration: 8, vocabCount: 60,
+    description: "Réserver un billet, une table, un rendez-vous par téléphone. Bien épeler son nom.",
+    role: 'a booking service agent', userRole: 'the caller' },
+  { id: 'doctor', title: 'Chez le médecin', emoji: '🩺', level: 'intermediate', duration: 12, vocabCount: 90,
+    description: "Décrire une douleur, répondre à des questions, comprendre un diagnostic.",
+    role: 'a general practitioner', userRole: 'the patient' },
+  { id: 'movie', title: 'Aller au cinéma', emoji: '🎬', level: 'intermediate', duration: 8, vocabCount: 55,
+    description: "Choisir un film, acheter des tickets, discuter du film en sortant.",
+    role: 'the ticket vendor then a friend', userRole: 'the moviegoer' },
+
+  // ─── AVANCÉ (C1–C2) ─────────────────────────────────────────────
+  { id: 'job_interview', title: "Entretien d'embauche", emoji: '💼', level: 'advanced', duration: 15, vocabCount: 120,
+    description: "Présenter son parcours, ses forces et faiblesses, négocier le salaire.",
+    role: 'a demanding hiring manager', userRole: 'the candidate' },
+  { id: 'negotiation', title: 'Négocier un contrat', emoji: '🤝', level: 'advanced', duration: 15, vocabCount: 120,
+    description: "Défendre son prix, faire des concessions, formaliser un accord.",
+    role: 'a tough business partner', userRole: 'the negotiator' },
+  { id: 'debate', title: 'Débat culturel', emoji: '🗣️', level: 'advanced', duration: 15, vocabCount: 130,
+    description: "Défendre un point de vue nuancé, écouter le contradicteur, argumenter.",
+    role: 'an opinionated intellectual', userRole: 'the debate opponent' },
+  { id: 'complaint', title: 'Se plaindre poliment', emoji: '📣', level: 'advanced', duration: 10, vocabCount: 90,
+    description: "Formuler une plainte sans agresser, obtenir une compensation.",
+    role: "a customer service manager", userRole: 'an unhappy but polite customer' },
+  { id: 'philosophy', title: 'Discussion philosophique', emoji: '🌌', level: 'advanced', duration: 15, vocabCount: 140,
+    description: "Réfléchir à haute voix sur le sens, la liberté, le bonheur. Vocabulaire abstrait.",
+    role: 'a thoughtful philosophy professor', userRole: 'a curious student' },
 ];
 
 async function generateReaderText(lang, level, topic, { onPartial } = {}) {
@@ -4461,10 +4831,12 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
   const modes = [
     { id: 'chat',      label: 'Discuter',   icon: MessageCircle, emoji: '💬',
       desc: "Conversation vocale avec un interlocuteur virtuel. Il vous répond, corrige vos erreurs et explique." },
+    { id: 'scenarios', label: 'Scénarios',  icon: null,          emoji: '🎭',
+      desc: "Situations réelles : restaurant, hôtel, entretien, chez le médecin. Le prof joue un rôle." },
     { id: 'reader',    label: 'Lire',       icon: BookText,      emoji: '📖',
-      desc: "Textes générés à votre niveau, sur le sujet de votre choix. Touchez chaque mot pour sa traduction et son explication." },
+      desc: "Textes générés à votre niveau, sur le sujet de votre choix. Touchez chaque mot pour sa traduction." },
     { id: 'exercises', label: 'Exercices',  icon: null,          emoji: '🎯',
-      desc: "Exercices de grammaire personnalisés générés à partir de vos erreurs — fill-in, transformations, traductions ciblées." },
+      desc: "Exercices de grammaire personnalisés générés à partir de vos erreurs — fill-in, transformations, traductions." },
     { id: 'lexicon',   label: 'Lexique',    icon: null,          emoji: '📚',
       desc: "Tous les mots dont vous avez demandé la traduction, avec explications et exemples. À revoir à volonté." },
   ];
@@ -4581,7 +4953,7 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {modes.map(m => {
             const Icon = m.icon;
             return (
@@ -5938,6 +6310,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
   const [language, setLanguage] = useState(null);
   const [level, setLevel] = useState(null);
   const [avatar, setAvatar] = useState(null);
+  const [scenario, setScenario] = useState(null);
   const [deviceChoice, setDeviceChoice] = useState(getUserDevice());
   const [autoloadDone, setAutoloadDone] = useState(false);
 
@@ -6057,14 +6430,24 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onOpenProfile={() => setStep('profile')}
     onOpenLexicon={() => setStep('lexicon')}
     onSelect={(m) => {
-      if (m === 'chat') return setStep('avatar');
+      if (m === 'chat') { setScenario(null); return setStep('avatar'); }
       if (m === 'reader') return setStep('reader');
       if (m === 'exercises') return setStep('exercises');
       if (m === 'lexicon') return setStep('lexicon');
+      if (m === 'scenarios') return setStep('scenarios');
     }}
-    onResumeChat={(av) => { setAvatar(av); setStep('chat'); }}
+    onResumeChat={(av) => { setScenario(null); setAvatar(av); setStep('chat'); }}
     onChangeLanguage={() => setStep('language')}
     onBack={() => setStep('level')} />;
+  if (step === 'scenarios') return <ScenariosScreen lang={language} level={level}
+    onBack={() => setStep('mode')}
+    onStartScenario={(sc) => {
+      setScenario(sc);
+      // Pick a random avatar for the scenario if none is set
+      const av = avatar || (language.avatars[Math.floor(Math.random() * language.avatars.length)]);
+      setAvatar(av);
+      setStep('chat');
+    }} />;
   if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
   // All 4 mode screens return to Screen 3 (ModePicker) on exit, keeping the
   // language + level context — the user changes language only by explicit choice.
@@ -6075,8 +6458,9 @@ function MainApp({ profile, signOut, reloadProfile }) {
   if (step === 'lexicon')  return <LexiconScreen lang={language} profile={profile}
     onBack={() => setStep(language ? 'mode' : 'language')} />;
   return <ChatScreen lang={language} level={level} avatar={avatar} profile={profile}
-    onChangeAvatar={() => setStep('avatar')}
-    onBackHome={() => setStep('mode')}
+    scenario={scenario}
+    onChangeAvatar={() => { setScenario(null); setStep('avatar'); }}
+    onBackHome={() => { setScenario(null); setStep('mode'); }}
     onOpenExercises={() => setStep('exercises')}
     onOpenLexicon={() => setStep('lexicon')} />;
 }

@@ -3455,16 +3455,22 @@ function ScenariosScreen({ lang, level, onBack, onStartScenario }) {
           <ArrowLeft size={14} /> retour
         </button>
 
-        <div className="mb-6">
-          <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
-            {lang.name} · situations
+        <div className="flex items-start gap-3 mb-6">
+          <div className="rounded-2xl flex items-center justify-center shrink-0"
+               style={{ width: 60, height: 72, background: `linear-gradient(135deg, ${lang.accent}22, ${lang.accent}0F)`, border: `1.5px solid ${lang.accent}44` }}>
+            <ScenarioIcon size={36} />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-medium leading-none tracking-tight" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-            <em>Scénarios</em> de conversation
-          </h1>
-          <p className="mt-2 text-[14px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
-            Situations réelles où le prof joue un rôle — restaurant, hôtel, entretien, etc.
-          </p>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              {lang.name} · situations
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-medium leading-none tracking-tight" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+              <em>Scénarios</em> de conversation
+            </h1>
+            <p className="mt-2 text-[14px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              Situations réelles où le prof joue un rôle — restaurant, hôtel, entretien, etc.
+            </p>
+          </div>
         </div>
 
         {/* Filtres par niveau */}
@@ -3942,8 +3948,8 @@ Respond ONLY with JSON: {"correct": <boolean>, "feedback_fr": "<one short French
 
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center rounded-full mb-3"
-                 style={{ width: 68, height: 68, background: `linear-gradient(135deg, ${accent}, ${accent}CC)`, boxShadow: `0 6px 18px ${accent}55` }}>
-              <span style={{ fontSize: 30 }}>📝</span>
+                 style={{ width: 76, height: 76, background: 'linear-gradient(135deg, #FFE5D9, #FFF3E0)', boxShadow: `0 6px 18px ${accent}33`, border: `2px solid ${accent}44` }}>
+              <ExercisesIcon size={46} />
             </div>
             <h1 className="text-3xl sm:text-4xl leading-none mt-2"
                 style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
@@ -4529,7 +4535,7 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
               className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"
               style={{ borderColor: `${lang.accent}55`, background: `${lang.accent}15` }}
               title="générer des exercices ciblés sur vos erreurs">
-              <span style={{ fontSize: 15 }}>🎯</span>
+              <ExercisesIcon size={22} />
             </button>
           )}
           <button onClick={restartChat} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]" title="nouvelle conversation">
@@ -4974,8 +4980,9 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
           <button onClick={onBack} className="w-9 h-9 grid place-items-center border border-[color:rgba(90,78,69,0.3)] hover:bg-[color:var(--ink)] hover:text-white transition-colors" title="retour">
             <ArrowLeft size={16} />
           </button>
-          <div className="w-11 h-11 grid place-items-center text-stone-50 shrink-0" style={{ backgroundColor: lang.accent }}>
-            <BookText size={20} />
+          <div className="w-11 h-11 rounded-full grid place-items-center shrink-0"
+               style={{ background: `linear-gradient(135deg, #FFE5D9, #FFF3E0)`, border: `1.5px solid ${lang.accent}44` }}>
+            <ReaderIcon size={26} />
           </div>
           <div className="flex-1 min-w-0">
             <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none">Lecture</div>
@@ -5136,13 +5143,13 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
   }, [language.code, level.id]);
 
   const modes = [
-    { id: 'chat',      label: 'Discuter',   icon: MessageCircle, emoji: '💬',
+    { id: 'chat',      label: 'Discuter',   icon: null,          emoji: null,   svg: 'discuss',
       desc: "Conversation vocale avec un interlocuteur virtuel. Il vous répond, corrige vos erreurs et explique." },
     { id: 'scenarios', label: 'Scénarios',  icon: null,          emoji: null,   svg: 'scenario', badge: 'nouveau',
       desc: "Situations réelles : restaurant, hôtel, entretien, chez le médecin. Le prof joue un rôle." },
-    { id: 'reader',    label: 'Lire',       icon: BookText,      emoji: '📖',
+    { id: 'reader',    label: 'Lire',       icon: null,          emoji: null,   svg: 'reader',
       desc: "Textes générés à votre niveau, sur le sujet de votre choix. Touchez chaque mot pour sa traduction." },
-    { id: 'exercises', label: 'Exercices',  icon: null,          emoji: '🎯',
+    { id: 'exercises', label: 'Exercices',  icon: null,          emoji: null,   svg: 'exercises',
       desc: "Exercices de grammaire personnalisés générés à partir de vos erreurs — fill-in, transformations, traductions." },
     { id: 'lexicon',   label: 'Lexique',    icon: null,          emoji: null,   svg: 'lexicon',
       desc: "Tous les mots dont vous avez demandé la traduction, avec explications et exemples. À revoir à volonté." },
@@ -5282,20 +5289,26 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
                 <div className="rounded-full grid place-items-center text-white group-hover:scale-105 transition-transform"
                      style={{
                        width: 60, height: 60,
-                       background: (m.svg === 'lexicon' || m.svg === 'scenario')
+                       background: m.svg
                          ? 'linear-gradient(135deg, #FFE5D9, #FFF3E0)'
                          : `radial-gradient(circle at 30% 30%, ${language.accent}, ${language.accent}CC)`,
-                       boxShadow: (m.svg === 'lexicon' || m.svg === 'scenario')
+                       boxShadow: m.svg
                          ? `0 4px 14px ${language.accent}33`
                          : `0 4px 14px ${language.accent}55`,
                        fontSize: 26,
-                       border: (m.svg === 'lexicon' || m.svg === 'scenario') ? `2px solid ${language.accent}44` : 'none',
+                       border: m.svg ? `2px solid ${language.accent}44` : 'none',
                      }}>
                   {m.svg === 'lexicon'
                     ? <LexiconIcon size={36} />
                     : m.svg === 'scenario'
                       ? <ScenarioIcon size={30} />
-                      : Icon ? <Icon size={26} /> : <span>{m.emoji}</span>}
+                      : m.svg === 'reader'
+                        ? <ReaderIcon size={38} />
+                        : m.svg === 'exercises'
+                          ? <ExercisesIcon size={40} />
+                          : m.svg === 'discuss'
+                            ? <DiscussIcon size={40} />
+                            : Icon ? <Icon size={26} /> : <span>{m.emoji}</span>}
                 </div>
                 <h3 style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-2xl font-medium leading-none">{m.label}</h3>
                 <p style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-sm text-[color:var(--ink)] leading-relaxed">{m.desc}</p>
@@ -5436,6 +5449,127 @@ function LexiconIcon({ size = 20 }) {
       <line x1="77" y1="42" x2="90" y2="55" stroke="#FCD34D" strokeWidth="4" strokeLinecap="round"/>
       {/* Handle tip cap */}
       <circle cx="90" cy="55" r="3.5" fill="#2C1B1D"/>
+    </svg>
+  );
+}
+
+// Deux personnages avec bulles de dialogue — icône du mode discuter (remplace 💬 / MessageCircle).
+function DiscussIcon({ size = 20 }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'inline-block', verticalAlign: 'middle' }} aria-hidden="true">
+      {/* Pink bubble (behind) */}
+      <path d="M 56 18 Q 56 8 68 8 L 84 8 Q 92 8 92 16 L 92 24 Q 92 32 84 32 L 74 32 L 78 40 L 66 32 Q 56 32 56 24 Z"
+            fill="#FF6B9D" stroke="#1a1a1a" strokeWidth="2.5" strokeLinejoin="round"/>
+      {/* Yellow bubble (front) */}
+      <path d="M 12 20 Q 12 6 28 6 L 54 6 Q 66 6 66 20 Q 66 33 54 33 L 40 33 L 30 44 L 32 33 Q 12 33 12 20 Z"
+            fill="#FFD84D" stroke="#1a1a1a" strokeWidth="3" strokeLinejoin="round"/>
+      {/* Three dots inside yellow bubble */}
+      <circle cx="26" cy="20" r="2.5" fill="#1a1a1a"/>
+      <circle cx="39" cy="20" r="2.5" fill="#1a1a1a"/>
+      <circle cx="52" cy="20" r="2.5" fill="#1a1a1a"/>
+
+      {/* Left person */}
+      <circle cx="32" cy="62" r="10" fill="#FFDBB5" stroke="#1a1a1a" strokeWidth="2.5"/>
+      <path d="M 14 96 Q 14 80 24 76 L 32 74 L 40 76 Q 50 80 50 96 Z"
+            fill="#8ACD8A" stroke="#1a1a1a" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+
+      {/* Right person */}
+      <circle cx="68" cy="62" r="10" fill="#FFDBB5" stroke="#1a1a1a" strokeWidth="2.5"/>
+      <path d="M 50 96 Q 50 80 60 76 L 68 74 L 76 76 Q 86 80 86 96 Z"
+            fill="#78BFEB" stroke="#1a1a1a" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+// Cerveau musclé qui soulève des haltères — icône du mode exercices (remplace 🎯).
+function ExercisesIcon({ size = 20 }) {
+  const line = '#0EA5E9';
+  const fill = '#F0FBFF';
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'inline-block', verticalAlign: 'middle' }} aria-hidden="true">
+      {/* Barbell — bar */}
+      <line x1="18" y1="16" x2="82" y2="16" stroke={line} strokeWidth="3" strokeLinecap="round"/>
+      {/* Left plates */}
+      <rect x="5" y="8" width="6" height="17" rx="1.5" fill={fill} stroke={line} strokeWidth="2.5"/>
+      <rect x="12" y="12" width="4" height="9" rx="1" fill={fill} stroke={line} strokeWidth="2"/>
+      {/* Right plates */}
+      <rect x="89" y="8" width="6" height="17" rx="1.5" fill={fill} stroke={line} strokeWidth="2.5"/>
+      <rect x="84" y="12" width="4" height="9" rx="1" fill={fill} stroke={line} strokeWidth="2"/>
+      {/* Arms up */}
+      <path d="M 33 38 Q 30 25 34 18" stroke={line} strokeWidth="3" fill="none" strokeLinecap="round"/>
+      <path d="M 67 38 Q 70 25 66 18" stroke={line} strokeWidth="3" fill="none" strokeLinecap="round"/>
+      {/* Fists on the bar */}
+      <circle cx="34" cy="18" r="3.5" fill={fill} stroke={line} strokeWidth="2.5"/>
+      <circle cx="66" cy="18" r="3.5" fill={fill} stroke={line} strokeWidth="2.5"/>
+      {/* Brain body — bumpy contour */}
+      <path d="M 30 40
+               Q 22 40 22 48
+               Q 18 52 22 58
+               Q 20 66 28 68
+               Q 32 76 42 74
+               Q 50 78 58 74
+               Q 68 76 72 68
+               Q 80 66 78 58
+               Q 82 52 78 48
+               Q 78 40 70 40
+               Q 68 34 60 36
+               Q 55 32 50 36
+               Q 45 32 40 36
+               Q 32 34 30 40 Z"
+            fill={fill} stroke={line} strokeWidth="2.8" strokeLinejoin="round"/>
+      {/* Brain wrinkles (folds) */}
+      <path d="M 35 46 Q 38 50 34 55" stroke={line} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+      <path d="M 65 46 Q 62 50 66 55" stroke={line} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+      <path d="M 45 62 Q 50 66 55 62" stroke={line} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+      <path d="M 30 60 Q 32 64 30 68" stroke={line} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+      <path d="M 70 60 Q 68 64 70 68" stroke={line} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+      <path d="M 50 40 Q 50 44 50 47" stroke={line} strokeWidth="1.4" fill="none" strokeLinecap="round"/>
+      {/* Cool sunglasses */}
+      <path d="M 30 51 L 46 51 L 46 58 Q 46 60 44 60 L 32 60 Q 30 60 30 58 Z" fill={line} stroke={line} strokeWidth="1"/>
+      <path d="M 54 51 L 70 51 L 70 58 Q 70 60 68 60 L 56 60 Q 54 60 54 58 Z" fill={line} stroke={line} strokeWidth="1"/>
+      <line x1="46" y1="53" x2="54" y2="53" stroke={line} strokeWidth="2.5"/>
+      {/* Legs */}
+      <line x1="42" y1="76" x2="40" y2="87" stroke={line} strokeWidth="3" strokeLinecap="round"/>
+      <line x1="58" y1="76" x2="60" y2="87" stroke={line} strokeWidth="3" strokeLinecap="round"/>
+      {/* Sneakers */}
+      <path d="M 32 90 Q 32 85 40 87 L 47 89 Q 47 92 44 92 L 34 92 Q 32 92 32 90 Z"
+            fill={fill} stroke={line} strokeWidth="2.5" strokeLinejoin="round"/>
+      <path d="M 68 90 Q 68 85 60 87 L 53 89 Q 53 92 56 92 L 66 92 Q 68 92 68 90 Z"
+            fill={fill} stroke={line} strokeWidth="2.5" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+// Livre ouvert avec lunettes rondes — icône du mode lecture (remplace 📖 / BookText).
+function ReaderIcon({ size = 20 }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'inline-block', verticalAlign: 'middle' }} aria-hidden="true">
+      {/* Book yellow cover */}
+      <path d="M 15 58 L 12 82 Q 12 88 18 88 L 82 88 Q 88 88 88 82 L 85 58 L 50 54 Z"
+            fill="#FCD34D" stroke="#2C1B1D" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"/>
+      {/* Left white pages */}
+      <path d="M 18 60 L 15 78 Q 15 82 20 82 L 48 82 L 48 56 Z"
+            fill="#FFFFFF" stroke="#94A3B8" strokeWidth="1.5" strokeLinejoin="round"/>
+      {/* Right white pages */}
+      <path d="M 82 60 L 85 78 Q 85 82 80 82 L 52 82 L 52 56 Z"
+            fill="#FFFFFF" stroke="#94A3B8" strokeWidth="1.5" strokeLinejoin="round"/>
+      {/* Fold shadow to hint at fanned pages */}
+      <line x1="48" y1="62" x2="48" y2="80" stroke="#CBD5E1" strokeWidth="1"/>
+      <line x1="52" y1="62" x2="52" y2="80" stroke="#CBD5E1" strokeWidth="1"/>
+      {/* Round glasses — left lens */}
+      <circle cx="35" cy="38" r="16" fill="white" stroke="#1a1a1a" strokeWidth="4"/>
+      {/* Right lens */}
+      <circle cx="65" cy="38" r="16" fill="white" stroke="#1a1a1a" strokeWidth="4"/>
+      {/* Bridge */}
+      <line x1="48" y1="36" x2="52" y2="36" stroke="#1a1a1a" strokeWidth="4" strokeLinecap="round"/>
+      {/* Temples with blue tips */}
+      <line x1="19" y1="40" x2="10" y2="44" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round"/>
+      <line x1="81" y1="40" x2="90" y2="44" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round"/>
+      <circle cx="9" cy="45" r="3" fill="#60A5FA" stroke="#1a1a1a" strokeWidth="1.5"/>
+      <circle cx="91" cy="45" r="3" fill="#60A5FA" stroke="#1a1a1a" strokeWidth="1.5"/>
+      {/* Lens highlights */}
+      <ellipse cx="30" cy="33" rx="3" ry="4.5" fill="white" opacity="0.9"/>
+      <ellipse cx="60" cy="33" rx="3" ry="4.5" fill="white" opacity="0.9"/>
     </svg>
   );
 }

@@ -552,6 +552,63 @@ async function clearScenarioConversation(lang, level, avatar, scenario) {
   storage.del(scenarioConvKey(lang, level, avatar, scenario));
 }
 
+// ─── SCÉNARIOS : vocabulaire ─────────────────────────────────────────────────
+
+const scenarioVocabKey = (lang, scenario) =>
+  `scen_vocab:${lang.code}:${scenario.id}`;
+
+function loadScenarioVocab(lang, scenario) {
+  try {
+    const raw = storage.get(scenarioVocabKey(lang, scenario));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function saveScenarioVocab(lang, scenario, items) {
+  try { storage.set(scenarioVocabKey(lang, scenario), JSON.stringify(items)); } catch {}
+}
+
+// Generate 12-15 essential words/phrases for a scenario in the target language.
+// Cached per (lang, scenario) — 1 call max, then instant.
+async function generateScenarioVocab(lang, scenario) {
+  // Cache hit → instant, 0 tokens
+  const cached = loadScenarioVocab(lang, scenario);
+  if (cached && cached.length) return cached;
+
+  const system = `You produce a short vocabulary list for a language-learning scenario.
+Target language: ${lang.nativeName} (${lang.name} in French).
+Scenario: "${scenario.title}" — ${scenario.description}
+Role of the tutor: ${scenario.role}. Role of the learner: ${scenario.userRole}.
+
+Give the 12 to 15 MOST USEFUL words or short phrases the learner will need in this scenario.
+Focus on VERBS, NOUNS and SHORT PHRASES specific to the situation (avoid generic words like "hello", "yes", "no").
+Return each with its French translation.
+
+Respond ONLY with a JSON array, no code fences:
+[
+  { "word": "<word or short phrase in ${lang.nativeName}>", "fr": "<short French translation>" }
+]`;
+
+  try {
+    const data = await chatWithFallback({
+      system,
+      messages: [{ role: 'user', content: `Give me the essential vocabulary for the scenario now.` }],
+      maxTokens: 700,
+      cache: true,
+    });
+    const raw = data?.content?.[0]?.text || '[]';
+    const cleaned = raw.replace(/```json\s*|```/g, '').trim();
+    const s = cleaned.indexOf('['), e = cleaned.lastIndexOf(']');
+    const parsed = JSON.parse(s !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+    if (Array.isArray(parsed) && parsed.length) {
+      saveScenarioVocab(lang, scenario, parsed);
+      return parsed;
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+}
+
 async function loadStats(lang, level, avatar) {
   const raw = storage.get(statsKey(lang, level, avatar));
   if (!raw) return null;
@@ -4156,9 +4213,26 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
   const [voiceURI, setVoiceURI] = useState(null);
   const [showVoicePicker, setShowVoicePicker] = useState(false);
   const [wordPopup, setWordPopup] = useState(null);
+  const [showVocab, setShowVocab] = useState(false);
+  const [vocabItems, setVocabItems] = useState([]);
+  const [vocabLoading, setVocabLoading] = useState(false);
+  const [vocabRevealed, setVocabRevealed] = useState({}); // { idx: true } — words whose FR is revealed
+  const [vocabShowAllFr, setVocabShowAllFr] = useState(false);
   const { speak, speakSequence, stop, speakingText, speakingBoundary, voices } = useSpeech();
   const endRef = useRef(null);
   const initDone = useRef(false);
+
+  // Load the scenario vocabulary once we enter a scenario (cache-first, 0-token on replay).
+  useEffect(() => {
+    if (!scenario) { setVocabItems([]); return; }
+    setVocabLoading(true);
+    setVocabRevealed({});
+    setVocabShowAllFr(false);
+    generateScenarioVocab(lang, scenario).then(list => {
+      setVocabItems(list || []);
+      setVocabLoading(false);
+    });
+  }, [scenario?.id, lang.code]);
 
   // Persist autoListen pref
   useEffect(() => {
@@ -4430,6 +4504,18 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
           <button onClick={() => setAutoSpeak(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoSpeak ? 'wl-btn-secondary border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`} title="lecture auto">
             <Volume2 size={14} />
           </button>
+          {scenario && (
+            <button onClick={() => setShowVocab(v => !v)}
+              className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"
+              style={{
+                borderColor: showVocab ? lang.accent : `${lang.accent}55`,
+                background: showVocab ? lang.accent : `${lang.accent}15`,
+                color: showVocab ? 'white' : lang.accent,
+              }}
+              title="vocabulaire du scénario">
+              <span style={{ fontSize: 15 }}>📖</span>
+            </button>
+          )}
           {onOpenLexicon && (
             <button onClick={onOpenLexicon}
               className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"
@@ -4497,6 +4583,126 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
         <WordExplainPopup word={wordPopup.word} context={wordPopup.context} lang={lang}
           onClose={() => setWordPopup(null)}
           onSpeak={(t) => speakFor(t)} />
+      )}
+
+      {/* Vocab side panel — only in scenario mode */}
+      {scenario && showVocab && (
+        <>
+          {/* Backdrop (mobile) */}
+          <div
+            className="fixed inset-0 z-40 bg-black/30 sm:hidden"
+            onClick={() => setShowVocab(false)}
+          />
+          {/* Slide-in panel from the right */}
+          <aside
+            className="fixed z-50 top-0 right-0 h-full w-full sm:w-96 flex flex-col shadow-2xl"
+            style={{
+              background: 'white',
+              borderLeft: `2px solid ${lang.accent}55`,
+              animation: 'slidein-right 220ms ease-out',
+            }}>
+            <div className="px-4 py-3 flex items-center gap-3 border-b" style={{ background: `linear-gradient(135deg, ${lang.accent}12, transparent)` }}>
+              <div className="rounded-full flex items-center justify-center shrink-0"
+                   style={{ width: 40, height: 40, background: `radial-gradient(circle at 30% 30%, ${lang.accent}, ${lang.accent}CC)`, color: 'white', fontSize: 20 }}>
+                📖
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                  vocabulaire · {scenario.title}
+                </div>
+                <div style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }} className="text-base font-medium leading-tight truncate">
+                  {vocabItems.length} mots utiles
+                </div>
+              </div>
+              <button onClick={() => setShowVocab(false)}
+                className="w-9 h-9 grid place-items-center rounded-full hover:bg-black/5">
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Toggle "tout traduire" */}
+            <div className="px-4 py-2 flex items-center justify-between text-[11px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              <span>toucher un mot pour la traduction</span>
+              <button onClick={() => {
+                const next = !vocabShowAllFr;
+                setVocabShowAllFr(next);
+                if (next) {
+                  const all = {}; vocabItems.forEach((_, i) => { all[i] = true; });
+                  setVocabRevealed(all);
+                } else {
+                  setVocabRevealed({});
+                }
+              }}
+                className="font-bold uppercase tracking-widest px-2.5 py-1 rounded-full transition-colors"
+                style={{
+                  background: vocabShowAllFr ? lang.accent : 'transparent',
+                  color: vocabShowAllFr ? 'white' : lang.accent,
+                  border: `1px solid ${lang.accent}55`,
+                }}>
+                {vocabShowAllFr ? '✓ tout traduit' : 'tout traduire'}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 pb-6">
+              {vocabLoading && (
+                <div className="flex items-center gap-2 py-6 text-sm" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>chargement du vocabulaire…</span>
+                </div>
+              )}
+              {!vocabLoading && vocabItems.length === 0 && (
+                <div className="py-6 text-sm text-center" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
+                  Aucun vocabulaire disponible pour l'instant.
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                {vocabItems.map((item, i) => {
+                  const revealed = vocabRevealed[i];
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setVocabRevealed(r => ({ ...r, [i]: !r[i] }))}
+                      className="text-left p-3 flex items-center gap-3 hover:-translate-y-0.5 transition-all group"
+                      style={{
+                        borderRadius: '16px',
+                        background: 'white',
+                        border: `1px solid ${lang.accent}33`,
+                        boxShadow: `0 2px 6px ${lang.accent}12`,
+                      }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          <span style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)', fontSize: 16, fontWeight: 500, fontStyle: 'italic' }}
+                                dir={lang.rtl ? 'rtl' : 'ltr'}>
+                            {item.word}
+                          </span>
+                          {revealed && (
+                            <>
+                              <span style={{ color: 'var(--gris)', fontSize: 12 }}>→</span>
+                              <span style={{ fontFamily: 'Fraunces, Georgia, serif', color: lang.accent, fontSize: 14 }}>
+                                {item.fr}
+                              </span>
+                            </>
+                          )}
+                          {!revealed && (
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50"
+                                  style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                              toucher →
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); speakFor(item.word); }}
+                        className="w-8 h-8 grid place-items-center rounded-full hover:bg-black/5 shrink-0"
+                        title="écouter">
+                        <Volume2 size={13} style={{ color: lang.accent }} />
+                      </button>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+        </>
       )}
     </div>
   );
@@ -5863,7 +6069,7 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManua
               || k.startsWith('word:') || k === 'meta:lastSession' || k === 'lexicon'
               || k === 'level_tests_cache' || k === 'exercise_sessions'
               || k === 'device_choice' || k.startsWith('voice:')
-              || k.startsWith('scen_open:') || k.startsWith('scen_chat:')) {
+              || k.startsWith('scen_open:') || k.startsWith('scen_chat:') || k.startsWith('scen_vocab:')) {
             localStorage.removeItem(k);
           }
         });
@@ -6469,6 +6675,10 @@ function MainApp({ profile, signOut, reloadProfile }) {
       @keyframes cursor-blink {
         0%, 100% { opacity: 1; }
         50% { opacity: 0; }
+      }
+      @keyframes slidein-right {
+        from { transform: translateX(100%); }
+        to   { transform: translateX(0); }
       }
       @keyframes avatar-wave {
         0%   { transform: rotate(0deg); opacity: 0; }

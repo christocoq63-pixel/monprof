@@ -1329,9 +1329,81 @@ function Mouth({ style, speaking, color }) {
   }
 }
 
+// Palettes for cartoon character avatars (à la illustration flat colorée).
+const HAIR_COLORS = {
+  black: '#1F1B1A', darkbrown: '#3E2A1E', brown: '#6B4423', chestnut: '#A0522D',
+  ginger: '#C05621', orange: '#EA580C', blonde: '#E8B76B', platinum: '#F0E4C8',
+  red: '#B91C1C', grey: '#78716C', white: '#F0EBE5', bluish: '#334155',
+};
+const SKIN_TONES = {
+  light: '#FFDBB5', peach: '#F3C99A', medium: '#D8A778',
+  tan: '#B5814C', brown: '#8B5A2B', deep: '#5C3317',
+};
+const HAIR_C_KEYS = Object.keys(HAIR_COLORS);
+const SKIN_KEYS   = Object.keys(SKIN_TONES);
+const HAIRS_F = ['bob', 'long', 'ponytail', 'buns', 'curly', 'wave'];
+const HAIRS_M = ['short', 'quiff', 'crew', 'curly-m', 'wave-m', 'bald'];
+
+// Deterministic pick from id — same avatar always gets the same look.
+function _hashN(s) { let h = 0; for (let i = 0; i < s.length; i++) h = ((h * 31) + s.charCodeAt(i)) | 0; return Math.abs(h); }
+function _pickFrom(id, salt, arr) { return arr[_hashN(id + salt) % arr.length]; }
+
+function deriveAvatarLook(avatar) {
+  const face = FACES[avatar.id] || {};
+  const isM = avatar.gender === 'male';
+  const hair = face.hair || _pickFrom(avatar.id, 'h', isM ? HAIRS_M : HAIRS_F);
+  const hairColor = HAIR_COLORS[face.hairColor] || HAIR_COLORS[_pickFrom(avatar.id, 'hc', HAIR_C_KEYS)];
+  const skin = SKIN_TONES[face.skin] || SKIN_TONES[_pickFrom(avatar.id, 'sk', SKIN_KEYS)];
+  return { hair, hairColor, skin };
+}
+
+function HairPath({ style, color }) {
+  const s = { stroke: '#1a1a1a', strokeWidth: 2.5, strokeLinejoin: 'round' };
+  switch (style) {
+    case 'bald':
+      return null;
+    case 'crew':
+      return <path d="M 20 26 Q 50 18 80 26 L 80 32 Q 50 26 20 32 Z" fill={color} {...s}/>;
+    case 'short':
+      return <path d="M 18 38 Q 18 12 50 12 Q 82 12 82 38 L 80 32 Q 74 22 50 20 Q 26 22 20 32 Z" fill={color} {...s}/>;
+    case 'quiff':
+      return <path d="M 18 40 Q 18 10 50 10 Q 82 10 82 40 L 78 30 Q 66 16 50 14 Q 34 16 22 30 Z M 40 14 Q 50 4 60 14 Q 55 12 50 12 Q 45 12 40 14 Z" fill={color} {...s}/>;
+    case 'curly-m':
+      return <path d="M 16 40 Q 8 26 20 18 Q 22 10 34 14 Q 40 4 50 12 Q 60 4 66 14 Q 78 10 80 18 Q 92 26 84 40 Q 78 30 72 28 Q 76 20 68 20 Q 62 14 56 18 Q 50 12 44 18 Q 38 14 32 20 Q 24 20 28 28 Q 22 30 16 40 Z" fill={color} {...s}/>;
+    case 'wave-m':
+      return <path d="M 18 40 Q 18 14 50 14 Q 82 14 82 40 Q 76 22 66 26 Q 58 20 50 24 Q 42 20 34 26 Q 24 22 18 40 Z" fill={color} {...s}/>;
+    case 'bob':
+      return <path d="M 14 52 Q 12 18 50 12 Q 88 18 86 52 L 82 32 Q 74 22 50 20 Q 26 22 18 32 Z" fill={color} {...s}/>;
+    case 'long':
+      return <path d="M 10 72 Q 6 20 50 10 Q 94 20 90 72 L 82 40 Q 76 22 50 18 Q 24 22 18 40 Z" fill={color} {...s}/>;
+    case 'ponytail':
+      return (
+        <g>
+          <path d="M 18 40 Q 14 14 50 12 Q 86 14 82 40 L 78 32 Q 74 22 50 20 Q 26 22 22 32 Z" fill={color} {...s}/>
+          <ellipse cx="88" cy="40" rx="7" ry="14" fill={color} transform="rotate(25 88 40)" {...s}/>
+        </g>
+      );
+    case 'buns':
+      return (
+        <g>
+          <path d="M 18 40 Q 14 14 50 12 Q 86 14 82 40 L 78 32 Q 74 22 50 20 Q 26 22 22 32 Z" fill={color} {...s}/>
+          <circle cx="18" cy="20" r="9" fill={color} {...s}/>
+          <circle cx="82" cy="20" r="9" fill={color} {...s}/>
+        </g>
+      );
+    case 'curly':
+      return <path d="M 12 40 Q 8 20 22 14 Q 30 4 42 12 Q 50 2 58 12 Q 70 4 78 14 Q 92 20 88 40 Q 82 30 78 28 Q 82 20 74 20 Q 68 14 60 18 Q 54 12 50 18 Q 46 12 40 18 Q 32 14 26 20 Q 18 20 22 28 Q 18 30 12 40 Z" fill={color} {...s}/>;
+    case 'wave':
+      return <path d="M 12 60 Q 8 16 50 12 Q 92 16 88 60 L 82 36 Q 74 22 50 20 Q 26 22 18 36 Z" fill={color} {...s}/>;
+    default:
+      return <path d="M 18 38 Q 18 12 50 12 Q 82 12 82 38 L 78 30 Q 70 20 50 18 Q 30 20 22 30 Z" fill={color} {...s}/>;
+  }
+}
+
 function AnimatedAvatar({ avatar, size='md', speaking=false }) {
   const sizes = { xs:'w-8 h-8', sm:'w-12 h-12', md:'w-16 h-16', lg:'w-24 h-24', xl:'w-32 h-32' };
   const face = FACES[avatar.id] || { eyes:'round', mouth:'smile', accessory:null };
+  const { hair, hairColor, skin } = deriveAvatarLook(avatar);
   const mouthColor = face.accessory === 'lipstick' ? '#9F1239' : '#1a1a1a';
   const [blink, setBlink] = useState(false);
   const [look, setLook] = useState({ x: 0, y: 0 });  // pupil offset for eye-tracking
@@ -1403,31 +1475,39 @@ function AnimatedAvatar({ avatar, size='md', speaking=false }) {
       <div
         className="relative w-full h-full grid place-items-center overflow-hidden rounded-full"
         style={{
-          backgroundColor: avatar.color,
-          ...PATTERN_BG(avatar.pattern),
-          border: '2px solid rgba(255,255,255,0.6)',
-          boxShadow: `0 4px 14px ${avatar.color}55, inset 0 -8px 20px rgba(0,0,0,0.08)`,
+          backgroundColor: avatar.soft || '#F8F5F2',
+          border: '2px solid rgba(255,255,255,0.85)',
+          boxShadow: `0 4px 14px ${avatar.color}55`,
           animation: speaking
             ? 'avatar-bounce 0.55s ease-in-out infinite'
             : 'avatar-breathe 4.5s ease-in-out infinite',
         }}
       >
         <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+          {/* Shirt/shoulders at the bottom (colored) */}
+          <path d="M 0 100 L 0 88 Q 4 76 20 74 L 50 70 L 80 74 Q 96 76 100 88 L 100 100 Z"
+                fill={avatar.color} stroke="#1a1a1a" strokeWidth="2.5" strokeLinejoin="round"/>
+          {/* Neck */}
+          <path d="M 42 66 L 42 74 Q 50 76 58 74 L 58 66 Z" fill={skin} stroke="#1a1a1a" strokeWidth="2"/>
+          {/* Head (skin) */}
+          <circle cx={50} cy={42} r={30} fill={skin} stroke="#1a1a1a" strokeWidth="2.5"/>
+          {/* Hair on top */}
+          <HairPath style={hair} color={hairColor} />
           {/* Blush */}
           {face.blush && !speaking && (
-            <g opacity={0.35} fill="#E11D48">
-              <ellipse cx={22} cy={56} rx={6} ry={3} />
-              <ellipse cx={78} cy={56} rx={6} ry={3} />
+            <g opacity={0.5} fill="#E11D48">
+              <ellipse cx={30} cy={54} rx={5} ry={2.5} />
+              <ellipse cx={70} cy={54} rx={5} ry={2.5} />
             </g>
           )}
           {/* Freckles */}
           {face.freckles && (
-            <g fill="#7C2D12" opacity={0.5}>
-              <circle cx={38} cy={56} r={0.8} />
-              <circle cx={42} cy={58} r={0.8} />
-              <circle cx={58} cy={58} r={0.8} />
-              <circle cx={62} cy={56} r={0.8} />
-              <circle cx={50} cy={54} r={0.8} />
+            <g fill="#7C2D12" opacity={0.6}>
+              <circle cx={40} cy={52} r={0.9} />
+              <circle cx={44} cy={54} r={0.9} />
+              <circle cx={56} cy={54} r={0.9} />
+              <circle cx={60} cy={52} r={0.9} />
+              <circle cx={50} cy={50} r={0.9} />
             </g>
           )}
           {/* Eyes (pupils track `look`) */}
@@ -1435,19 +1515,19 @@ function AnimatedAvatar({ avatar, size='md', speaking=false }) {
             <Eye cx={34} style={face.eyes} blink={blink} />
             <Eye cx={66} style={face.eyes} blink={blink} />
           </g>
-          {/* Moustache (Oliver) */}
+          {/* Moustache */}
           {face.moustache && (
-            <path d="M 38 60 Q 50 64 62 60 Q 58 63 50 63 Q 42 63 38 60 Z" fill="#1a1a1a" opacity={0.85} />
+            <path d="M 38 60 Q 50 64 62 60 Q 58 63 50 63 Q 42 63 38 60 Z" fill="#1a1a1a" opacity={0.9} />
           )}
-          {/* Accessory */}
+          {/* Accessory (glasses, beard, bindi…) */}
           <Accessory kind={face.accessory} />
           {/* Mouth (smile-flash if idle) */}
           <Mouth style={smileFlash && !speaking ? 'smile' : face.mouth} speaking={speaking} color={mouthColor} />
           {/* Little waving hand (idle greeting) */}
           {wave && !speaking && (
-            <g style={{ transformOrigin: '82px 78px', animation: 'avatar-wave 1.3s ease-in-out' }}>
-              <circle cx={82} cy={78} r={5} fill="#FFC194" stroke="#8B5A3C" strokeWidth={0.8} />
-              <path d="M 79 74 L 79 68 M 81 74 L 81 66 M 83 74 L 83 66 M 85 74 L 85 68" stroke="#8B5A3C" strokeWidth={1} strokeLinecap="round" />
+            <g style={{ transformOrigin: '86px 82px', animation: 'avatar-wave 1.3s ease-in-out' }}>
+              <circle cx={86} cy={82} r={5} fill={skin} stroke="#1a1a1a" strokeWidth={1.2} />
+              <path d="M 83 78 L 83 72 M 85 78 L 85 70 M 87 78 L 87 70 M 89 78 L 89 72" stroke="#1a1a1a" strokeWidth={1} strokeLinecap="round" />
             </g>
           )}
         </svg>
@@ -5286,30 +5366,39 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
                     {m.badge}
                   </span>
                 )}
-                <div className="rounded-full grid place-items-center text-white group-hover:scale-105 transition-transform"
-                     style={{
-                       width: 60, height: 60,
-                       background: m.svg
-                         ? 'linear-gradient(135deg, #FFE5D9, #FFF3E0)'
-                         : `radial-gradient(circle at 30% 30%, ${language.accent}, ${language.accent}CC)`,
-                       boxShadow: m.svg
-                         ? `0 4px 14px ${language.accent}33`
-                         : `0 4px 14px ${language.accent}55`,
-                       fontSize: 26,
-                       border: m.svg ? `2px solid ${language.accent}44` : 'none',
-                     }}>
-                  {m.svg === 'lexicon'
-                    ? <LexiconIcon size={36} />
-                    : m.svg === 'scenario'
-                      ? <ScenarioIcon size={30} />
-                      : m.svg === 'reader'
-                        ? <ReaderIcon size={38} />
-                        : m.svg === 'exercises'
-                          ? <ExercisesIcon size={40} />
-                          : m.svg === 'discuss'
-                            ? <DiscussIcon size={40} />
-                            : Icon ? <Icon size={26} /> : <span>{m.emoji}</span>}
-                </div>
+                {(() => {
+                  // Per-icon color scheme (each mode gets its own visual identity)
+                  const SCHEMES = {
+                    discuss:  { bg: 'linear-gradient(135deg, #FFF3D9, #FFFCEF)', border: '#FCD34D' },
+                    scenario: { bg: 'linear-gradient(135deg, #F5D9CC, #FBEDE3)', border: '#B85B3F' },
+                    reader:   { bg: 'linear-gradient(135deg, #FBFAF3, #EDE7D8)', border: '#1a1a1a' },
+                    exercises:{ bg: 'linear-gradient(135deg, #DCF3FA, #F0FBFF)', border: '#0EA5E9' },
+                    lexicon:  { bg: 'linear-gradient(135deg, #FFE5D9, #FFF3E0)', border: '#FCD34D' },
+                  };
+                  const sch = SCHEMES[m.svg];
+                  return (
+                    <div className="rounded-full grid place-items-center text-white group-hover:scale-105 transition-transform"
+                         style={{
+                           width: 60, height: 60,
+                           background: sch ? sch.bg : `radial-gradient(circle at 30% 30%, ${language.accent}, ${language.accent}CC)`,
+                           boxShadow: sch ? `0 4px 14px ${sch.border}55` : `0 4px 14px ${language.accent}55`,
+                           fontSize: 26,
+                           border: sch ? `2px solid ${sch.border}` : 'none',
+                         }}>
+                      {m.svg === 'lexicon'
+                        ? <LexiconIcon size={36} />
+                        : m.svg === 'scenario'
+                          ? <ScenarioIcon size={38} />
+                          : m.svg === 'reader'
+                            ? <ReaderIcon size={38} />
+                            : m.svg === 'exercises'
+                              ? <ExercisesIcon size={40} />
+                              : m.svg === 'discuss'
+                                ? <DiscussIcon size={40} />
+                                : Icon ? <Icon size={26} /> : <span>{m.emoji}</span>}
+                    </div>
+                  );
+                })()}
                 <h3 style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-2xl font-medium leading-none">{m.label}</h3>
                 <p style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-sm text-[color:var(--ink)] leading-relaxed">{m.desc}</p>
               </button>
@@ -5540,65 +5629,73 @@ function ExercisesIcon({ size = 20 }) {
   );
 }
 
-// Livre ouvert avec lunettes rondes — icône du mode lecture (remplace 📖 / BookText).
+// Journal plié avec gros titre — icône du mode lecture (métaphore "actualité, texte").
 function ReaderIcon({ size = 20 }) {
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'inline-block', verticalAlign: 'middle' }} aria-hidden="true">
-      {/* Book yellow cover */}
-      <path d="M 15 58 L 12 82 Q 12 88 18 88 L 82 88 Q 88 88 88 82 L 85 58 L 50 54 Z"
-            fill="#FCD34D" stroke="#2C1B1D" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"/>
-      {/* Left white pages */}
-      <path d="M 18 60 L 15 78 Q 15 82 20 82 L 48 82 L 48 56 Z"
-            fill="#FFFFFF" stroke="#94A3B8" strokeWidth="1.5" strokeLinejoin="round"/>
-      {/* Right white pages */}
-      <path d="M 82 60 L 85 78 Q 85 82 80 82 L 52 82 L 52 56 Z"
-            fill="#FFFFFF" stroke="#94A3B8" strokeWidth="1.5" strokeLinejoin="round"/>
-      {/* Fold shadow to hint at fanned pages */}
-      <line x1="48" y1="62" x2="48" y2="80" stroke="#CBD5E1" strokeWidth="1"/>
-      <line x1="52" y1="62" x2="52" y2="80" stroke="#CBD5E1" strokeWidth="1"/>
-      {/* Round glasses — left lens */}
-      <circle cx="35" cy="38" r="16" fill="white" stroke="#1a1a1a" strokeWidth="4"/>
-      {/* Right lens */}
-      <circle cx="65" cy="38" r="16" fill="white" stroke="#1a1a1a" strokeWidth="4"/>
-      {/* Bridge */}
-      <line x1="48" y1="36" x2="52" y2="36" stroke="#1a1a1a" strokeWidth="4" strokeLinecap="round"/>
-      {/* Temples with blue tips */}
-      <line x1="19" y1="40" x2="10" y2="44" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round"/>
-      <line x1="81" y1="40" x2="90" y2="44" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round"/>
-      <circle cx="9" cy="45" r="3" fill="#60A5FA" stroke="#1a1a1a" strokeWidth="1.5"/>
-      <circle cx="91" cy="45" r="3" fill="#60A5FA" stroke="#1a1a1a" strokeWidth="1.5"/>
-      {/* Lens highlights */}
-      <ellipse cx="30" cy="33" rx="3" ry="4.5" fill="white" opacity="0.9"/>
-      <ellipse cx="60" cy="33" rx="3" ry="4.5" fill="white" opacity="0.9"/>
+      {/* Back paper — slightly tilted */}
+      <rect x="14" y="20" width="72" height="70" rx="2"
+            fill="#EDE7D8" stroke="#1a1a1a" strokeWidth="2" transform="rotate(-4 50 55)"/>
+      {/* Front paper */}
+      <rect x="12" y="16" width="76" height="74" rx="2"
+            fill="#FBFAF3" stroke="#1a1a1a" strokeWidth="3"/>
+      {/* Masthead / title bar */}
+      <rect x="18" y="22" width="64" height="12" fill="#1a1a1a"/>
+      <text x="50" y="31" textAnchor="middle" fontFamily="Georgia, serif"
+            fontSize="9" fontWeight="900" fill="#FCD34D" letterSpacing="1">NEWS</text>
+      {/* Column separator */}
+      <line x1="50" y1="38" x2="50" y2="86" stroke="#94A3B8" strokeWidth="1" strokeDasharray="1,2"/>
+      {/* Left column — text lines then image */}
+      <line x1="20" y1="42" x2="46" y2="42" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="20" y1="47" x2="44" y2="47" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="20" y1="52" x2="46" y2="52" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      {/* Small image placeholder — coral square with sun */}
+      <rect x="20" y="58" width="26" height="18" fill="#FCD34D" stroke="#1a1a1a" strokeWidth="1.5"/>
+      <circle cx="30" cy="66" r="3" fill="#EA580C"/>
+      <line x1="35" y1="75" x2="43" y2="70" stroke="#1a1a1a" strokeWidth="1"/>
+      <line x1="35" y1="72" x2="46" y2="65" stroke="#1a1a1a" strokeWidth="1"/>
+      <line x1="20" y1="82" x2="46" y2="82" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      {/* Right column */}
+      <line x1="54" y1="42" x2="82" y2="42" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="54" y1="47" x2="80" y2="47" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="54" y1="52" x2="82" y2="52" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="54" y1="57" x2="78" y2="57" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="54" y1="62" x2="82" y2="62" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="54" y1="67" x2="80" y2="67" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="54" y1="72" x2="82" y2="72" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="54" y1="77" x2="76" y2="77" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="54" y1="82" x2="82" y2="82" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }
 
-// Clipboard "SCENARIO" — icône du mode scénarios (remplace l'emoji 🎭).
+// Clapperboard de cinéma — icône du mode scénarios (métaphore "scène / rôle").
 function ScenarioIcon({ size = 20 }) {
   return (
-    <svg viewBox="0 0 100 120" width={size} height={size * 1.2} style={{ display: 'inline-block', verticalAlign: 'middle' }} aria-hidden="true">
-      {/* Clipboard base (blue) */}
-      <rect x="10" y="15" width="80" height="100" rx="6"
-            fill="#1E3A5F" stroke="#0F1F3A" strokeWidth="2.5"/>
-      {/* Paper (white) */}
-      <rect x="18" y="22" width="64" height="87" rx="1"
-            fill="#F8FAFC" stroke="#CBD5E1" strokeWidth="1"/>
-      {/* Title block — like "SCENARIO" header */}
-      <rect x="24" y="30" width="34" height="7" rx="1" fill="#1E293B"/>
-      {/* Text lines */}
-      <line x1="24" y1="46" x2="76" y2="46" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="24" y1="53" x2="72" y2="53" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="24" y1="60" x2="76" y2="60" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="24" y1="67" x2="68" y2="67" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="24" y1="74" x2="76" y2="74" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="24" y1="81" x2="70" y2="81" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="24" y1="88" x2="76" y2="88" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="24" y1="95" x2="66" y2="95" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
-      {/* Metal clip at top */}
-      <rect x="38" y="8" width="24" height="15" rx="3"
-            fill="#64748B" stroke="#334155" strokeWidth="2"/>
-      <rect x="41" y="11" width="18" height="9" rx="1" fill="#94A3B8"/>
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'inline-block', verticalAlign: 'middle' }} aria-hidden="true">
+      {/* Body (wooden bottom slate) */}
+      <rect x="6" y="42" width="88" height="52" rx="4"
+            fill="#B85B3F" stroke="#1a1a1a" strokeWidth="3"/>
+      {/* Chalk label area on the wood */}
+      <rect x="12" y="52" width="76" height="34" rx="2"
+            fill="#F5F1E8" stroke="#1a1a1a" strokeWidth="2"/>
+      {/* "SCENE" style chalk lines */}
+      <line x1="18" y1="60" x2="60" y2="60" stroke="#4B5563" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="18" y1="68" x2="82" y2="68" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="18" y1="76" x2="72" y2="76" stroke="#4B5563" strokeWidth="2" strokeLinecap="round"/>
+      {/* Striped hinge on top */}
+      <g transform="rotate(-6 50 30)">
+        {/* Base bar of the clap */}
+        <rect x="4" y="18" width="92" height="16" rx="2"
+              fill="#1a1a1a" stroke="#000" strokeWidth="2.5"/>
+        {/* White angled stripes */}
+        <polygon points="10 18 20 18 14 34 4 34" fill="#F5F5F5" stroke="#000" strokeWidth="1.5"/>
+        <polygon points="30 18 40 18 34 34 24 34" fill="#F5F5F5" stroke="#000" strokeWidth="1.5"/>
+        <polygon points="50 18 60 18 54 34 44 34" fill="#F5F5F5" stroke="#000" strokeWidth="1.5"/>
+        <polygon points="70 18 80 18 74 34 64 34" fill="#F5F5F5" stroke="#000" strokeWidth="1.5"/>
+      </g>
+      {/* Hinge pin */}
+      <circle cx="10" cy="40" r="3" fill="#F5F5F5" stroke="#1a1a1a" strokeWidth="1.5"/>
     </svg>
   );
 }

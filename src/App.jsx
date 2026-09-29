@@ -1532,7 +1532,7 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
             <div className="flex items-center gap-4">
               <button onClick={onOpenLexicon}
                 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                <span style={{ fontSize: 13 }}>📚</span> mon lexique
+                <LexiconIcon size={18} /> mon lexique
               </button>
               <button onClick={onOpenProfile}
                 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
@@ -3605,8 +3605,8 @@ function LexiconScreen({ lang, profile, onBack }) {
 
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center rounded-full mb-3"
-               style={{ width: 68, height: 68, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 6px 18px rgba(255,56,92,0.3)' }}>
-            <span style={{ fontSize: 32 }}>📚</span>
+               style={{ width: 72, height: 72, background: 'linear-gradient(135deg, #FFE5D9, #FFF3E0)', boxShadow: '0 6px 18px rgba(255,56,92,0.18)', border: '2px solid rgba(255,56,92,0.25)' }}>
+            <LexiconIcon size={42} />
           </div>
           <h1 className="text-3xl sm:text-4xl leading-none"
               style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 700 }}>
@@ -4484,7 +4484,7 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
               {scenario && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-widest flex items-center gap-1"
                       style={{ fontFamily: 'DM Sans', background: `${lang.accent}`, color: 'white' }}>
-                  🎭 {scenario.title}
+                  <ScenarioIcon size={12} /> {scenario.title}
                 </span>
               )}
             </div>
@@ -4521,7 +4521,7 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
               className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"
               style={{ borderColor: `${lang.accent}55`, background: `${lang.accent}15` }}
               title="mon lexique — mots enregistrés">
-              <span style={{ fontSize: 15 }}>📚</span>
+              <LexiconIcon size={20} />
             </button>
           )}
           {onOpenExercises && (
@@ -4988,7 +4988,7 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
               className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"
               style={{ borderColor: `${lang.accent}55`, background: `${lang.accent}15` }}
               title="mon lexique — mots enregistrés">
-              <span style={{ fontSize: 15 }}>📚</span>
+              <LexiconIcon size={20} />
             </button>
           )}
           <button onClick={() => load(topic, true)} disabled={loading}
@@ -5138,13 +5138,13 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
   const modes = [
     { id: 'chat',      label: 'Discuter',   icon: MessageCircle, emoji: '💬',
       desc: "Conversation vocale avec un interlocuteur virtuel. Il vous répond, corrige vos erreurs et explique." },
-    { id: 'scenarios', label: 'Scénarios',  icon: null,          emoji: '🎭', badge: 'nouveau',
+    { id: 'scenarios', label: 'Scénarios',  icon: null,          emoji: null,   svg: 'scenario', badge: 'nouveau',
       desc: "Situations réelles : restaurant, hôtel, entretien, chez le médecin. Le prof joue un rôle." },
     { id: 'reader',    label: 'Lire',       icon: BookText,      emoji: '📖',
       desc: "Textes générés à votre niveau, sur le sujet de votre choix. Touchez chaque mot pour sa traduction." },
     { id: 'exercises', label: 'Exercices',  icon: null,          emoji: '🎯',
       desc: "Exercices de grammaire personnalisés générés à partir de vos erreurs — fill-in, transformations, traductions." },
-    { id: 'lexicon',   label: 'Lexique',    icon: null,          emoji: '📚',
+    { id: 'lexicon',   label: 'Lexique',    icon: null,          emoji: null,   svg: 'lexicon',
       desc: "Tous les mots dont vous avez demandé la traduction, avec explications et exemples. À revoir à volonté." },
   ];
   return (
@@ -5169,7 +5169,7 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
               {onOpenLexicon && (
                 <button onClick={onOpenLexicon}
                   className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                  <span style={{ fontSize: 13 }}>📚</span> mon lexique
+                  <LexiconIcon size={18} /> mon lexique
                 </button>
               )}
               {onOpenProfile && (
@@ -5282,11 +5282,20 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
                 <div className="rounded-full grid place-items-center text-white group-hover:scale-105 transition-transform"
                      style={{
                        width: 60, height: 60,
-                       background: `radial-gradient(circle at 30% 30%, ${language.accent}, ${language.accent}CC)`,
-                       boxShadow: `0 4px 14px ${language.accent}55`,
+                       background: (m.svg === 'lexicon' || m.svg === 'scenario')
+                         ? 'linear-gradient(135deg, #FFE5D9, #FFF3E0)'
+                         : `radial-gradient(circle at 30% 30%, ${language.accent}, ${language.accent}CC)`,
+                       boxShadow: (m.svg === 'lexicon' || m.svg === 'scenario')
+                         ? `0 4px 14px ${language.accent}33`
+                         : `0 4px 14px ${language.accent}55`,
                        fontSize: 26,
+                       border: (m.svg === 'lexicon' || m.svg === 'scenario') ? `2px solid ${language.accent}44` : 'none',
                      }}>
-                  {Icon ? <Icon size={26} /> : <span>{m.emoji}</span>}
+                  {m.svg === 'lexicon'
+                    ? <LexiconIcon size={36} />
+                    : m.svg === 'scenario'
+                      ? <ScenarioIcon size={30} />
+                      : Icon ? <Icon size={26} /> : <span>{m.emoji}</span>}
                 </div>
                 <h3 style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-2xl font-medium leading-none">{m.label}</h3>
                 <p style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-sm text-[color:var(--ink)] leading-relaxed">{m.desc}</p>
@@ -5394,6 +5403,68 @@ function MascotHoot({ size = 180 }) {
       <circle cx="125" cy="105" r="8" fill="#FF8FB1" opacity="0.6"/>
       <rect x="75" y="130" width="30" height="22" rx="2" fill="#A78BFA" stroke="#2C1B1D" strokeWidth="3"/>
       <line x1="90" y1="132" x2="90" y2="150" stroke="#2C1B1D" strokeWidth="2"/>
+    </svg>
+  );
+}
+
+// Livre ouvert avec loupe — icône du lexique (remplace l'emoji 📚).
+function LexiconIcon({ size = 20 }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'inline-block', verticalAlign: 'middle' }} aria-hidden="true">
+      {/* Book spine / cover (yellow) */}
+      <path d="M 10 62 L 10 86 L 50 84 L 90 86 L 90 62 L 50 65 Z"
+            fill="#FCD34D" stroke="#2C1B1D" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"/>
+      {/* Left page */}
+      <path d="M 14 60 L 14 82 L 50 80 L 50 52 Z"
+            fill="#FFF3E0" stroke="#2C1B1D" strokeWidth="2.5" strokeLinejoin="round"/>
+      {/* Right page */}
+      <path d="M 86 60 L 86 82 L 50 80 L 50 52 Z"
+            fill="#FFF3E0" stroke="#2C1B1D" strokeWidth="2.5" strokeLinejoin="round"/>
+      {/* Text lines on left page */}
+      <line x1="21" y1="60" x2="45" y2="59" stroke="#78716C" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="21" y1="66" x2="42" y2="65" stroke="#78716C" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="21" y1="72" x2="45" y2="71" stroke="#78716C" strokeWidth="2" strokeLinecap="round"/>
+      {/* Text lines on right page */}
+      <line x1="55" y1="59" x2="79" y2="60" stroke="#78716C" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="55" y1="65" x2="76" y2="66" stroke="#78716C" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="55" y1="71" x2="79" y2="72" stroke="#78716C" strokeWidth="2" strokeLinecap="round"/>
+      {/* Magnifying glass lens (upper right, floating) */}
+      <circle cx="66" cy="30" r="16" fill="white" stroke="#2C1B1D" strokeWidth="3.5"/>
+      <circle cx="60" cy="26" r="4" fill="#DBEAFE" opacity="0.9"/>
+      {/* Handle: yellow inner with dark outline */}
+      <line x1="77" y1="42" x2="90" y2="55" stroke="#2C1B1D" strokeWidth="7" strokeLinecap="round"/>
+      <line x1="77" y1="42" x2="90" y2="55" stroke="#FCD34D" strokeWidth="4" strokeLinecap="round"/>
+      {/* Handle tip cap */}
+      <circle cx="90" cy="55" r="3.5" fill="#2C1B1D"/>
+    </svg>
+  );
+}
+
+// Clipboard "SCENARIO" — icône du mode scénarios (remplace l'emoji 🎭).
+function ScenarioIcon({ size = 20 }) {
+  return (
+    <svg viewBox="0 0 100 120" width={size} height={size * 1.2} style={{ display: 'inline-block', verticalAlign: 'middle' }} aria-hidden="true">
+      {/* Clipboard base (blue) */}
+      <rect x="10" y="15" width="80" height="100" rx="6"
+            fill="#1E3A5F" stroke="#0F1F3A" strokeWidth="2.5"/>
+      {/* Paper (white) */}
+      <rect x="18" y="22" width="64" height="87" rx="1"
+            fill="#F8FAFC" stroke="#CBD5E1" strokeWidth="1"/>
+      {/* Title block — like "SCENARIO" header */}
+      <rect x="24" y="30" width="34" height="7" rx="1" fill="#1E293B"/>
+      {/* Text lines */}
+      <line x1="24" y1="46" x2="76" y2="46" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="24" y1="53" x2="72" y2="53" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="24" y1="60" x2="76" y2="60" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="24" y1="67" x2="68" y2="67" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="24" y1="74" x2="76" y2="74" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="24" y1="81" x2="70" y2="81" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="24" y1="88" x2="76" y2="88" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="24" y1="95" x2="66" y2="95" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Metal clip at top */}
+      <rect x="38" y="8" width="24" height="15" rx="3"
+            fill="#64748B" stroke="#334155" strokeWidth="2"/>
+      <rect x="41" y="11" width="18" height="9" rx="1" fill="#94A3B8"/>
     </svg>
   );
 }
@@ -6230,8 +6301,8 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManua
             className="w-full text-left wl-card p-5 sm:p-6 mt-5 flex items-center gap-4 hover:-translate-y-0.5 transition-all group"
             style={{ borderRadius: '24px', border: '1.5px solid rgba(255, 56, 92, 0.22)' }}>
             <div className="rounded-full flex items-center justify-center shrink-0"
-                 style={{ width: 56, height: 56, background: 'linear-gradient(135deg, #FF385C22, #FF385C11)' }}>
-              <span style={{ fontSize: 28 }}>📚</span>
+                 style={{ width: 56, height: 56, background: 'linear-gradient(135deg, #FFE5D9, #FFF3E0)', border: '1.5px solid rgba(255,56,92,0.25)' }}>
+              <LexiconIcon size={32} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

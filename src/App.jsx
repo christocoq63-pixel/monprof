@@ -3698,7 +3698,9 @@ Respond ONLY with a JSON object, no code fences:
     : [{ lv: LEVELS[scope], items: scenarios }];
 
   // ─── Scenario detail view ─────────────────────────────────────
-  if (selected) {
+  // IMPORTANT: `dialogueMode` must be checked BEFORE `selected` (see below),
+  // because entering the dialogue view does NOT clear `selected`.
+  if (selected && !dialogueMode) {
     return (
       <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
         <div className="max-w-2xl mx-auto">
@@ -5655,6 +5657,11 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
                     title="écouter le texte">
                     <Volume2 size={14} />
                   </button>
+                  <button onClick={() => load(topic, true)} disabled={loading}
+                    className="w-9 h-9 grid place-items-center transition-colors disabled:opacity-30 wl-btn-secondary"
+                    title="générer un autre texte sur ce sujet">
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                  </button>
                   <button onClick={() => setShowFr(s => !s)} disabled={!passage.translation}
                     className={`px-2 py-1 text-[10px] uppercase tracking-widest border disabled:opacity-30 ${showFr ? 'wl-btn-secondary border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`}
                     style={{ fontFamily:'DM Sans, sans-serif' }}>
@@ -5700,18 +5707,6 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
             </div>
           )}
 
-          {/* Gros bouton "générer un autre texte" — bien visible en bas */}
-          {passage && !loading && (
-            <button onClick={() => load(topic, true)}
-              className="mt-6 w-full flex items-center justify-center gap-2 py-4 rounded-full text-white transition-all hover:-translate-y-0.5"
-              style={{
-                background: `linear-gradient(135deg, ${lang.accent}, ${lang.accent}DD)`,
-                boxShadow: `0 6px 20px ${lang.accent}55`,
-                fontFamily: 'DM Sans', fontWeight: 700,
-              }}>
-              <RefreshCw size={16} /> Générer un autre texte sur « {topic.label} »
-            </button>
-          )}
         </div>
       </div>
 

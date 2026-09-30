@@ -3573,6 +3573,120 @@ function VoicePicker({ voices, lang, avatar, currentURI, onChoose, onClose, onPr
 function ScenariosScreen({ lang, level, onBack, onStartScenario }) {
   const [scope, setScope] = useState(level?.id || 'all'); // 'all' or a level id
   const [selected, setSelected] = useState(null);
+  const [dialogueMode, setDialogueMode] = useState(false); // true = listen/read only, no interaction
+  const [dialogue, setDialogue] = useState(null);          // { lines: [{speaker, text, fr}] }
+  const [dialogueLoading, setDialogueLoading] = useState(false);
+  const [dialogueShowFr, setDialogueShowFr] = useState(false);
+  const [playingIdx, setPlayingIdx] = useState(null);
+  const [playAllRunning, setPlayAllRunning] = useState(false);
+  const playCancelRef = useRef(false);
+  const { speak, stop: stopSpeak, speakingText } = useSpeech();
+
+  // Fetch or load-from-cache the pre-written dialogue for the selected scenario.
+  const openDialogue = async (scenario) => {
+    setDialogueMode(true);
+    setDialogueLoading(true);
+    setDialogueShowFr(false);
+    setDialogue(null);
+    // Cache key = lang + level + scenario id (dialogue may vary by level for length)
+    const cacheKey = `scen_dialog:${lang.code}:${level.id}:${scenario.id}`;
+    try {
+      const cached = storage.get(cacheKey);
+      if (cached) {
+        setDialogue(JSON.parse(cached));
+        setDialogueLoading(false);
+        return;
+      }
+    } catch { /* ignore */ }
+
+    // Generate a fresh dialogue with Claude
+    try {
+      const system = `You write short, natural dialogue scripts for language learners.
+Language: ${lang.nativeName} (${lang.name} in French).
+${LEVEL_CONSTRAINTS[level.id] || level.prompt}
+Scenario: "${scenario.title}" — ${scenario.description}
+Characters: A) ${scenario.role}   B) ${scenario.userRole}
+
+Write a complete, realistic dialogue between A and B of 8 to 12 turns total.
+Match the level constraints STRICTLY. Keep each line short (1–2 sentences).
+Also provide the French translation of each line.
+
+Respond ONLY with a JSON object, no code fences:
+{
+  "lines": [
+    { "speaker": "A" | "B", "text": "<line in ${lang.nativeName}>", "fr": "<French translation>" }
+  ]
+}`;
+      const data = await chatWithFallback({
+        system,
+        messages: [{ role: 'user', content: `Write the dialogue now.` }],
+        maxTokens: 1200,
+        cache: true,
+      });
+      const raw = data?.content?.[0]?.text || '{}';
+      const cleaned = raw.replace(/```json\s*|```/g, '').trim();
+      const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
+      const parsed = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+      if (parsed?.lines?.length) {
+        try { storage.set(cacheKey, JSON.stringify(parsed)); } catch {}
+        setDialogue(parsed);
+      }
+    } catch (e) {
+      setDialogue({ lines: [], error: e.message });
+    } finally {
+      setDialogueLoading(false);
+    }
+  };
+
+  const closeDialogue = () => {
+    stopSpeak();
+    playCancelRef.current = true;
+    setDialogueMode(false);
+    setDialogue(null);
+    setPlayingIdx(null);
+    setPlayAllRunning(false);
+  };
+
+  const playLine = (line, idx) => {
+    stopSpeak();
+    setPlayingIdx(idx);
+    speak(line.text, null, lang);
+    // Best-effort: clear playing indicator when speech ends (SpeechSynthesis)
+    setTimeout(() => setPlayingIdx(cur => cur === idx ? null : cur), Math.min(15000, 800 + line.text.length * 80));
+  };
+
+  const playAll = async () => {
+    if (!dialogue?.lines) return;
+    playCancelRef.current = false;
+    setPlayAllRunning(true);
+    for (let i = 0; i < dialogue.lines.length; i++) {
+      if (playCancelRef.current) break;
+      setPlayingIdx(i);
+      stopSpeak();
+      await new Promise(res => {
+        // Give a moment before speaking to let previous stop settle
+        setTimeout(() => {
+          if (playCancelRef.current) return res();
+          const line = dialogue.lines[i];
+          if (!('speechSynthesis' in window)) return res();
+          const u = new SpeechSynthesisUtterance(line.text);
+          u.lang = lang.ttsLocale || 'en-US';
+          u.rate = 0.9;
+          u.onend = () => res();
+          u.onerror = () => res();
+          window.speechSynthesis.speak(u);
+        }, 250);
+      });
+    }
+    setPlayingIdx(null);
+    setPlayAllRunning(false);
+  };
+  const stopAll = () => {
+    playCancelRef.current = true;
+    stopSpeak();
+    setPlayAllRunning(false);
+    setPlayingIdx(null);
+  };
 
   const scenarios = scope === 'all'
     ? SCENARIOS
@@ -3654,11 +3768,164 @@ function ScenariosScreen({ lang, level, onBack, onStartScenario }) {
             </div>
           </div>
 
-          <button onClick={() => onStartScenario?.(selected)}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-full text-white transition-all hover:-translate-y-0.5"
-            style={{ background: `linear-gradient(135deg, ${lang.accent}, ${lang.accent}DD)`, boxShadow: `0 6px 20px ${lang.accent}55`, fontFamily: 'DM Sans', fontWeight: 700 }}>
-            🎬 Commencer le scénario
+          {/* Two entry points: interactive OR listen/read */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button onClick={() => openDialogue(selected)}
+              className="text-left p-4 rounded-2xl transition-all hover:-translate-y-0.5 group"
+              style={{
+                background: 'white',
+                border: `1.5px solid ${lang.accent}55`,
+                boxShadow: `0 3px 12px ${lang.accent}18`,
+              }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ fontSize: 20 }}>🎧</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: lang.accent }}>
+                  écouter · lire
+                </span>
+              </div>
+              <div className="leading-tight" style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>
+                Le dialogue tout prêt
+              </div>
+              <div className="text-[12px] mt-0.5" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                Une scène complète à écouter ou à lire, sans interaction
+              </div>
+            </button>
+
+            <button onClick={() => onStartScenario?.(selected)}
+              className="text-left p-4 rounded-2xl transition-all hover:-translate-y-0.5 group"
+              style={{
+                background: `linear-gradient(135deg, ${lang.accent}, ${lang.accent}DD)`,
+                border: 'none',
+                boxShadow: `0 6px 20px ${lang.accent}55`,
+              }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ fontSize: 20 }}>🎬</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/90" style={{ fontFamily: 'DM Sans' }}>
+                  jouer le scénario
+                </span>
+              </div>
+              <div className="text-white leading-tight" style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 15, fontWeight: 500 }}>
+                Jouer un rôle
+              </div>
+              <div className="text-[12px] mt-0.5 text-white/85" style={{ fontFamily: 'DM Sans' }}>
+                Vous répondez au prof qui joue son personnage
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Dialogue "listen / read" view ───────────────────────────
+  if (dialogueMode) {
+    return (
+      <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10">
+        <div className="max-w-2xl mx-auto">
+          <button onClick={closeDialogue}
+            className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+            style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            <ArrowLeft size={14} /> retour
           </button>
+
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="rounded-2xl flex items-center justify-center shrink-0"
+                 style={{ width: 60, height: 60,
+                          background: `linear-gradient(135deg, ${lang.accent}44, ${lang.accent}22)`,
+                          border: `1.5px solid ${lang.accent}55`, fontSize: 30 }}>
+              {selected?.emoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                dialogue · {lang.name}
+              </div>
+              <h2 style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }} className="text-xl font-medium leading-tight truncate">
+                {selected?.title}
+              </h2>
+            </div>
+          </div>
+
+          {/* Controls */}
+          {!dialogueLoading && dialogue?.lines?.length > 0 && (
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <button onClick={playAllRunning ? stopAll : playAll}
+                className="px-4 py-2 rounded-full text-white flex items-center gap-2 font-bold text-xs uppercase tracking-widest"
+                style={{ fontFamily: 'DM Sans', background: lang.accent, boxShadow: `0 3px 10px ${lang.accent}55` }}>
+                {playAllRunning ? (<><span>◼</span> arrêter</>) : (<><span>▶</span> tout écouter</>)}
+              </button>
+              <button onClick={() => setDialogueShowFr(v => !v)}
+                className="px-3 py-2 rounded-full text-xs font-bold uppercase tracking-widest"
+                style={{
+                  fontFamily: 'DM Sans',
+                  background: dialogueShowFr ? lang.accent : 'white',
+                  color: dialogueShowFr ? 'white' : lang.accent,
+                  border: `1.5px solid ${lang.accent}`,
+                }}>
+                {dialogueShowFr ? '✓ traduction' : 'afficher FR'}
+              </button>
+            </div>
+          )}
+
+          {dialogueLoading && (
+            <div className="text-center py-10" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
+              <Loader2 size={22} className="animate-spin inline mr-2" style={{ color: lang.accent }} />
+              Le prof écrit le dialogue…
+            </div>
+          )}
+
+          {/* Dialogue lines */}
+          {!dialogueLoading && dialogue?.lines?.length > 0 && (
+            <div className="space-y-2">
+              {dialogue.lines.map((line, i) => {
+                const isA = line.speaker === 'A';
+                const isPlaying = playingIdx === i;
+                return (
+                  <div key={i}
+                       className="flex gap-3 items-start"
+                       style={{ flexDirection: isA ? 'row' : 'row-reverse' }}>
+                    <div className="rounded-full grid place-items-center shrink-0 text-white font-bold text-sm"
+                         style={{
+                           width: 32, height: 32,
+                           background: isA ? lang.accent : '#78716C',
+                           fontFamily: 'Fraunces, Georgia, serif',
+                         }}>
+                      {isA ? 'A' : 'B'}
+                    </div>
+                    <div className="max-w-[80%] rounded-2xl p-3 pr-2"
+                         style={{
+                           background: isA ? `${lang.accent}12` : '#F5F5F4',
+                           border: isPlaying ? `2px solid ${lang.accent}` : `1px solid ${isA ? lang.accent + '33' : 'rgba(90,78,69,0.15)'}`,
+                           boxShadow: isPlaying ? `0 0 0 4px ${lang.accent}22` : 'none',
+                         }}>
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-bold uppercase tracking-widest mb-1"
+                               style={{ fontFamily: 'DM Sans', color: isA ? lang.accent : 'var(--gris)' }}>
+                            {isA ? (selected?.role || 'A') : (selected?.userRole || 'B')}
+                          </div>
+                          <div style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)', fontSize: 15 }}
+                               dir={lang.rtl ? 'rtl' : 'ltr'}>
+                            {line.text}
+                          </div>
+                          {dialogueShowFr && line.fr && (
+                            <div className="mt-1.5 text-[13px] italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
+                              {line.fr}
+                            </div>
+                          )}
+                        </div>
+                        <button onClick={() => playLine(line, i)}
+                          className="w-8 h-8 grid place-items-center rounded-full shrink-0 hover:bg-black/5"
+                          title="écouter">
+                          <Volume2 size={13} style={{ color: isA ? lang.accent : 'var(--gris)' }} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -4026,6 +4293,30 @@ function ExercisesScreen({ lang, level, onBack }) {
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
 
+  // Speech recognition for optional voice input
+  const [micRec, setMicRec] = useState(false);
+  const [micInterim, setMicInterim] = useState('');
+  const { supported: micSupported, listen: micListen, stop: micStop, abort: micAbort } = useRecognition(lang.srLocale);
+  const priorAnsRef = useRef('');
+
+  const startMic = () => {
+    if (!micSupported || micRec) return;
+    priorAnsRef.current = userAnswer || '';
+    setMicRec(true); setMicInterim('');
+    micListen({
+      onInterim: (t) => setMicInterim(t),
+      onFinal: (full) => {
+        const prior = priorAnsRef.current;
+        const merged = prior ? (prior + ' ' + full).trim() : full;
+        setUserAnswer(merged);
+        setMicInterim('');
+      },
+      onEnd: () => { setMicRec(false); setMicInterim(''); },
+      onError: () => { setMicRec(false); setMicInterim(''); },
+    });
+  };
+  const stopMic = () => { micStop(); setMicRec(false); setMicInterim(''); };
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -4097,6 +4388,7 @@ Each exercise must clearly target one of the given categories. Keep exercises sh
 
   const check = async () => {
     if (!userAnswer.trim() || !exercises) return;
+    if (micRec) { micAbort(); setMicRec(false); setMicInterim(''); }
     const ex = exercises[current];
     setChecking(true);
     try {
@@ -4348,20 +4640,46 @@ Respond ONLY with JSON: {"correct": <boolean>, "feedback_fr": "<one short French
 
           {!showResult && (
             <>
-              <textarea
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                placeholder={`votre réponse en ${lang.name.toLowerCase()}…`}
-                rows={2}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); check(); } }}
-                className="w-full px-4 py-3 focus:outline-none resize-none"
-                style={{
-                  fontFamily: 'DM Sans', fontSize: 16,
-                  border: '1px solid rgba(90,78,69,0.2)',
-                  borderRadius: '18px',
-                  background: 'white',
-                }}
-              />
+              <div className="relative">
+                <textarea
+                  value={userAnswer + (micInterim ? (userAnswer ? ' ' : '') + micInterim : '')}
+                  onChange={(e) => { if (!micRec) setUserAnswer(e.target.value); }}
+                  placeholder={`écrivez ou parlez votre réponse en ${lang.name.toLowerCase()}…`}
+                  rows={2}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); check(); } }}
+                  className="w-full pl-4 pr-14 py-3 focus:outline-none resize-none"
+                  style={{
+                    fontFamily: 'DM Sans', fontSize: 16,
+                    border: `1.5px solid ${micRec ? accent : 'rgba(90,78,69,0.2)'}`,
+                    borderRadius: '18px',
+                    background: 'white',
+                    color: micInterim ? 'var(--gris)' : 'var(--ink)',
+                  }}
+                />
+                {micSupported && (
+                  <button
+                    type="button"
+                    onClick={micRec ? stopMic : startMic}
+                    disabled={checking}
+                    className="absolute bottom-3 right-3 w-10 h-10 grid place-items-center rounded-full transition-all"
+                    style={{
+                      background: micRec ? accent : 'white',
+                      color: micRec ? 'white' : accent,
+                      border: `1.5px solid ${accent}`,
+                      boxShadow: micRec ? `0 0 0 4px ${accent}33` : 'none',
+                      animation: micRec ? 'avatar-ping 1.4s infinite' : 'none',
+                    }}
+                    title={micRec ? 'arrêter le micro' : 'répondre à la voix'}>
+                    {micRec ? <MicOff size={16} /> : <Mic size={16} />}
+                  </button>
+                )}
+              </div>
+              {micRec && (
+                <div className="mt-2 text-[11px] uppercase tracking-widest text-center"
+                     style={{ fontFamily: 'DM Sans', color: accent }}>
+                  🎙 écoute en cours — parlez maintenant
+                </div>
+              )}
 
               {ex.hint_fr && (
                 <details className="mt-2">
@@ -5031,11 +5349,12 @@ The vocabulary AND grammar must STRICTLY respect the level constraints above —
 Also provide the full French translation.
 Give the passage a short title (in ${lang.nativeName}).
 
-Respond ONLY with JSON, no code fences. Emit fields IN THIS ORDER — title first, then text, then translation:
+Respond ONLY with JSON, no code fences. Emit fields IN THIS ORDER — title first, then title_fr, then text, then translation:
 {
   "title": "<short title in target language>",
+  "title_fr": "<French translation of the title>",
   "text": "<the reading passage in target language, plain text>",
-  "translation": "<full French translation>"
+  "translation": "<full French translation of the passage>"
 }`;
 
   // Try streaming with Haiku models first, then non-streaming Sonnet as last resort.
@@ -5136,6 +5455,43 @@ function extractPartialJson(raw) {
   return (out.title || out.text || out.translation) ? out : null;
 }
 
+// Titre en langue cible avec bouton "FR" pour révéler la traduction.
+// Utilisé pour tous les titres qui apparaissent en langue étrangère (reader, etc.).
+function TranslatableTitle({ text, fr, accent = 'var(--corail)', rtl = false, size = 'lg' }) {
+  const [show, setShow] = useState(false);
+  if (!text) return <span className="text-[color:rgba(90,78,69,0.55)]">…</span>;
+  const cls = size === 'sm'
+    ? 'text-lg font-medium leading-tight italic'
+    : 'text-2xl sm:text-3xl font-medium leading-tight mt-1 italic';
+  return (
+    <div>
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <h2 style={{ fontFamily:'Fraunces, Georgia, serif' }} className={cls} dir={rtl ? 'rtl' : 'ltr'}>
+          {text}
+        </h2>
+        {fr && (
+          <button onClick={() => setShow(v => !v)}
+            className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full hover:opacity-80 transition-opacity"
+            style={{
+              fontFamily: 'DM Sans',
+              background: show ? accent : `${accent}22`,
+              color: show ? 'white' : accent,
+              border: `1px solid ${accent}55`,
+            }}
+            title={show ? 'masquer la traduction' : 'traduire le titre'}>
+            {show ? '✓ FR' : 'FR'}
+          </button>
+        )}
+      </div>
+      {show && fr && (
+        <div className="mt-1 text-[15px] italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
+          {fr}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
   const [topic, setTopic] = useState(READER_TOPICS[0]);
   const [passage, setPassage] = useState(null);
@@ -5167,8 +5523,9 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
       const data = await generateReaderText(lang, level, t, {
         onPartial: (partial) => {
           setPassage(prev => ({
-            title: partial.title || prev?.title || '',
-            text: partial.text || prev?.text || '',
+            title:       partial.title       || prev?.title       || '',
+            title_fr:    partial.title_fr    || prev?.title_fr    || '',
+            text:        partial.text        || prev?.text        || '',
             translation: partial.translation || prev?.translation || '',
           }));
           // Once we start receiving text, we can hide the loading state
@@ -5285,9 +5642,12 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
                     <span>{topic.icon} {topic.label}</span>
                     {loading && <Loader2 size={10} className="animate-spin" />}
                   </div>
-                  <h2 style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-2xl sm:text-3xl font-medium leading-tight mt-1 italic" dir={lang.rtl ? 'rtl' : 'ltr'}>
-                    {passage.title || <span className="text-[color:rgba(90,78,69,0.55)]">…</span>}
-                  </h2>
+                  <TranslatableTitle
+                    text={passage.title}
+                    fr={passage.title_fr}
+                    accent={lang.accent}
+                    rtl={lang.rtl}
+                  />
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={speakPassage} disabled={loading || !passage.text}
@@ -5320,6 +5680,12 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
               {showFr && passage.translation && (
                 <div className="mt-5 pt-4 border-t border-stone-300">
                   <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-2" style={{ fontFamily:'DM Sans, sans-serif' }}>traduction française</div>
+                  {passage.title_fr && (
+                    <h3 className="text-xl font-medium leading-tight italic mb-2"
+                        style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                      {passage.title_fr}
+                    </h3>
+                  )}
                   <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-[color:var(--ink)] leading-relaxed italic">
                     {passage.translation}
                   </div>
@@ -5332,6 +5698,19 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Gros bouton "générer un autre texte" — bien visible en bas */}
+          {passage && !loading && (
+            <button onClick={() => load(topic, true)}
+              className="mt-6 w-full flex items-center justify-center gap-2 py-4 rounded-full text-white transition-all hover:-translate-y-0.5"
+              style={{
+                background: `linear-gradient(135deg, ${lang.accent}, ${lang.accent}DD)`,
+                boxShadow: `0 6px 20px ${lang.accent}55`,
+                fontFamily: 'DM Sans', fontWeight: 700,
+              }}>
+              <RefreshCw size={16} /> Générer un autre texte sur « {topic.label} »
+            </button>
           )}
         </div>
       </div>
@@ -6510,7 +6889,7 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManua
               || k.startsWith('word:') || k === 'meta:lastSession' || k === 'lexicon'
               || k === 'level_tests_cache' || k === 'exercise_sessions'
               || k === 'device_choice' || k.startsWith('voice:')
-              || k.startsWith('scen_open:') || k.startsWith('scen_chat:') || k.startsWith('scen_vocab:')) {
+              || k.startsWith('scen_open:') || k.startsWith('scen_chat:') || k.startsWith('scen_vocab:') || k.startsWith('scen_dialog:')) {
             localStorage.removeItem(k);
           }
         });

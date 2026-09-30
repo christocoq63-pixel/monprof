@@ -6789,23 +6789,41 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [nativeLang, setNativeLang] = useState('fr');
+  // Étape 0 = choix de la langue. On démarre sans langue choisie pour forcer l'étape 0.
+  const [nativeLang, setNativeLang] = useState(null);
   const [birthDate, setBirthDate] = useState('');
   const [address, setAddress] = useState('');
   const [dialCode, setDialCode] = useState('+33');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [step, setStep] = useState(1); // 1: essentiel / 2: profil
+  const [step, setStep] = useState(0); // 0: langue / 1: essentiel / 2: profil
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
 
+  // t() local basé sur la langue choisie (défaut fr avant sélection)
+  const t = React.useCallback((key, fallback) => {
+    const entry = TRANSLATIONS[key];
+    if (!entry) return fallback || key;
+    return entry[nativeLang || 'fr'] || entry.fr || fallback || key;
+  }, [nativeLang]);
+
+  const pickLangAndContinue = (code) => {
+    setNativeLang(code);
+    setError(null);
+    setStep(1);
+  };
+
   const nextStep = () => {
     if (!firstName || !lastName || !email || !password) {
-      setError('Merci de remplir tous les champs.');
+      setError(t('auth.err_fill_all'));
+      return;
+    }
+    if (!email.includes('@')) {
+      setError(t('auth.err_email_required'));
       return;
     }
     if (password.length < 6) {
-      setError('Le mot de passe doit faire au moins 6 caractères.');
+      setError(t('auth.err_password_short'));
       return;
     }
     setError(null);
@@ -6814,11 +6832,13 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!supabase) { setError('Service non configuré.'); return; }
-    if (password.length < 6) { setError('Le mot de passe doit faire au moins 6 caractères.'); return; }
+    if (!supabase) { setError(t('auth.service_missing')); return; }
+    if (password.length < 6) { setError(t('auth.err_password_short')); return; }
+    // Téléphone OBLIGATOIRE
+    if (!phoneNumber || !phoneNumber.trim()) { setError(t('auth.err_phone_required')); return; }
     setLoading(true); setError(null);
 
-    const phoneFull = phoneNumber ? `${dialCode} ${phoneNumber}` : null;
+    const phoneFull = `${dialCode} ${phoneNumber}`;
 
     const { data, error: err } = await supabase.auth.signUp({
       email, password,
@@ -6836,11 +6856,11 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
         first_name: firstName,
         last_name: lastName,
         email,
-        native_language: nativeLang,
+        native_language: nativeLang || 'fr',
         birth_date: birthDate || null,
         address: address || null,
         phone_dial_code: dialCode,
-        phone_number: phoneNumber || null,
+        phone_number: phoneNumber,
         phone_full: phoneFull,
       });
     }
@@ -6856,16 +6876,77 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
           <div className="text-6xl mb-4  inline-block">🎉</div>
           <h1 className="text-3xl leading-none mt-2"
               style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
-            Vérifie tes <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>emails !</span>
+            <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>{t('auth.check_email')}</span>
           </h1>
           <p className="mt-5 text-[16px] leading-relaxed"
              style={{ fontFamily: 'DM Sans', fontWeight: 500, color: 'var(--gris)' }}>
-            Un email a été envoyé à <strong style={{ color: 'var(--ink)' }}>{email}</strong>.<br/>
-            Clique sur le lien pour activer ton compte, puis reviens ici 👇
+            {t('auth.email_will_send')} <strong style={{ color: 'var(--ink)' }}>{email}</strong>.<br/>
+            {t('auth.email_click')}
           </p>
           <button onClick={onGoLogin} className="wl-btn-primary mt-8">
-            Aller à la connexion →
+            {t('auth.go_login')}
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Étape 0 : sélection de la langue ────────────────────────────────
+  if (step === 0) {
+    return (
+      <div className="min-h-screen relative overflow-hidden flex items-center justify-center px-6 py-10">
+        <div className="" style={{ top: '-60px', right: '-40px', width: '200px', height: '200px', background: 'var(--menthe)' }}></div>
+        <div className="max-w-md w-full relative z-10">
+          <button onClick={onBack} className="flex items-center gap-1 mb-6 hover:opacity-70 text-sm font-bold"
+            style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            <ArrowLeft size={14} /> back · retour
+          </button>
+
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center rounded-full mb-2"
+                 style={{ width: 72, height: 72, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 6px 18px rgba(255,56,92,0.3)' }}>
+              <span style={{ fontSize: 34 }}>🌍</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl leading-tight mt-4"
+                style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
+              Choose your language
+            </h1>
+            <p className="mt-2 text-[14px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              Choisissez votre langue · Elige tu idioma · Escolha o seu idioma · Wählen Sie Ihre Sprache
+            </p>
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <div className="w-8 h-1.5 rounded-full" style={{ background: 'var(--corail)' }}></div>
+              <div className="w-8 h-1.5 rounded-full" style={{ background: 'rgba(90,78,69,0.2)' }}></div>
+              <div className="w-8 h-1.5 rounded-full" style={{ background: 'rgba(90,78,69,0.2)' }}></div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {Object.values(NATIVE_LANGUAGES).map(l => (
+              <button key={l.code} type="button" onClick={() => pickLangAndContinue(l.code)}
+                className="flex items-center gap-4 p-4 rounded-2xl hover:-translate-y-0.5 transition-all"
+                style={{
+                  background: 'white',
+                  border: '1.5px solid rgba(90,78,69,0.15)',
+                  boxShadow: '0 2px 8px rgba(90,78,69,0.08)',
+                }}>
+                <span style={{ fontSize: 32 }}>{l.flag}</span>
+                <span style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 20, fontWeight: 600, color: 'var(--ink)' }}>
+                  {l.label}
+                </span>
+                <span className="ml-auto" style={{ color: 'var(--gris)' }}>→</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 text-center text-sm" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            Already have an account? · Déjà un compte ?{' '}
+            <button onClick={onGoLogin}
+              className="font-bold hover:opacity-70"
+              style={{ color: 'var(--corail)' }}>
+              Sign in →
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -6875,22 +6956,27 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center px-6 py-10">
       <div className="" style={{ top: '-60px', right: '-40px', width: '200px', height: '200px', background: 'var(--menthe)' }}></div>
       <div className="max-w-md w-full relative z-10">
-        <button onClick={onBack} className="flex items-center gap-1 mb-6 hover:opacity-70 text-sm font-bold"
+        <button
+          onClick={() => { if (step === 1) setStep(0); else if (step === 2) setStep(1); else onBack(); }}
+          className="flex items-center gap-1 mb-6 hover:opacity-70 text-sm font-bold"
           style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
-          <ArrowLeft size={14} /> retour
+          <ArrowLeft size={14} /> {t('auth.back')}
         </button>
 
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center rounded-full mb-2" style={{ width: 72, height: 72, background: "linear-gradient(135deg, #FF385C, #E31C5F)", boxShadow: "0 6px 18px rgba(255,56,92,0.3)" }}><span style={{ fontSize: 34 }}>🌍</span></div>
+          <div className="inline-flex items-center justify-center rounded-full mb-2" style={{ width: 72, height: 72, background: "linear-gradient(135deg, #FF385C, #E31C5F)", boxShadow: "0 6px 18px rgba(255,56,92,0.3)" }}>
+            <span style={{ fontSize: 34 }}>{NATIVE_LANGUAGES[nativeLang]?.flag || '🌍'}</span>
+          </div>
           <h1 className="text-3xl sm:text-4xl leading-none mt-4"
               style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
-            <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>Enchanté !</span>
+            <span style={{ color: 'var(--corail)', fontStyle: 'italic' }}>{t('auth.pleased')}</span>
           </h1>
           <p className="mt-3 text-[15px]"
              style={{ fontFamily: 'DM Sans', fontWeight: 500, color: 'var(--gris)' }}>
-            {step === 1 ? "Quelques infos essentielles" : "Complétez votre profil"}  ✨
+            {step === 1 ? t('auth.essential') : t('auth.complete')} ✨
           </p>
           <div className="flex items-center justify-center gap-2 mt-3">
+            <div className="w-8 h-1.5 rounded-full" style={{ background: 'var(--corail)' }}></div>
             <div className="w-8 h-1.5 rounded-full transition-colors" style={{ background: step >= 1 ? 'var(--corail)' : 'rgba(90,78,69,0.2)' }}></div>
             <div className="w-8 h-1.5 rounded-full transition-colors" style={{ background: step >= 2 ? 'var(--corail)' : 'rgba(90,78,69,0.2)' }}></div>
           </div>
@@ -6899,14 +6985,14 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
         {step === 1 && (
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3">
-              <AuthField icon={User} type="text" placeholder="prénom"
+              <AuthField icon={User} type="text" placeholder={t('auth.first_name')}
                 value={firstName} onChange={setFirstName} autoComplete="given-name" />
-              <AuthField icon={User} type="text" placeholder="nom"
+              <AuthField icon={User} type="text" placeholder={t('auth.last_name')}
                 value={lastName} onChange={setLastName} autoComplete="family-name" />
             </div>
-            <AuthField icon={Mail} type="email" placeholder="votre email"
+            <AuthField icon={Mail} type="email" placeholder={t('auth.email') + ' *'}
               value={email} onChange={setEmail} autoComplete="email" />
-            <AuthField icon={Lock} type="password" placeholder="mot de passe (6 caractères min.)"
+            <AuthField icon={Lock} type="password" placeholder={t('auth.password')}
               value={password} onChange={setPassword} autoComplete="new-password" />
 
             {error && (
@@ -6919,30 +7005,29 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
             <button type="button" onClick={nextStep}
               disabled={!firstName || !lastName || !email || !password}
               className="wl-btn-primary w-full mt-2 flex items-center justify-center gap-2">
-              Continuer →
+              {t('continue')}
             </button>
           </div>
         )}
 
         {step === 2 && (
           <form onSubmit={submit} className="flex flex-col gap-3">
-            <div>
-              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>langue maternelle · native language</label>
-              <SelectField icon={Globe2} value={nativeLang} onChange={setNativeLang}
-                options={Object.values(NATIVE_LANGUAGES).map(l => ({ value: l.code, label: `${l.flag} ${l.label}` }))} />
-            </div>
-
-            <AuthField icon={Calendar} type="date" placeholder="date de naissance"
+            <AuthField icon={Calendar} type="date" placeholder={t('auth.birth')}
               value={birthDate} onChange={setBirthDate} autoComplete="bday" />
 
-            <AuthField icon={MapPin} type="text" placeholder="adresse (ex: 12 rue Lafayette, 75009 Paris)"
+            <AuthField icon={MapPin} type="text" placeholder={t('auth.address')}
               value={address} onChange={setAddress} autoComplete="street-address" />
 
-            <PhoneField
-              dialCode={dialCode}
-              onDialChange={setDialCode}
-              number={phoneNumber}
-              onNumberChange={setPhoneNumber} />
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)' }}>
+                {t('auth.phone')} *
+              </label>
+              <PhoneField
+                dialCode={dialCode}
+                onDialChange={setDialCode}
+                number={phoneNumber}
+                onNumberChange={setPhoneNumber} />
+            </div>
 
             {error && (
               <div className="wl-card px-4 py-3 text-sm font-semibold"
@@ -6955,27 +7040,27 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
               <button type="button" onClick={() => { setStep(1); setError(null); }}
                 className="wl-chip px-5 py-3 flex items-center gap-2"
                 style={{ fontFamily: 'DM Sans', fontWeight: 700, color: 'var(--ink)' }}>
-                <ArrowLeft size={14} /> retour
+                <ArrowLeft size={14} /> {t('auth.back')}
               </button>
-              <button type="submit" disabled={loading}
+              <button type="submit" disabled={loading || !phoneNumber}
                 className="wl-btn-primary flex-1 flex items-center justify-center gap-2">
                 {loading && <Loader2 size={16} className="animate-spin" />}
-                {loading ? 'inscription…' : 'Créer mon compte 🚀'}
+                {loading ? t('auth.signing_up') : t('auth.create_account')}
               </button>
             </div>
 
             <p className="text-xs text-center mt-2" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
-              Ces informations sont modifiables plus tard depuis votre compte.
+              {t('auth.editable_later')}
             </p>
           </form>
         )}
 
         <div className="mt-6 text-center text-sm" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
-          Déjà un compte ?{' '}
+          {t('auth.have_account')}{' '}
           <button onClick={onGoLogin}
             className="font-bold hover:opacity-70"
             style={{ color: 'var(--corail)' }}>
-            Se connecter →
+            {t('auth.signin')}
           </button>
         </div>
       </div>

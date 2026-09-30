@@ -583,6 +583,30 @@ const statsKey   = (lang, level, avatar) => `stats:${lang.code}:${level.id}:${av
 const META_KEY   = 'meta:lastSession';
 const LANG_MAP_KEY = 'meta:lastChoicePerLang'; // { [userId]: { [langCode]: { levelId, avatarId, updatedAt } } }
 
+// ─── LANGUES D'ORIGINE (UI + langue de traduction pour les prompts IA) ──────
+// 5 langues natives supportées à ce jour. Pour en ajouter une, il faut :
+//  1. l'ajouter ici,
+//  2. compléter le dictionnaire TRANSLATIONS,
+//  3. mettre à jour la contrainte CHECK dans la migration SQL.
+const NATIVE_LANGUAGES = {
+  fr: { code: 'fr', label: 'Français',   flag: '🇫🇷', enName: 'French' },
+  en: { code: 'en', label: 'English',    flag: '🇬🇧', enName: 'English' },
+  es: { code: 'es', label: 'Español',    flag: '🇪🇸', enName: 'Spanish' },
+  pt: { code: 'pt', label: 'Português',  flag: '🇧🇷', enName: 'Portuguese' },
+  de: { code: 'de', label: 'Deutsch',    flag: '🇩🇪', enName: 'German' },
+};
+
+// Variable globale mise à jour dès que le profil se charge — permet aux
+// fonctions hors-composant (buildeurs de prompts IA) de connaître la langue
+// d'origine sans devoir threader le profil partout.
+let __USER_NATIVE_LANG = 'fr';
+function setUserNativeLang(code) {
+  __USER_NATIVE_LANG = (code && NATIVE_LANGUAGES[code]) ? code : 'fr';
+}
+function getUserNativeLangCode() { return __USER_NATIVE_LANG; }
+function getUserNativeLangName() { return NATIVE_LANGUAGES[__USER_NATIVE_LANG]?.enName || 'French'; }
+function getUserNativeLangLabel() { return NATIVE_LANGUAGES[__USER_NATIVE_LANG]?.label || 'Français'; }
+
 const storage = {
   get(k)   { try { return localStorage.getItem(k); } catch { return null; } },
   set(k,v) { try { localStorage.setItem(k, v); } catch {} },
@@ -700,18 +724,19 @@ async function generateScenarioVocab(lang, scenario) {
   const cached = loadScenarioVocab(lang, scenario);
   if (cached && cached.length) return cached;
 
+  const nl = getUserNativeLangName();
   const system = `You produce a short vocabulary list for a language-learning scenario.
-Target language: ${lang.nativeName} (${lang.name} in French).
+Target language: ${lang.nativeName} (${lang.name}).
 Scenario: "${scenario.title}" — ${scenario.description}
 Role of the tutor: ${scenario.role}. Role of the learner: ${scenario.userRole}.
 
 Give the 12 to 15 MOST USEFUL words or short phrases the learner will need in this scenario.
 Focus on VERBS, NOUNS and SHORT PHRASES specific to the situation (avoid generic words like "hello", "yes", "no").
-Return each with its French translation.
+Return each with its ${nl} translation.
 
 Respond ONLY with a JSON array, no code fences:
 [
-  { "word": "<word or short phrase in ${lang.nativeName}>", "fr": "<short French translation>" }
+  { "word": "<word or short phrase in ${lang.nativeName}>", "fr": "<short ${nl} translation>" }
 ]`;
 
   try {
@@ -1088,9 +1113,9 @@ const LEVEL_CONSTRAINTS = {
 - Nuance and register matter — challenge the learner.`,
 };
 
-const buildSystemPrompt = (lang, level, avatar) => `You are ${avatar.name}, a ${avatar.age}-year-old ${avatar.role.toLowerCase()} from ${avatar.location}.
+const buildSystemPrompt = (lang, level, avatar) => { const nl = getUserNativeLangName(); return `You are ${avatar.name}, a ${avatar.age}-year-old ${avatar.role.toLowerCase()} from ${avatar.location}.
 
-You are having a casual conversation with a French speaker who is learning ${lang.nativeName} (${lang.name} in French).
+You are having a casual conversation with a ${nl} speaker who is learning ${lang.nativeName} (${lang.name}).
 
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
 
@@ -1101,34 +1126,34 @@ Your role:
 - Stay in character. Be natural and engaging.
 - Keep replies short: 1–3 sentences. End with a question or remark that invites continuing.
 - Match your vocabulary and complexity STRICTLY to the level constraints above — never exceed them.
-- If the user writes mainly in French, gently respond in ${lang.nativeName}, encourage them, and provide one short model sentence they could try.
+- If the user writes mainly in ${nl}, gently respond in ${lang.nativeName}, encourage them, and provide one short model sentence they could try.
 
 ERROR CORRECTION (mandatory — this is your teacher role):
 - Detect ANY real error in the user's ${lang.nativeName}: grammar, conjugation, gender, word order, vocabulary, prepositions, tense, articles, false friends, spelling.
 - Do NOT flag minor stylistic preferences — only what a teacher would correct.
-- Give a brief, friendly French explanation with the underlying rule.
+- Give a brief, friendly explanation IN ${nl.toUpperCase()} with the underlying rule.
 - Also produce a natural spoken echo: how a native would rephrase the learner's whole sentence correctly, staying in ${lang.nativeName}. This is what the tutor's voice will read aloud so the learner hears the correct form.
 
 CRITICAL OUTPUT FORMAT: Respond ONLY with one valid JSON object, no markdown, no code fences, no preamble. Schema:
 
 {
   "reply": "<your in-character response in ${lang.nativeName}>",
-  "fr_translation": "<a natural French translation of your reply>",
+  "fr_translation": "<a natural ${nl} translation of your reply>",
   "corrections": [
     {
       "original": "<user's incorrect phrase, as they wrote it>",
       "corrected": "<the same phrase rewritten correctly in ${lang.nativeName}>",
       "spoken_echo": "<a short natural sentence in ${lang.nativeName} the tutor would say aloud to model the correct form, e.g. 'Actually, we say ...' or the equivalent in ${lang.nativeName}>",
-      "explanation_fr": "<short explanation in French with the rule>",
+      "explanation_fr": "<short explanation in ${nl} with the rule>",
       "category": "<one of: past_tense | present_perfect | future | conditional | subjunctive | articles | prepositions | pronouns | gender | plural | word_order | agreement | phrasal_verb | false_friend | vocabulary | spelling | punctuation | other>"
     }
   ]
 }
 
-If no errors, return "corrections": []. Never wrap the JSON in backticks. Never add text outside the JSON.`;
+If no errors, return "corrections": []. Never wrap the JSON in backticks. Never add text outside the JSON.`; };
 
 // System prompt for scenario mode — the teacher plays a specific role
-const buildScenarioSystemPrompt = (lang, level, avatar, scenario) => `You are playing a role in a language-learning scenario.
+const buildScenarioSystemPrompt = (lang, level, avatar, scenario) => { const nl = getUserNativeLangName(); return `You are playing a role in a language-learning scenario.
 
 Character to play: ${scenario.role}
 The learner is: ${scenario.userRole}
@@ -1136,7 +1161,7 @@ Scenario: "${scenario.title}" — ${scenario.description}
 
 You are ${avatar.name}, a ${avatar.age}-year-old from ${avatar.location}, but in this scenario you play the character above. Adopt that character's tone and vocabulary while keeping your general warmth.
 
-The learner is a French speaker learning ${lang.nativeName} (${lang.name} in French).
+The learner is a ${nl} speaker learning ${lang.nativeName} (${lang.name}).
 
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
 
@@ -1146,30 +1171,30 @@ RULES OF THE ROLE-PLAY:
 - Start the scenario by initiating the interaction in a natural way (e.g. a waiter would say "Welcome, how many people?"; a doctor would say "What brings you in today?").
 - Keep each reply short: 1–3 sentences. End with a question or line that pushes the learner to reply.
 - Match your vocabulary and complexity STRICTLY to the level constraints above.
-- If the learner is stuck or writes in French, gently prompt in ${lang.nativeName} and offer one short model sentence.
+- If the learner is stuck or writes in ${nl}, gently prompt in ${lang.nativeName} and offer one short model sentence.
 
-ERROR CORRECTION (mandatory, in French):
+ERROR CORRECTION (mandatory, in ${nl}):
 - Detect ANY real error in the user's ${lang.nativeName}: grammar, tense, vocab, preposition, gender, spelling, etc.
-- Give a brief French explanation with the underlying rule.
+- Give a brief ${nl} explanation with the underlying rule.
 - Produce a natural spoken echo — how a native would rephrase the whole sentence correctly.
 
 CRITICAL OUTPUT FORMAT: Respond ONLY with one valid JSON object, no markdown, no code fences, no preamble. Schema:
 
 {
   "reply": "<your in-character response in ${lang.nativeName}>",
-  "fr_translation": "<a natural French translation of your reply>",
+  "fr_translation": "<a natural ${nl} translation of your reply>",
   "corrections": [
     {
       "original": "<user's incorrect phrase>",
       "corrected": "<the phrase rewritten correctly>",
       "spoken_echo": "<a short natural sentence the tutor would say aloud>",
-      "explanation_fr": "<short French explanation with the rule>",
+      "explanation_fr": "<short ${nl} explanation with the rule>",
       "category": "<one of: past_tense | present_perfect | future | conditional | subjunctive | articles | prepositions | pronouns | gender | plural | word_order | agreement | phrasal_verb | false_friend | vocabulary | spelling | punctuation | other>"
     }
   ]
 }
 
-If no errors, return "corrections": []. Never wrap the JSON in backticks. Never add text outside the JSON.`;
+If no errors, return "corrections": []. Never wrap the JSON in backticks. Never add text outside the JSON.`; };
 
 // ─── HOOKS ────────────────────────────────────────────────────────────────────
 
@@ -1354,31 +1379,46 @@ function useRecognition(srLocale) {
   const listen = ({ onInterim, onFinal, onEnd, onError }) => {
     const r = recRef.current;
     if (!r) return;
-    // Cumulative full-final transcript (rebuilt from all isFinal items every time).
-    // Key fix for Android: many mobile engines mark intermediate chunks as final,
-    // and each new result already includes ALL previous final text. Instead of
-    // trying to compute deltas (which was double-appending), we always rebuild
-    // the full transcript from scratch and REPLACE — never append.
+    // Full-final transcript rebuilt from all isFinal items every event.
+    //
+    // Android quirk: Chrome on Android emits GROWING SNAPSHOTS as separate final
+    // results (each new final contains the previous one as its prefix). Naive
+    // concatenation duplicates: ["why", "why I", "why I am"] → "why why I why I am".
+    // Fix: drop any final transcript that is a prefix of a later one, then join
+    // the survivors. On desktop (where each final is a distinct phrase, none a
+    // prefix of the next), nothing is dropped and behaviour is unchanged.
     let finalText = '';
     r.onresult = (e) => {
       let interim = '';
-      let cumulativeFinal = '';
-      // Iterate over ALL results (not just from resultIndex) so we always
-      // rebuild the full final text — safe against Android's behavior of
-      // re-emitting old finals in later result events.
+      const finals = [];
       for (let i = 0; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) cumulativeFinal += t + ' ';
-        else interim += t;
+        const t = (e.results[i][0].transcript || '').trim();
+        if (!t) continue;
+        if (e.results[i].isFinal) finals.push(t);
+        else interim += (interim && !interim.endsWith(' ') ? ' ' : '') + t;
       }
-      cumulativeFinal = cumulativeFinal.trim();
+      // Keep only finals that are NOT a prefix of a later final (drops
+      // Android's growing snapshots and exact duplicates).
+      const kept = [];
+      for (let i = 0; i < finals.length; i++) {
+        const cur = finals[i];
+        let stale = false;
+        for (let j = i + 1; j < finals.length; j++) {
+          const later = finals[j];
+          if (later === cur || later.startsWith(cur + ' ') || later.startsWith(cur)) {
+            stale = true; break;
+          }
+        }
+        if (!stale) kept.push(cur);
+      }
+      const cumulativeFinal = kept.join(' ').trim();
       if (cumulativeFinal && cumulativeFinal !== finalText) {
         finalText = cumulativeFinal;
-        // Pass the full cumulative final as BOTH chunk and cumulative — callers
-        // should REPLACE their stored transcript with this value, not append.
+        // Pass the full cumulative final — callers should REPLACE their stored
+        // transcript with this value, not append.
         onFinal?.(cumulativeFinal, cumulativeFinal);
       }
-      if (interim) onInterim?.(interim);
+      if (interim) onInterim?.(interim.trim());
     };
     r.onerror = (e) => onError?.(e);
     r.onend = () => onEnd?.(finalText);
@@ -1785,8 +1825,13 @@ function StepHeader({ step, total, label, onBack }) {
 // ─── STEP 1: LANGUAGE ─────────────────────────────────────────────────────────
 
 function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile, signOut, onOpenProfile, onOpenLexicon }) {
+  const t = useT();
+  const nativeLangCode = profile?.native_language || 'fr';
   const [lastSession, setLastSession] = useState(null);
   const [langChoices, setLangChoices] = useState({}); // { [langCode]: { avatar, level } } — pour afficher le prof déjà choisi
+
+  // La langue d'origine ne peut pas être une langue d'apprentissage
+  const learnableLanguages = Object.values(LANGUAGES).filter(l => l.code !== nativeLangCode);
 
   useEffect(() => {
     // Only show a resume banner if the saved session belongs to the current user.
@@ -1827,32 +1872,32 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
                 </span>
               </div>
               <span className="text-[15px] italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--corail-2)' }}>
-                bonjour, {profile.first_name}
+                {t('hello')}, {profile.first_name}
               </span>
             </button>
             <div className="flex items-center gap-4">
               <button onClick={onOpenLexicon}
                 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                <LexiconIcon size={18} /> mon lexique
+                <LexiconIcon size={18} /> {t('my_lexicon')}
               </button>
               <button onClick={onOpenProfile}
                 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                <UserCircle size={12} /> mon compte
+                <UserCircle size={12} /> {t('my_account')}
               </button>
               <button onClick={signOut}
                 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                <LogOut size={11} /> déconnexion
+                <LogOut size={11} /> {t('signout')}
               </button>
             </div>
           </div>
         )}
-        <StepHeader step={1} total={4} label="langue" />
-        <span className="text-[22px] mb-1">bonjour !</span>
+        <StepHeader step={1} total={4} label={t('lang.step')} />
+        <span className="text-[22px] mb-1">{t('hello')} !</span>
         <h1 className="text-3xl sm:text-[46px] font-medium tracking-tight leading-none mt-1" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
-          Quelle <span>langue</span> voulez-vous apprendre ?
+          {t('lang.title')}
         </h1>
         <p className="mt-4 text-[17px] max-w-lg italic" style={{ fontFamily:'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
-          Chaque langue est une invitation au voyage. Choisissez celle qui vous fait rêver aujourd'hui.
+          {t('lang.subtitle')}
         </p>
 
         {/* Raccourci : reprendre la dernière session + option changer de prof */}
@@ -1869,7 +1914,7 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
               <AnimatedAvatar avatar={lastSession.avatar} size="md" />
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: lastSession.lang.accent }}>
-                  📖 reprendre avec {lastSession.avatar.name}
+                  {t('lang.resume_with')} {lastSession.avatar.name}
                 </div>
                 <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-tight truncate">
                   <em>{lastSession.lang.name}</em> · niveau {lastSession.level.label.toLowerCase()}
@@ -1894,8 +1939,8 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
               title="choisir un autre prof pour cette langue">
               <span style={{ fontSize: 22 }}>👤</span>
               <span className="text-[10px] font-bold uppercase tracking-widest text-center leading-tight"
-                    style={{ fontFamily: 'DM Sans', color: lastSession.lang.accent }}>
-                autre<br/>prof
+                    style={{ fontFamily: 'DM Sans', color: lastSession.lang.accent, whiteSpace: 'pre-line' }}>
+                {t('lang.other_teacher')}
               </span>
             </button>
           </div>
@@ -1903,11 +1948,11 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
 
         <div className="mt-8">
           <div className="text-xs font-bold uppercase tracking-wider text-center mb-6">
-            {lastSession ? '· ou choisir une autre langue ·' : '· choisissez ·'}
+            {lastSession ? t('lang.or_another') : `· ${t('lang.choose')} ·`}
           </div>
         </div>
         <div className="flex flex-wrap justify-center gap-5 sm:gap-6 px-2">
-          {Object.values(LANGUAGES).map(lang => {
+          {learnableLanguages.map(lang => {
             const priorChoice = langChoices[lang.code]; // { avatar, level } si déjà utilisée
             return (
             <button key={lang.code} onClick={() => onSelect(lang)}
@@ -1964,20 +2009,21 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
 // ─── STEP 2: LEVEL ────────────────────────────────────────────────────────────
 
 function LevelPicker({ language, onSelect, onStartTest, onBack }) {
+  const t = useT();
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
       <div className="max-w-3xl mx-auto">
-        <StepHeader step={2} total={4} label="niveau" onBack={onBack} />
+        <StepHeader step={2} total={4} label={t('level.step')} onBack={onBack} />
         <div className="flex items-baseline gap-3 flex-wrap">
           <h1 className="text-3xl sm:text-5xl font-medium tracking-tight leading-none" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
-            Votre <em>niveau</em> en
+            {t('level.your_in')}
           </h1>
           <span className="text-2xl sm:text-4xl px-4 py-1 text-stone-50 rounded-full" style={{ fontFamily:'Fraunces, Georgia, serif', backgroundColor: language.accent }}>
             {language.name}
           </span>
         </div>
         <p className="mt-3 text-[color:var(--gris)] max-w-xl" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
-          Soyez honnête — c'est mieux de commencer un peu en dessous et de progresser.
+          {t('level.honest')}
         </p>
 
         {/* CTA — test de niveau */}
@@ -1995,18 +2041,18 @@ function LevelPicker({ language, onSelect, onStartTest, onBack }) {
           </div>
           <div className="flex-1 min-w-0 text-white">
             <div className="flex items-baseline gap-2 flex-wrap">
-              <span style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-xl sm:text-2xl font-medium">Évaluer mon niveau</span>
+              <span style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-xl sm:text-2xl font-medium">{t('level.evaluate')}</span>
               <span className="text-[10px] uppercase tracking-widest opacity-80" style={{ fontFamily:'DM Sans, sans-serif' }}>3–4 min</span>
             </div>
             <p className="text-sm opacity-90 mt-1" style={{ fontFamily:'Fraunces, Georgia, serif' }}>
-              Une petite discussion pour déterminer votre niveau automatiquement
+              {t('level.evaluate_sub')}
             </p>
           </div>
           <span className="text-white text-2xl group-hover:translate-x-1 transition-transform" style={{ fontFamily:'Fraunces, Georgia, serif' }}>→</span>
         </button>
 
         <div className="mt-8 text-xs font-bold uppercase tracking-wider text-center mb-4" style={{ color: 'var(--gris)' }}>
-          · ou choisir directement ·
+          {t('level.or_direct')}
         </div>
 
         <div className="mt-2 space-y-3">
@@ -2131,15 +2177,16 @@ function LevelTestScreen({ language, onLevelDetermined, onBack }) {
         `${m.role === 'assistant' ? 'Tuteur' : 'Apprenant'}: ${m.text}`
       ).join('\n');
 
+      const nl = getUserNativeLangName();
       const systemAssess = `You are a certified CEFR language examiner assessing spoken/written ${language.name} proficiency.
 Analyze ONLY the "Apprenant" (learner) turns in the transcript.
 Return ONLY a JSON object, no code fence:
 {
   "cefr": "A1"|"A2"|"B1"|"B2"|"C1"|"C2",
   "score": <integer 0-100>,
-  "strengths_fr": "<1-2 short sentences in French about what the learner did well>",
-  "weaknesses_fr": "<1-2 short sentences in French about weak points>",
-  "advice_fr": "<1 short sentence in French with the recommended focus>"
+  "strengths_fr": "<1-2 short sentences in ${nl} about what the learner did well>",
+  "weaknesses_fr": "<1-2 short sentences in ${nl} about weak points>",
+  "advice_fr": "<1 short sentence in ${nl} with the recommended focus>"
 }`;
 
       const data = await chatWithFallback({
@@ -2372,10 +2419,11 @@ Return ONLY a JSON object, no code fence:
 
 // Prompt système pour le testeur — progression naturelle de difficulté
 function buildTestSystem(language) {
+  const nl = getUserNativeLangName();
   return `You are a friendly, calm CEFR examiner assessing a learner's ${language.name} proficiency in a short natural conversation.
 
 RULES:
-- Speak ONLY in ${language.nativeName} (never in French).
+- Speak ONLY in ${language.nativeName} (never in ${nl}).
 - Keep every reply short: 1-2 sentences max, always ending with ONE simple question.
 - Start VERY easy (A1: name, age, hobbies), then gradually raise difficulty every 2 exchanges: A2 (daily routine, past tense), B1 (opinions, plans, hypothesis), B2 (abstract topics, nuances), C1+ (idioms, cultural references, complex arguments).
 - If the learner struggles, ease off; if they answer fluently, push harder.
@@ -2899,19 +2947,20 @@ function extractPartialFields(raw) {
 
 // System prompt for word lookups — stable per language, so Anthropic can cache it.
 function buildWordSystem(lang) {
-  return `You are a language tutor helping a French speaker learn ${lang.nativeName} (${lang.name} in French).
+  const nl = getUserNativeLangName();
+  return `You are a language tutor helping a ${nl} speaker learn ${lang.nativeName} (${lang.name}).
 The user will give you a word and the sentence it appears in. You produce:
-- The French translation IN THAT CONTEXT (as short as possible — 1-4 words)
-- A short French explanation (nature: nom/verbe/adjectif/etc, grammar note, nuance, or false friend warning)
-- A short example sentence in ${lang.nativeName} using this word, with its French translation
+- The ${nl} translation IN THAT CONTEXT (as short as possible — 1-4 words)
+- A short ${nl} explanation (nature: noun/verb/adjective/etc, grammar note, nuance, or false friend warning)
+- A short example sentence in ${lang.nativeName} using this word, with its ${nl} translation
 
 Respond ONLY with a JSON object, no code fences. Emit fields IN THIS ORDER — translation first, then explanation, then example:
 {
-  "translation": "<French translation of the word in this context>",
-  "explanation": "<short French explanation, 1-2 sentences>",
+  "translation": "<${nl} translation of the word in this context>",
+  "explanation": "<short ${nl} explanation, 1-2 sentences>",
   "example": {
     "text": "<short example sentence in ${lang.nativeName}>",
-    "fr": "<French translation of the example>"
+    "fr": "<${nl} translation of the example>"
   }
 }`;
 }
@@ -3706,20 +3755,21 @@ function ScenariosScreen({ lang, level, onBack, onStartScenario }) {
 
     // Generate a fresh dialogue with Claude
     try {
+      const nl = getUserNativeLangName();
       const system = `You write short, natural dialogue scripts for language learners.
-Language: ${lang.nativeName} (${lang.name} in French).
+Language: ${lang.nativeName} (${lang.name}).
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
 Scenario: "${scenario.title}" — ${scenario.description}
 Characters: A) ${scenario.role}   B) ${scenario.userRole}
 
 Write a complete, realistic dialogue between A and B of 8 to 12 turns total.
 Match the level constraints STRICTLY. Keep each line short (1–2 sentences).
-Also provide the French translation of each line.
+Also provide the ${nl} translation of each line.
 
 Respond ONLY with a JSON object, no code fences:
 {
   "lines": [
-    { "speaker": "A" | "B", "text": "<line in ${lang.nativeName}>", "fr": "<French translation>" }
+    { "speaker": "A" | "B", "text": "<line in ${lang.nativeName}>", "fr": "<${nl} translation>" }
   ]
 }`;
       const data = await chatWithFallback({
@@ -4454,7 +4504,8 @@ function ExercisesScreen({ lang, level, onBack }) {
         .filter(e => cats.includes(e.category || 'other'))
         .slice(0, 10);
 
-      const system = `You are a language teacher creating targeted grammar exercises for a French speaker learning ${lang.nativeName} (${lang.name}) at ${level.label} level.
+      const nl = getUserNativeLangName();
+      const system = `You are a language teacher creating targeted grammar exercises for a ${nl} speaker learning ${lang.nativeName} (${lang.name}) at ${level.label} level.
 
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
 
@@ -4466,7 +4517,7 @@ Categories to work on: ${cats.map(c => CATEGORY_LABELS_FR[c] || c).join(', ')}
 Generate exactly 5 short exercises that target these specific weaknesses. Mix 3 types:
 - "fill_blank": one sentence with a ___ blank to fill (the answer is 1-4 words)
 - "transform": a sentence to rewrite following an instruction (e.g. "Put in the past tense", "Correct the following sentence")
-- "translate": a short French sentence to translate into ${lang.nativeName}
+- "translate": a short ${nl} sentence to translate into ${lang.nativeName}
 
 For each exercise, provide the model answer AND acceptable alternative answers.
 
@@ -4474,11 +4525,11 @@ Respond ONLY with a JSON array, no code fences:
 [
   {
     "type": "fill_blank"|"transform"|"translate",
-    "instruction_fr": "<short instruction in French>",
-    "prompt": "<the sentence in ${lang.nativeName} with ___ for fill_blank, or the source sentence to transform, or the French sentence to translate>",
+    "instruction_fr": "<short instruction in ${nl}>",
+    "prompt": "<the sentence in ${lang.nativeName} with ___ for fill_blank, or the source sentence to transform, or the ${nl} sentence to translate>",
     "answer": "<the correct answer, plain text, in ${lang.nativeName}>",
     "alternatives": ["<other acceptable answers, if any>"],
-    "hint_fr": "<one short hint in French to help if the user is stuck>",
+    "hint_fr": "<one short hint in ${nl} to help if the user is stuck>",
     "category": "<same category taxonomy>"
   }
 ]
@@ -5453,7 +5504,8 @@ async function generateReaderText(lang, level, topic, { onPartial } = {}) {
     intermediate: '5-6 sentences with varied structure (8-18 words each)',
     advanced: '6-7 sentences, rich vocabulary and complex structures',
   };
-  const system = `You write short reading passages for French speakers learning ${lang.nativeName} (${lang.name}).
+  const nl = getUserNativeLangName();
+  const system = `You write short reading passages for ${nl} speakers learning ${lang.nativeName} (${lang.name}).
 
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
 
@@ -5462,15 +5514,15 @@ Topic: ${topic.label}.
 
 Write a self-contained passage in ${lang.nativeName}${lang.code === 'mfe' ? ' (Kreol Morisien, authentic Mauritian Creole)' : ''}.
 The vocabulary AND grammar must STRICTLY respect the level constraints above — never exceed them.
-Also provide the full French translation.
+Also provide the full ${nl} translation.
 Give the passage a short title (in ${lang.nativeName}).
 
 Respond ONLY with JSON, no code fences. Emit fields IN THIS ORDER — title first, then title_fr, then text, then translation:
 {
   "title": "<short title in target language>",
-  "title_fr": "<French translation of the title>",
+  "title_fr": "<${nl} translation of the title>",
   "text": "<the reading passage in target language, plain text>",
-  "translation": "<full French translation of the passage>"
+  "translation": "<full ${nl} translation of the passage>"
 }`;
 
   // Try streaming with Haiku models first, then non-streaming Sonnet as last resort.
@@ -5609,6 +5661,7 @@ function TranslatableTitle({ text, fr, accent = 'var(--corail)', rtl = false, si
 }
 
 function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
+  const t = useT();
   const [topic, setTopic] = useState(READER_TOPICS[0]);
   const [passage, setPassage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -5677,7 +5730,7 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
             <ReaderIcon size={26} />
           </div>
           <div className="flex-1 min-w-0">
-            <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none">Lecture</div>
+            <div style={{ fontFamily:'Fraunces, Georgia, serif' }} className="text-lg font-medium leading-none">{t('reader.title')}</div>
             <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mt-0.5 truncate" style={{ fontFamily:'DM Sans, sans-serif' }}>
               {lang.name} · {level.label.toLowerCase()}
             </div>
@@ -5702,7 +5755,7 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
           {/* Topic pills */}
           <div className="mb-5">
             <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-2" style={{ fontFamily:'DM Sans, sans-serif' }}>
-              sujet
+              {t('reader.topic')}
             </div>
             <div className="flex gap-2 flex-wrap">
               {READER_TOPICS.map(t => (
@@ -5800,7 +5853,7 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
 
               {showFr && passage.translation && (
                 <div className="mt-5 pt-4 border-t border-stone-300">
-                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-2" style={{ fontFamily:'DM Sans, sans-serif' }}>traduction française</div>
+                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-2" style={{ fontFamily:'DM Sans, sans-serif' }}>{t('reader.native_translation')}</div>
                   {passage.title_fr && (
                     <h3 className="text-xl font-medium leading-tight italic mb-2"
                         style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
@@ -5815,7 +5868,7 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
 
               {!loading && (
                 <div className="mt-6 text-[10px] uppercase tracking-widest text-[color:rgba(90,78,69,0.55)] text-center" style={{ fontFamily:'DM Sans, sans-serif' }}>
-                  ↳ touchez un mot pour sa traduction et son explication
+                  {t('reader.hint')}
                 </div>
               )}
             </div>
@@ -5836,6 +5889,7 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
 // ─── STEP 2.5: MODE PICKER ────────────────────────────────────────────────────
 
 function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, onChangeLanguage, signOut, onOpenProfile, onOpenLexicon }) {
+  const t = useT();
   const [resumeSession, setResumeSession] = useState(null);
 
   // Check if there's a saved conversation for this exact language + level (for THIS user).
@@ -5850,16 +5904,16 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
   }, [language.code, level.id]);
 
   const modes = [
-    { id: 'chat',      label: 'Discuter',   icon: null,          emoji: null,   svg: 'discuss',
-      desc: "Conversation vocale avec un interlocuteur virtuel. Il vous répond, corrige vos erreurs et explique." },
-    { id: 'scenarios', label: 'Scénarios',  icon: null,          emoji: null,   svg: 'scenario', badge: 'nouveau',
-      desc: "Situations réelles : restaurant, hôtel, entretien, chez le médecin. Le prof joue un rôle." },
-    { id: 'reader',    label: 'Lire',       icon: null,          emoji: null,   svg: 'reader',
-      desc: "Textes générés à votre niveau, sur le sujet de votre choix. Touchez chaque mot pour sa traduction." },
-    { id: 'exercises', label: 'Exercices',  icon: null,          emoji: null,   svg: 'exercises',
-      desc: "Exercices de grammaire personnalisés générés à partir de vos erreurs — fill-in, transformations, traductions." },
-    { id: 'lexicon',   label: 'Lexique',    icon: null,          emoji: null,   svg: 'lexicon',
-      desc: "Tous les mots dont vous avez demandé la traduction, avec explications et exemples. À revoir à volonté." },
+    { id: 'chat',      label: t('mode.discuss'),   icon: null,          emoji: null,   svg: 'discuss',
+      desc: t('mode.discuss_sub') },
+    { id: 'scenarios', label: t('mode.scenarios'), icon: null,          emoji: null,   svg: 'scenario', badge: 'new',
+      desc: t('mode.scenarios_sub') },
+    { id: 'reader',    label: t('mode.reader'),    icon: null,          emoji: null,   svg: 'reader',
+      desc: t('mode.reader_sub') },
+    { id: 'exercises', label: t('mode.exercises'), icon: null,          emoji: null,   svg: 'exercises',
+      desc: t('mode.exercises_sub') },
+    { id: 'lexicon',   label: t('mode.lexicon'),   icon: null,          emoji: null,   svg: 'lexicon',
+      desc: t('mode.lexicon_sub') },
   ];
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
@@ -5876,26 +5930,26 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
                 </span>
               </div>
               <span className="text-[15px] italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--corail-2)' }}>
-                bonjour, {profile.first_name}
+                {t('hello')}, {profile.first_name}
               </span>
             </button>
             <div className="flex items-center gap-4">
               {onOpenLexicon && (
                 <button onClick={onOpenLexicon}
                   className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                  <LexiconIcon size={18} /> mon lexique
+                  <LexiconIcon size={18} /> {t('my_lexicon')}
                 </button>
               )}
               {onOpenProfile && (
                 <button onClick={onOpenProfile}
                   className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                  <UserCircle size={12} /> mon compte
+                  <UserCircle size={12} /> {t('my_account')}
                 </button>
               )}
               {signOut && (
                 <button onClick={signOut}
                   className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                  <LogOut size={11} /> déconnexion
+                  <LogOut size={11} /> {t('signout')}
                 </button>
               )}
             </div>
@@ -5931,8 +5985,8 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
               }}
-              title="changer de langue">
-              <span style={{ fontSize: 14 }}>🌍</span> autre langue
+              title={t('mode.change_lang')}>
+              <span style={{ fontSize: 14 }}>🌍</span> {t('mode.change_lang')}
             </button>
           )}
         </div>
@@ -6872,8 +6926,11 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 
         {step === 2 && (
           <form onSubmit={submit} className="flex flex-col gap-3">
-            <SelectField icon={Globe2} value={nativeLang} onChange={setNativeLang}
-              options={Object.values(LANGUAGES).map(l => ({ value: l.code, label: `${l.glyph} ${l.name}` }))} />
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>langue maternelle · native language</label>
+              <SelectField icon={Globe2} value={nativeLang} onChange={setNativeLang}
+                options={Object.values(NATIVE_LANGUAGES).map(l => ({ value: l.code, label: `${l.flag} ${l.label}` }))} />
+            </div>
 
             <AuthField icon={Calendar} type="date" placeholder="date de naissance"
               value={birthDate} onChange={setBirthDate} autoComplete="bday" />
@@ -6929,6 +6986,7 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 // ─── PROFILE / MON COMPTE ─────────────────────────────────────────────────────
 
 function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManualLevel, onChangeDevice, device, onOpenLexicon, signOut }) {
+  const t = useT();
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [email, setEmail] = useState(profile?.email || '');
@@ -7118,9 +7176,9 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManua
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>langue maternelle</label>
+              <label className="text-xs font-bold uppercase tracking-wider ml-1 mb-1 block" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>langue maternelle · native language</label>
               <SelectField icon={Globe2} value={nativeLang} onChange={setNativeLang}
-                options={Object.values(LANGUAGES).map(l => ({ value: l.code, label: `${l.glyph} ${l.name}` }))} />
+                options={Object.values(NATIVE_LANGUAGES).map(l => ({ value: l.code, label: `${l.flag} ${l.label}` }))} />
             </div>
 
             <div>
@@ -7487,6 +7545,99 @@ function formatTestDate(iso) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// ─── I18n : dictionnaire + contexte React ─────────────────────────────────────
+// TRANSLATIONS[key] = { fr, en, es, pt, de } — chaque clé décrit une chaîne
+// visible dans l'interface. Le hook useT() retourne t(key) qui rend la version
+// dans la langue d'origine de l'utilisateur, avec repli vers le français.
+const TRANSLATIONS = {
+  // Communes
+  'hello':                  { fr: 'bonjour',                       en: 'hello',                        es: 'hola',                          pt: 'olá',                          de: 'hallo' },
+  'back':                   { fr: 'retour',                        en: 'back',                         es: 'volver',                        pt: 'voltar',                       de: 'zurück' },
+  'continue':               { fr: 'Continuer →',                   en: 'Continue →',                   es: 'Continuar →',                   pt: 'Continuar →',                  de: 'Weiter →' },
+  'loading':                { fr: 'un instant…',                   en: 'one moment…',                  es: 'un momento…',                   pt: 'um instante…',                 de: 'einen Moment…' },
+  'save':                   { fr: 'Enregistrer',                   en: 'Save',                         es: 'Guardar',                       pt: 'Guardar',                      de: 'Speichern' },
+  'saved':                  { fr: 'enregistré !',                  en: 'saved!',                       es: '¡guardado!',                    pt: 'guardado!',                    de: 'gespeichert!' },
+  'saving':                 { fr: 'enregistrement…',               en: 'saving…',                      es: 'guardando…',                    pt: 'a guardar…',                   de: 'speichere…' },
+  'signout':                { fr: 'déconnexion',                   en: 'sign out',                     es: 'cerrar sesión',                 pt: 'sair',                         de: 'abmelden' },
+  'my_account':             { fr: 'mon compte',                    en: 'my account',                   es: 'mi cuenta',                     pt: 'a minha conta',                de: 'mein Konto' },
+  'my_lexicon':             { fr: 'mon lexique',                   en: 'my lexicon',                   es: 'mi léxico',                     pt: 'o meu léxico',                 de: 'mein Lexikon' },
+  // Langue picker
+  'lang.title':             { fr: 'Quelle langue voulez-vous apprendre ?', en: 'Which language do you want to learn?', es: '¿Qué idioma quieres aprender?', pt: 'Que idioma quer aprender?', de: 'Welche Sprache möchten Sie lernen?' },
+  'lang.subtitle':          { fr: "Chaque langue est une invitation au voyage. Choisissez celle qui vous fait rêver aujourd'hui.", en: 'Every language is an invitation to travel. Pick the one that inspires you today.', es: 'Cada idioma es una invitación al viaje. Elige el que te haga soñar hoy.', pt: 'Cada idioma é um convite para viajar. Escolha o que o faz sonhar hoje.', de: 'Jede Sprache ist eine Einladung zum Reisen. Wählen Sie die, die Sie heute träumen lässt.' },
+  'lang.choose':             { fr: 'choisissez',                   en: 'pick one',                     es: 'elige',                         pt: 'escolha',                      de: 'wählen Sie' },
+  'lang.or_another':        { fr: '· ou choisir une autre langue ·', en: '· or pick another language ·', es: '· o elige otro idioma ·',      pt: '· ou escolha outro idioma ·',  de: '· oder wählen Sie eine andere Sprache ·' },
+  'lang.resume_with':       { fr: '📖 reprendre avec',              en: '📖 resume with',                es: '📖 continuar con',              pt: '📖 continuar com',             de: '📖 fortsetzen mit' },
+  'lang.other_teacher':     { fr: 'autre\nprof',                    en: 'other\nteacher',               es: 'otro\nprofe',                   pt: 'outro\nprof',                  de: 'anderer\nLehrer' },
+  'lang.step':              { fr: 'langue',                        en: 'language',                     es: 'idioma',                        pt: 'idioma',                       de: 'Sprache' },
+  // Level picker
+  'level.your_in':          { fr: 'Votre niveau en',               en: 'Your level in',                es: 'Tu nivel en',                   pt: 'O seu nível em',               de: 'Ihr Niveau in' },
+  'level.honest':           { fr: "Soyez honnête — c'est mieux de commencer un peu en dessous et de progresser.", en: 'Be honest — better to start a bit below and progress.', es: 'Sé honesto — mejor empezar un poco por debajo y avanzar.', pt: 'Seja honesto — é melhor começar um pouco abaixo e progredir.', de: 'Seien Sie ehrlich — besser etwas darunter beginnen und wachsen.' },
+  'level.evaluate':         { fr: 'Évaluer mon niveau',            en: 'Assess my level',              es: 'Evaluar mi nivel',              pt: 'Avaliar o meu nível',          de: 'Mein Niveau bewerten' },
+  'level.evaluate_sub':     { fr: 'Une petite discussion pour déterminer votre niveau automatiquement', en: 'A short chat to determine your level automatically', es: 'Una pequeña charla para determinar tu nivel automáticamente', pt: 'Uma conversa curta para determinar o seu nível automaticamente', de: 'Ein kurzes Gespräch, um Ihr Niveau automatisch zu ermitteln' },
+  'level.or_direct':        { fr: '· ou choisir directement ·',    en: '· or pick directly ·',         es: '· o elige directamente ·',      pt: '· ou escolha diretamente ·',   de: '· oder direkt wählen ·' },
+  'level.step':             { fr: 'niveau',                        en: 'level',                        es: 'nivel',                         pt: 'nível',                        de: 'Niveau' },
+  // Mode picker
+  'mode.discuss':           { fr: 'Discuter',                      en: 'Chat',                         es: 'Charlar',                       pt: 'Conversar',                    de: 'Sprechen' },
+  'mode.scenarios':         { fr: 'Scénarios',                     en: 'Scenarios',                    es: 'Escenarios',                    pt: 'Cenários',                     de: 'Szenarien' },
+  'mode.reader':            { fr: 'Lecture',                       en: 'Reader',                       es: 'Lectura',                       pt: 'Leitura',                      de: 'Lesen' },
+  'mode.exercises':         { fr: 'Exercices',                     en: 'Exercises',                    es: 'Ejercicios',                    pt: 'Exercícios',                   de: 'Übungen' },
+  'mode.lexicon':           { fr: 'Lexique',                       en: 'Lexicon',                      es: 'Léxico',                        pt: 'Léxico',                       de: 'Lexikon' },
+  'mode.discuss_sub':       { fr: 'Conversation libre avec ton prof', en: 'Free conversation with your teacher', es: 'Charla libre con tu profe', pt: 'Conversa livre com o professor', de: 'Freies Gespräch mit Ihrem Lehrer' },
+  'mode.scenarios_sub':     { fr: 'Situations réelles à jouer',     en: 'Real-life situations to role-play', es: 'Situaciones reales para jugar', pt: 'Situações reais para representar', de: 'Reale Szenarien zum Nachspielen' },
+  'mode.reader_sub':        { fr: 'Textes courts pour lire et apprendre', en: 'Short texts to read and learn', es: 'Textos cortos para leer y aprender', pt: 'Textos curtos para ler e aprender', de: 'Kurze Texte zum Lesen und Lernen' },
+  'mode.exercises_sub':     { fr: 'Grammaire, vocabulaire, correction', en: 'Grammar, vocabulary, corrections', es: 'Gramática, vocabulario, corrección', pt: 'Gramática, vocabulário, correção', de: 'Grammatik, Wortschatz, Korrektur' },
+  'mode.lexicon_sub':       { fr: 'Tes mots enregistrés',           en: 'Your saved words',             es: 'Tus palabras guardadas',        pt: 'As suas palavras guardadas',    de: 'Ihre gespeicherten Wörter' },
+  'mode.change_lang':       { fr: '← changer de langue',            en: '← change language',            es: '← cambiar de idioma',           pt: '← mudar de idioma',            de: '← Sprache wechseln' },
+  // Reader
+  'reader.title':           { fr: 'Lecture',                       en: 'Reader',                       es: 'Lectura',                       pt: 'Leitura',                      de: 'Lesen' },
+  'reader.topic':           { fr: 'sujet',                         en: 'topic',                        es: 'tema',                          pt: 'tema',                         de: 'Thema' },
+  'reader.generating':      { fr: 'génération…',                    en: 'generating…',                  es: 'generando…',                    pt: 'a gerar…',                     de: 'wird erstellt…' },
+  'reader.new_text':        { fr: 'nouveau texte',                 en: 'new text',                     es: 'nuevo texto',                   pt: 'novo texto',                   de: 'neuer Text' },
+  'reader.hint':            { fr: '↳ touchez un mot pour sa traduction et son explication', en: '↳ tap a word for its translation and explanation', es: '↳ toca una palabra para su traducción y explicación', pt: '↳ toque numa palavra para tradução e explicação', de: '↳ tippen Sie ein Wort für Übersetzung und Erklärung an' },
+  'reader.native_translation': { fr: 'traduction française',       en: 'English translation',          es: 'traducción española',           pt: 'tradução em português',        de: 'deutsche Übersetzung' },
+  // Exercises
+  'ex.title':               { fr: 'Exercices',                     en: 'Exercises',                    es: 'Ejercicios',                    pt: 'Exercícios',                   de: 'Übungen' },
+  // Scenarios
+  'scen.title':             { fr: 'Scénarios de conversation',      en: 'Conversation scenarios',       es: 'Escenarios de conversación',    pt: 'Cenários de conversação',      de: 'Gesprächsszenarien' },
+  'scen.listen_read':       { fr: 'écouter · lire',                 en: 'listen · read',                es: 'escuchar · leer',               pt: 'ouvir · ler',                  de: 'hören · lesen' },
+  'scen.play':              { fr: 'jouer le scénario',              en: 'play the scenario',            es: 'jugar el escenario',            pt: 'jogar o cenário',              de: 'Szenario spielen' },
+  // Signup / profile
+  'auth.first_name':        { fr: 'prénom',                        en: 'first name',                   es: 'nombre',                        pt: 'primeiro nome',                de: 'Vorname' },
+  'auth.last_name':         { fr: 'nom',                           en: 'last name',                    es: 'apellido',                      pt: 'apelido',                      de: 'Nachname' },
+  'auth.email':             { fr: 'votre email',                   en: 'your email',                   es: 'tu correo',                     pt: 'o seu email',                  de: 'Ihre E-Mail' },
+  'auth.password':          { fr: 'mot de passe (6 caractères min.)', en: 'password (min 6 chars)',    es: 'contraseña (mín 6)',            pt: 'palavra-passe (mín 6)',        de: 'Passwort (min. 6 Zeichen)' },
+  'auth.native_lang':       { fr: 'langue maternelle',              en: 'native language',              es: 'idioma materno',                pt: 'idioma materno',               de: 'Muttersprache' },
+  'auth.essential':         { fr: 'Quelques infos essentielles',    en: 'A few essential details',      es: 'Algunos datos esenciales',      pt: 'Alguns dados essenciais',      de: 'Ein paar wichtige Angaben' },
+  'auth.complete':          { fr: 'Complétez votre profil',         en: 'Complete your profile',        es: 'Completa tu perfil',            pt: 'Complete o seu perfil',        de: 'Vervollständigen Sie Ihr Profil' },
+  'auth.pleased':           { fr: 'Enchanté !',                    en: 'Welcome!',                     es: '¡Encantado!',                   pt: 'Prazer!',                      de: 'Willkommen!' },
+  'auth.address':           { fr: 'adresse (ex: 12 rue Lafayette, 75009 Paris)', en: 'address (e.g. 12 Main St, London)', es: 'dirección', pt: 'morada', de: 'Adresse' },
+  'auth.phone':             { fr: 'téléphone',                     en: 'phone',                        es: 'teléfono',                      pt: 'telefone',                     de: 'Telefon' },
+  'auth.birth':             { fr: 'date de naissance',              en: 'date of birth',                es: 'fecha de nacimiento',           pt: 'data de nascimento',           de: 'Geburtsdatum' },
+  'auth.finish':            { fr: '🎉 Terminer',                   en: '🎉 Finish',                    es: '🎉 Finalizar',                  pt: '🎉 Concluir',                  de: '🎉 Fertigstellen' },
+  'auth.creating':          { fr: 'création…',                     en: 'creating…',                    es: 'creando…',                      pt: 'a criar…',                     de: 'wird erstellt…' },
+  'auth.check_email':       { fr: 'Vérifie tes emails !',           en: 'Check your inbox!',            es: '¡Revisa tu correo!',            pt: 'Verifique o seu email!',       de: 'Prüfen Sie Ihr Postfach!' },
+  'auth.go_login':          { fr: 'Aller à la connexion →',         en: 'Go to sign in →',              es: 'Ir a iniciar sesión →',         pt: 'Ir para iniciar sessão →',     de: 'Zur Anmeldung →' },
+  // Profile screen
+  'profile.title':          { fr: 'Informations personnelles',      en: 'Personal information',         es: 'Información personal',          pt: 'Informação pessoal',           de: 'Persönliche Angaben' },
+  'profile.email_login':    { fr: 'email (identifiant)',            en: 'email (login)',                es: 'correo (identificador)',        pt: 'email (identificador)',        de: 'E-Mail (Login)' },
+  'profile.welcome':        { fr: 'Bienvenue',                     en: 'Welcome',                      es: 'Bienvenido',                    pt: 'Bem-vindo',                    de: 'Willkommen' },
+};
+
+// Contexte React exposant t() dans toute l'app
+const I18nContext = React.createContext({ nativeLang: 'fr', t: (k, f) => f || k });
+
+function I18nProvider({ nativeLang, children }) {
+  const t = React.useCallback((key, fallback) => {
+    const entry = TRANSLATIONS[key];
+    if (!entry) return fallback || key;
+    return entry[nativeLang] || entry.fr || fallback || key;
+  }, [nativeLang]);
+  return <I18nContext.Provider value={{ nativeLang, t }}>{children}</I18nContext.Provider>;
+}
+
+function useT() { return React.useContext(I18nContext).t; }
+function useNativeLang() { return React.useContext(I18nContext).nativeLang; }
+
 function AuthGate({ children }) {
   const { session, profile, loading, signOut, reloadProfile, recovering, clearRecovery } = useAuth();
   const [mode, setMode] = useState('welcome'); // welcome | login | signup | forgot
@@ -7560,6 +7711,13 @@ function MainApp({ profile, signOut, reloadProfile }) {
 
   // On first load, if a saved session exists for THIS user, restore language + level
   // and jump straight to the mode picker (screen 3) instead of the language picker.
+  // Synchronise le global userNativeLang dès que le profil se charge/change
+  // pour que les buildeurs de prompts IA (hors composants) connaissent la
+  // langue d'origine sans devoir threader le profil partout.
+  useEffect(() => {
+    setUserNativeLang(profile?.native_language || 'fr');
+  }, [profile?.native_language]);
+
   useEffect(() => {
     if (autoloadDone) return;
     if (!profile?.id) {
@@ -7631,7 +7789,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
         <div className="text-center">
           <Loader2 size={28} className="animate-spin inline mb-3" style={{ color: 'var(--corail-2)' }} />
           <p style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)', fontSize: 15 }}>
-            un instant…
+            {TRANSLATIONS['loading']?.[profile?.native_language || 'fr'] || 'un instant…'}
           </p>
         </div>
       </div>
@@ -7742,6 +7900,16 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onOpenLexicon={() => setStep('lexicon')} />;
 }
 
+// Wrapper qui fournit le contexte i18n en fonction de la langue d'origine du profil
+function I18nMainApp(props) {
+  const nativeLang = props.profile?.native_language || 'fr';
+  return (
+    <I18nProvider nativeLang={nativeLang}>
+      <MainApp {...props} />
+    </I18nProvider>
+  );
+}
+
 export default function App() {
-  return <AuthGate><MainApp /></AuthGate>;
+  return <AuthGate><I18nMainApp /></AuthGate>;
 }

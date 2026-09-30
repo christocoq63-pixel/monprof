@@ -401,6 +401,52 @@ const LANGUAGES = {
                    {t:"Bienvenue ! De quoi aimeriez-vous parler aujourd'hui ?", fr:"Welcome! What would you like to talk about today?"}]},
     ],
   },
+  mfe: {
+    code: 'mfe', name: 'Créole mauricien', nativeName: 'Kreol morisien', glyph: 'MU',
+    // Aucune voix TTS/reconnaissance vocale dédiée dans les navigateurs pour le
+    // kreol morisien — on tombe sur les voix françaises, qui prononcent
+    // correctement le vocabulaire (base fortement lexifiée sur le français).
+    ttsLocale: 'fr-FR', srLocale: 'fr-FR', srSupported: true,
+    accent: '#0891B2',
+    avatars: [
+      { id:'marie_lise', gender:'female', name:'Marie-Lise', age:34, location:'Port-Louis, Maurice', role:'Amie de café',
+        tagline:'Kreol du quotidien, food, plages, séga',
+        persona:`Mauritian Creole speaker from Port-Louis, warm and cheerful.
+- Speaks natural everyday kreol morisien with typical Mauritian expressions ("enn ti kozri", "korek?", "ki manier ?", "laba", "mo p").
+- Uses the Mauritian orthography (mo, to, li, nou, zot; ena, pa ena; li p vini).
+- Common topics: everyday life, sega music, seafood, beach outings, family.
+- Gently explains a word in French only if the learner is clearly lost.`,
+        color:'#0891B2', soft:'#CFEDF3', pattern:'circles',
+        voiceHint:['google français','google french','audrey','amélie','marie','virginie','female'],
+        rate: 0.9, pitch: 1.02,
+        greetings:[{t:"Ki manier ? Kouma to appelé ?", fr:"Comment ça va ? Comment tu t'appelles ?"},
+                   {t:"Salam ! Enn ti kozri ?", fr:"Salut ! On papote un peu ?"}]},
+      { id:'devraj', gender:'male', name:'Devraj', age:41, location:'Curepipe, Maurice', role:"Prof de kreol",
+        tagline:'Patient, explique la grammaire mauricienne',
+        persona:`Mauritian Creole teacher of Indo-Mauritian heritage from Curepipe, patient and clear.
+- Uses standard kreol morisien (Ledikasyon pu Travayer orthography).
+- Explains grammar rules gently: verb markers "ti / pe / va / pou", possessives "mo/to/so", plural marker "bann".
+- Occasionally sprinkles in a Bhojpuri or Hindi word explained in context.
+- Speaks slowly, repeats key words, always encouraging.`,
+        color:'#7C3AED', soft:'#E4D8F8', pattern:'dots',
+        voiceHint:['google français','google french','thomas','daniel','male'],
+        rate: 0.85, pitch: 0.98,
+        greetings:[{t:"Bonzour ! Pran to letan. Ki to anvi kozé zordi ?", fr:"Bonjour ! Prends ton temps. De quoi veux-tu parler aujourd'hui ?"},
+                   {t:"Alo ! Kouma to sanmem ? Nou al gagn enn ti diskisyon.", fr:"Salut ! Comment vas-tu ? On va bavarder un peu."}]},
+      { id:'jean_marc', gender:'male', name:'Jean-Marc', age:52, location:'Mahébourg, Maurice', role:'Pêcheur, guide local',
+        tagline:'Kreol côtier, pêche, histoires du sud',
+        persona:`Mauritian Creole fisherman-guide from Mahébourg (south coast), colourful and witty.
+- Uses coastal kreol with expressions from fishing life and local folklore.
+- Loves telling stories about the lagoon, séga music, old Mauritius, family recipes.
+- Frequently uses "abé", "koumsa", "sa mem", "eh kamarad".
+- Speaks with humour and warmth; gently corrects only when asked.`,
+        color:'#B85B3F', soft:'#F6E2D4', pattern:'lines',
+        voiceHint:['google français','google french','thomas','fred','male'],
+        rate: 0.88, pitch: 1.0,
+        greetings:[{t:"Éh kamarad ! Kouma to yé zordi ?", fr:"Eh l'ami ! Comment tu vas aujourd'hui ?"},
+                   {t:"Bonzour matlo, kouma sa alé ? Ki to p fer ?", fr:"Bonjour mon pote, comment ça va ? Qu'est-ce que tu fais ?"}]},
+    ],
+  },
 };
 
 // Face features per avatar — gives each character a distinct look
@@ -484,6 +530,13 @@ const FACES = {
              hair:'headband-tails', hairColor:'black', skin:'deep' },
   marie_fr:{ eyes:'round',  mouth:'wide-smile', accessory:null,
              hair:'bob',     hairColor:'brown',    skin:'light' },
+  // ─── Créole mauricien ────────────────────
+  marie_lise: { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick',   blush:true,
+                hair:'long',    hairColor:'black',    skin:'tan' },
+  devraj:     { eyes:'round',  mouth:'smile',      accessory:'glasses-round',
+                hair:'short',   hairColor:'black',    skin:'tan' },
+  jean_marc:  { eyes:'round',  mouth:'smirk',      accessory:null,          moustache:true,
+                hair:'short',   hairColor:'grey',     skin:'tan' },
 };
 
 const LEVELS = {
@@ -528,6 +581,7 @@ const PATTERN_BG = (pattern) => {
 const storageKey = (lang, level, avatar) => `chat:${lang.code}:${level.id}:${avatar.id}`;
 const statsKey   = (lang, level, avatar) => `stats:${lang.code}:${level.id}:${avatar.id}`;
 const META_KEY   = 'meta:lastSession';
+const LANG_MAP_KEY = 'meta:lastChoicePerLang'; // { [userId]: { [langCode]: { levelId, avatarId, updatedAt } } }
 
 const storage = {
   get(k)   { try { return localStorage.getItem(k); } catch { return null; } },
@@ -535,6 +589,30 @@ const storage = {
   del(k)   { try { localStorage.removeItem(k); } catch {} },
   keys()   { try { return Object.keys(localStorage); } catch { return []; } },
 };
+
+// ─── Dernier choix par langue ─────────────────────────────────────────────────
+// Retient (niveau + prof) pour CHAQUE langue déjà utilisée, par utilisateur.
+// Ainsi, quand on retourne sur une langue déjà utilisée, on retrouve son prof.
+function _readLangMap() {
+  try { return JSON.parse(storage.get(LANG_MAP_KEY) || '{}'); } catch { return {}; }
+}
+function saveLangChoice(userId, langCode, levelId, avatarId) {
+  if (!langCode || !levelId || !avatarId) return;
+  const key = userId || 'anon';
+  const map = _readLangMap();
+  if (!map[key]) map[key] = {};
+  map[key][langCode] = { levelId, avatarId, updatedAt: Date.now() };
+  try { storage.set(LANG_MAP_KEY, JSON.stringify(map)); } catch {}
+}
+function loadLangChoice(userId, langCode) {
+  const key = userId || 'anon';
+  const map = _readLangMap();
+  return map[key]?.[langCode] || null;
+}
+function loadAllLangChoices(userId) {
+  const key = userId || 'anon';
+  return _readLangMap()[key] || {};
+}
 
 async function loadConversation(lang, level, avatar) {
   const raw = storage.get(storageKey(lang, level, avatar));
@@ -548,6 +626,8 @@ async function saveConversation(lang, level, avatar, messages, userId = null) {
     userId: userId || null,
     langCode: lang.code, levelId: level.id, avatarId: avatar.id, lastUpdated: Date.now(),
   }));
+  // Retient le prof + niveau pour CETTE langue (permet de revenir dessus plus tard)
+  saveLangChoice(userId, lang.code, level.id, avatar.id);
   let stats = { firstVisit: Date.now(), days: [] };
   const rawStats = storage.get(statsKey(lang, level, avatar));
   if (rawStats) { try { stats = JSON.parse(rawStats); } catch {} }
@@ -1706,10 +1786,11 @@ function StepHeader({ step, total, label, onBack }) {
 
 function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile, signOut, onOpenProfile, onOpenLexicon }) {
   const [lastSession, setLastSession] = useState(null);
+  const [langChoices, setLangChoices] = useState({}); // { [langCode]: { avatar, level } } — pour afficher le prof déjà choisi
 
   useEffect(() => {
     // Only show a resume banner if the saved session belongs to the current user.
-    if (!profile?.id) { setLastSession(null); return; }
+    if (!profile?.id) { setLastSession(null); setLangChoices({}); return; }
     loadLastSession(profile.id).then(s => {
       if (!s) { setLastSession(null); return; }
       const lang = LANGUAGES[s.langCode];
@@ -1719,6 +1800,16 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
         setLastSession({ lang, level, avatar, lastUpdated: s.lastUpdated });
       }
     });
+    // Résout tous les choix par langue en objets réels (lang, level, avatar)
+    const raw = loadAllLangChoices(profile.id);
+    const resolved = {};
+    for (const [code, choice] of Object.entries(raw)) {
+      const lang = LANGUAGES[code];
+      const level = LEVELS[choice.levelId];
+      const avatar = lang?.avatars.find(a => a.id === choice.avatarId);
+      if (lang && level && avatar) resolved[code] = { avatar, level };
+    }
+    setLangChoices(resolved);
   }, [profile?.id]);
 
   return (
@@ -1816,17 +1907,18 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
           </div>
         </div>
         <div className="flex flex-wrap justify-center gap-5 sm:gap-6 px-2">
-          {Object.values(LANGUAGES).map(lang => (
+          {Object.values(LANGUAGES).map(lang => {
+            const priorChoice = langChoices[lang.code]; // { avatar, level } si déjà utilisée
+            return (
             <button key={lang.code} onClick={() => onSelect(lang)}
               className="lang-bubble group relative flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
               style={{
                 width: '132px',
                 height: '132px',
                 borderRadius: '50%',
-                border: `1.5px solid ${lang.accent}55`,
-                // Teinte pastel de la couleur de la langue (par défaut)
+                border: `1.5px solid ${lang.accent}${priorChoice ? '' : '55'}`,
                 background: `radial-gradient(circle at 30% 30%, ${lang.accent}25, ${lang.accent}18)`,
-                boxShadow: `0 3px 10px ${lang.accent}20`,
+                boxShadow: priorChoice ? `0 4px 14px ${lang.accent}40` : `0 3px 10px ${lang.accent}20`,
               }}>
               {/* Overlay : couleur pleine au hover */}
               <span
@@ -1849,8 +1941,20 @@ function LanguagePicker({ onSelect, onResumeLast, onChangeAvatarForLast, profile
                   {lang.nativeName}
                 </span>
               </div>
+              {/* Badge : prof déjà choisi pour cette langue — en bas à droite */}
+              {priorChoice && (
+                <div className="absolute -bottom-1 -right-1 z-20 rounded-full bg-white p-0.5"
+                     style={{
+                       boxShadow: `0 2px 8px ${lang.accent}55`,
+                       border: `2px solid ${lang.accent}`,
+                     }}
+                     title={`Dernier prof : ${priorChoice.avatar.name} · ${priorChoice.level.label.toLowerCase()}`}>
+                  <AnimatedAvatar avatar={priorChoice.avatar} size="xs" />
+                </div>
+              )}
             </button>
-          ))}
+          );
+          })}
         </div>
       </div>
     </div>
@@ -3577,6 +3681,7 @@ function ScenariosScreen({ lang, level, onBack, onStartScenario }) {
   const [dialogue, setDialogue] = useState(null);          // { lines: [{speaker, text, fr}] }
   const [dialogueLoading, setDialogueLoading] = useState(false);
   const [dialogueShowFr, setDialogueShowFr] = useState(false);
+  const [perLineFr, setPerLineFr] = useState(() => new Set()); // indices of lines whose FR is revealed individually
   const [playingIdx, setPlayingIdx] = useState(null);
   const [playAllRunning, setPlayAllRunning] = useState(false);
   const playCancelRef = useRef(false);
@@ -3645,6 +3750,15 @@ Respond ONLY with a JSON object, no code fences:
     setDialogue(null);
     setPlayingIdx(null);
     setPlayAllRunning(false);
+    setPerLineFr(new Set());
+  };
+
+  const toggleLineFr = (i) => {
+    setPerLineFr(prev => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
   };
 
   const playLine = (line, idx) => {
@@ -7545,7 +7659,21 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onSaved={() => setStep('profile')} />;
   if (step === 'language') return <LanguagePicker
     profile={profile} signOut={signOut}
-    onSelect={(l) => { setLanguage(l); setStep('level'); }}
+    onSelect={(l) => {
+      setLanguage(l);
+      // Si on est déjà venu dans cette langue, on retrouve son niveau + son prof.
+      const prev = loadLangChoice(profile?.id, l.code);
+      if (prev) {
+        const lv = LEVELS[prev.levelId];
+        const av = l.avatars.find(a => a.id === prev.avatarId);
+        if (lv && av) {
+          setLevel(lv);
+          setAvatar(av);
+          return setStep('mode');
+        }
+      }
+      setStep('level');
+    }}
     onOpenProfile={() => setStep('profile')}
     onOpenLexicon={() => setStep('lexicon')}
     onResumeLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar); setStep('chat'); }}
@@ -7582,7 +7710,12 @@ function MainApp({ profile, signOut, reloadProfile }) {
       setAvatar(av);
       setStep('chat');
     }} />;
-  if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => { setAvatar(a); setStep('chat'); }} onBack={() => setStep('mode')} />;
+  if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => {
+    setAvatar(a);
+    // Sauvegarde dès la sélection du prof (avant même le 1er message)
+    saveLangChoice(profile?.id, language.code, level.id, a.id);
+    setStep('chat');
+  }} onBack={() => setStep('mode')} />;
   // All 4 mode screens return to Screen 3 (ModePicker) on exit, keeping the
   // language + level context — the user changes language only by explicit choice.
   if (step === 'reader')   return <ReaderScreen lang={language} level={level}

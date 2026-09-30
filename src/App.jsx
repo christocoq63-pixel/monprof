@@ -7705,9 +7705,19 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onBack={() => setStep('mode')}
     onStartScenario={(sc) => {
       setScenario(sc);
-      // Pick a random avatar for the scenario if none is set
-      const av = avatar || (language.avatars[Math.floor(Math.random() * language.avatars.length)]);
+      // Utilise le prof déjà sélectionné pour cette langue :
+      //   1. Le prof en cours (avatar) s'il est chargé
+      //   2. Sinon, celui qu'on a stocké pour cette langue (loadLangChoice)
+      //   3. Sinon, le 1er prof de la langue (pas au hasard — comportement stable)
+      let av = avatar;
+      if (!av) {
+        const prev = loadLangChoice(profile?.id, language.code);
+        if (prev) av = language.avatars.find(a => a.id === prev.avatarId) || null;
+      }
+      if (!av) av = language.avatars[0];
       setAvatar(av);
+      // On mémorise aussi ce prof comme choix pour cette langue
+      saveLangChoice(profile?.id, language.code, level.id, av.id);
       setStep('chat');
     }} />;
   if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => {

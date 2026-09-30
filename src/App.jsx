@@ -688,6 +688,47 @@ function clearScenarioOpening(lang, level, avatar, scenario) {
   storage.del(scenarioOpeningKey(lang, level, avatar, scenario));
 }
 
+// ─── SCÉNARIOS : pool de dialogues (jusqu'à 3 par scénario) ─────────────────
+// Chaque scénario peut avoir plusieurs dialogues pré-générés, tirés au hasard
+// à l'ouverture pour offrir de la variété sans consommer de tokens. La
+// régénération explicite ajoute un nouveau dialogue au pool (max 3).
+const DIALOG_POOL_MAX = 3;
+
+const dialoguePoolKey = (lang, level, scenario) =>
+  `scen_dialog_pool:${lang.code}:${level.id}:${scenario.id}`;
+
+const dialogueLegacyKey = (lang, level, scenario) =>
+  `scen_dialog:${lang.code}:${level.id}:${scenario.id}`;
+
+function loadDialoguePool(lang, level, scenario) {
+  try {
+    const raw = storage.get(dialoguePoolKey(lang, level, scenario));
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed) && parsed.length) return parsed;
+  } catch { /* ignore */ }
+  // Migration : si un dialogue legacy existe, on le remonte dans le pool
+  try {
+    const legacy = storage.get(dialogueLegacyKey(lang, level, scenario));
+    if (legacy) {
+      const parsed = JSON.parse(legacy);
+      if (parsed?.lines?.length) {
+        try { storage.set(dialoguePoolKey(lang, level, scenario), JSON.stringify([parsed])); } catch {}
+        try { storage.del(dialogueLegacyKey(lang, level, scenario)); } catch {}
+        return [parsed];
+      }
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
+function saveDialogueToPool(lang, level, scenario, dialogue) {
+  const pool = loadDialoguePool(lang, level, scenario);
+  pool.push(dialogue);
+  const trimmed = pool.slice(-DIALOG_POOL_MAX); // garde les DIALOG_POOL_MAX derniers
+  try { storage.set(dialoguePoolKey(lang, level, scenario), JSON.stringify(trimmed)); } catch {}
+  return trimmed;
+}
+
 // Cache la conversation d'un scénario en cours (résume en cliquant à nouveau)
 async function loadScenarioConversation(lang, level, avatar, scenario) {
   try {
@@ -3736,27 +3777,17 @@ function ScenariosScreen({ lang, level, onBack, onStartScenario }) {
   const playCancelRef = useRef(false);
   const { speak, stop: stopSpeak, speakingText } = useSpeech();
 
-  // Fetch or load-from-cache the pre-written dialogue for the selected scenario.
-  const openDialogue = async (scenario) => {
-    setDialogueMode(true);
-    setDialogueLoading(true);
-    setDialogueShowFr(false);
-    setDialogue(null);
-    // Cache key = lang + level + scenario id (dialogue may vary by level for length)
-    const cacheKey = `scen_dialog:${lang.code}:${level.id}:${scenario.id}`;
-    try {
-      const cached = storage.get(cacheKey);
-      if (cached) {
-        setDialogue(JSON.parse(cached));
-        setDialogueLoading(false);
-        return;
-      }
-    } catch { /* ignore */ }
+  // Génère UN nouveau dialogue via Claude, l'ajoute au pool, et le retourne.
+  const generateFreshDialogue = async (scenario) => {
+    const nl = getUserNativeLangName();
+    // On ajoute un "hint" temporel dans le prompt utilisateur pour varier les
+    // dialogues successifs sur le même scénario (utile pour la régénération).
+    const pool = loadDialoguePool(lang, level, scenario);
+    const variationHint = pool.length === 0
+      ? 'Write the dialogue now.'
+      : `Write ANOTHER version of this dialogue — different opening line, different specific details (dishes, prices, names, twists) so it feels like a fresh new take. Already generated: ${pool.length}.`;
 
-    // Generate a fresh dialogue with Claude
-    try {
-      const nl = getUserNativeLangName();
-      const system = `You write short, natural dialogue scripts for language learners.
+    const system = `You write short, natural dialogue scripts for language learners.
 Language: ${lang.nativeName} (${lang.name}).
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
 Scenario: "${scenario.title}" — ${scenario.description}
@@ -3772,20 +3803,61 @@ Respond ONLY with a JSON object, no code fences:
     { "speaker": "A" | "B", "text": "<line in ${lang.nativeName}>", "fr": "<${nl} translation>" }
   ]
 }`;
-      const data = await chatWithFallback({
-        system,
-        messages: [{ role: 'user', content: `Write the dialogue now.` }],
-        maxTokens: 1200,
-        cache: true,
-      });
-      const raw = data?.content?.[0]?.text || '{}';
-      const cleaned = raw.replace(/```json\s*|```/g, '').trim();
-      const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
-      const parsed = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
-      if (parsed?.lines?.length) {
-        try { storage.set(cacheKey, JSON.stringify(parsed)); } catch {}
-        setDialogue(parsed);
-      }
+    const data = await chatWithFallback({
+      system,
+      messages: [{ role: 'user', content: variationHint }],
+      maxTokens: 1200,
+      cache: true,
+    });
+    const raw = data?.content?.[0]?.text || '{}';
+    const cleaned = raw.replace(/```json\s*|```/g, '').trim();
+    const s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
+    const parsed = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);
+    if (!parsed?.lines?.length) throw new Error('empty dialogue');
+    saveDialogueToPool(lang, level, scenario, parsed);
+    return parsed;
+  };
+
+  // Ouvre le dialogue : tire un dialogue au hasard dans le pool (aucun token
+  // consommé), et n'appelle Claude que si le pool est vide.
+  const openDialogue = async (scenario) => {
+    setDialogueMode(true);
+    setDialogueLoading(true);
+    setDialogueShowFr(false);
+    setPerLineFr(new Set());
+    setDialogue(null);
+
+    // 1) Pool en cache → tirage aléatoire, ZÉRO token
+    const pool = loadDialoguePool(lang, level, scenario);
+    if (pool.length > 0) {
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      setDialogue(pick);
+      setDialogueLoading(false);
+      return;
+    }
+
+    // 2) Pool vide → on génère le 1er dialogue et on le met en cache
+    try {
+      const fresh = await generateFreshDialogue(scenario);
+      setDialogue(fresh);
+    } catch (e) {
+      setDialogue({ lines: [], error: e.message });
+    } finally {
+      setDialogueLoading(false);
+    }
+  };
+
+  // Force la génération d'un NOUVEAU dialogue (consomme des tokens).
+  // Ajoute au pool (max DIALOG_POOL_MAX, éviction du plus ancien).
+  const regenerateDialogue = async () => {
+    if (!selected) return;
+    setDialogueLoading(true);
+    setDialogueShowFr(false);
+    setPerLineFr(new Set());
+    setDialogue(null);
+    try {
+      const fresh = await generateFreshDialogue(selected);
+      setDialogue(fresh);
     } catch (e) {
       setDialogue({ lines: [], error: e.message });
     } finally {
@@ -4030,8 +4102,30 @@ Respond ONLY with a JSON object, no code fences:
                 }}>
                 {dialogueShowFr ? '✓ traduction' : 'afficher FR'}
               </button>
+              <button onClick={regenerateDialogue} disabled={dialogueLoading}
+                className="px-3 py-2 rounded-full text-xs font-bold uppercase tracking-widest disabled:opacity-30 ml-auto flex items-center gap-1.5"
+                style={{
+                  fontFamily: 'DM Sans',
+                  background: 'white',
+                  color: 'var(--gris)',
+                  border: `1.5px solid rgba(90,78,69,0.25)`,
+                }}
+                title="Génère un nouveau dialogue via l'IA (consomme des tokens)">
+                <RefreshCw size={12} /> autre dialogue
+              </button>
             </div>
           )}
+          {/* Compteur discret du pool + rappel qu'un nouveau tirage ne coûte rien */}
+          {!dialogueLoading && dialogue?.lines?.length > 0 && selected && (() => {
+            const poolSize = loadDialoguePool(lang, level, selected).length;
+            if (poolSize <= 1) return null;
+            return (
+              <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-4"
+                   style={{ fontFamily: 'DM Sans' }}>
+                📚 {poolSize} dialogue{poolSize > 1 ? 's' : ''} en cache · un rafraîchissement de la page ou une nouvelle visite tirera un dialogue au hasard
+              </div>
+            );
+          })()}
 
           {dialogueLoading && (
             <div className="text-center py-10" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
@@ -7141,7 +7235,7 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManua
               || k.startsWith('word:') || k === 'meta:lastSession' || k === 'lexicon'
               || k === 'level_tests_cache' || k === 'exercise_sessions'
               || k === 'device_choice' || k.startsWith('voice:')
-              || k.startsWith('scen_open:') || k.startsWith('scen_chat:') || k.startsWith('scen_vocab:') || k.startsWith('scen_dialog:')) {
+              || k.startsWith('scen_open:') || k.startsWith('scen_chat:') || k.startsWith('scen_vocab:') || k.startsWith('scen_dialog:') || k.startsWith('scen_dialog_pool:')) {
             localStorage.removeItem(k);
           }
         });

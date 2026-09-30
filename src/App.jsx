@@ -4103,15 +4103,16 @@ Respond ONLY with a JSON object, no code fences:
                 {dialogueShowFr ? '✓ traduction' : 'afficher FR'}
               </button>
               <button onClick={regenerateDialogue} disabled={dialogueLoading}
-                className="px-3 py-2 rounded-full text-xs font-bold uppercase tracking-widest disabled:opacity-30 ml-auto flex items-center gap-1.5"
+                className="px-3 py-2 rounded-full text-xs font-bold uppercase tracking-widest disabled:opacity-30 flex items-center gap-1.5 hover:-translate-y-0.5 transition-all"
                 style={{
                   fontFamily: 'DM Sans',
                   background: 'white',
-                  color: 'var(--gris)',
-                  border: `1.5px solid rgba(90,78,69,0.25)`,
+                  color: lang.accent,
+                  border: `1.5px solid ${lang.accent}`,
+                  boxShadow: `0 2px 8px ${lang.accent}22`,
                 }}
                 title="Génère un nouveau dialogue via l'IA (consomme des tokens)">
-                <RefreshCw size={12} /> autre dialogue
+                <RefreshCw size={12} className={dialogueLoading ? 'animate-spin' : ''} /> autre dialogue
               </button>
             </div>
           )}

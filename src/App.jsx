@@ -583,6 +583,37 @@ const statsKey   = (lang, level, avatar) => `stats:${lang.code}:${level.id}:${av
 const META_KEY   = 'meta:lastSession';
 const LANG_MAP_KEY = 'meta:lastChoicePerLang'; // { [userId]: { [langCode]: { levelId, avatarId, updatedAt } } }
 
+// ─── ABONNEMENT & PÉRIODE D'ESSAI ────────────────────────────────────────────
+const TRIAL_DAYS = 30;
+
+// Retourne un objet décrivant l'état d'abonnement de l'utilisateur :
+//   { status, isActive, daysLeft, trialExpiresAt, hasAccess }
+// Utilisé par la paywall + l'affichage du compteur en haut de ModePicker.
+function getSubscriptionState(profile) {
+  if (!profile) {
+    return { status: 'unknown', isActive: false, daysLeft: 0, trialExpiresAt: null, hasAccess: false, isTrial: false };
+  }
+  const status = profile.subscription_status || 'trial';
+  const trialStart = profile.trial_started_at ? new Date(profile.trial_started_at) : new Date();
+  const trialExpiresAt = new Date(trialStart.getTime() + TRIAL_DAYS * 86400000);
+  const now = Date.now();
+  const msLeft = trialExpiresAt.getTime() - now;
+  const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
+
+  // Abonné payant actif
+  if (status === 'active') {
+    const periodEnd = profile.subscription_current_period_end ? new Date(profile.subscription_current_period_end) : null;
+    const stillActive = !periodEnd || periodEnd.getTime() > now;
+    return { status: 'active', isActive: true, daysLeft: 0, trialExpiresAt: null, hasAccess: stillActive, isTrial: false, periodEnd };
+  }
+  // En essai, non expiré
+  if (status === 'trial' && msLeft > 0) {
+    return { status: 'trial', isActive: true, daysLeft, trialExpiresAt, hasAccess: true, isTrial: true };
+  }
+  // Essai expiré ou abonnement coupé → paywall
+  return { status: msLeft <= 0 && status === 'trial' ? 'expired' : status, isActive: false, daysLeft: 0, trialExpiresAt, hasAccess: false, isTrial: false };
+}
+
 // ─── LANGUES D'ORIGINE (UI + langue de traduction pour les prompts IA) ──────
 // 5 langues natives supportées à ce jour. Pour en ajouter une, il faut :
 //  1. l'ajouter ici,
@@ -5983,8 +6014,9 @@ function ReaderScreen({ lang, level, onBack, onOpenLexicon }) {
 
 // ─── STEP 2.5: MODE PICKER ────────────────────────────────────────────────────
 
-function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, onChangeLanguage, signOut, onOpenProfile, onOpenLexicon }) {
+function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, onChangeLanguage, signOut, onOpenProfile, onOpenLexicon, onOpenSubscription }) {
   const t = useT();
+  const sub = getSubscriptionState(profile);
   const [resumeSession, setResumeSession] = useState(null);
 
   // Check if there's a saved conversation for this exact language + level (for THIS user).
@@ -6003,14 +6035,14 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
       desc: t('mode.discuss_sub') },
     { id: 'scenarios',  label: t('mode.scenarios'), icon: null,          emoji: null,   svg: 'scenario',
       desc: t('mode.scenarios_sub') },
-    { id: 'translator', label: t('mode.translator'),icon: null,          emoji: null,   svg: 'translator', badge: 'new',
-      desc: t('mode.translator_sub') },
     { id: 'reader',     label: t('mode.reader'),    icon: null,          emoji: null,   svg: 'reader',
       desc: t('mode.reader_sub') },
     { id: 'exercises',  label: t('mode.exercises'), icon: null,          emoji: null,   svg: 'exercises',
       desc: t('mode.exercises_sub') },
     { id: 'lexicon',    label: t('mode.lexicon'),   icon: null,          emoji: null,   svg: 'lexicon',
       desc: t('mode.lexicon_sub') },
+    { id: 'translator', label: t('mode.translator'),icon: null,          emoji: null,   svg: 'translator', badge: 'new',
+      desc: t('mode.translator_sub') },
   ];
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor:'transparent' }}>
@@ -6087,6 +6119,40 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
             </button>
           )}
         </div>
+
+        {/* Bandeau abonnement : rappel discret si essai, visible si <7 jours */}
+        {sub.isTrial && (
+          <button onClick={() => onOpenSubscription?.()}
+            className="mt-4 w-full text-left transition-all hover:-translate-y-0.5 p-3 flex items-center gap-3 group"
+            style={{
+              borderRadius: '14px',
+              background: sub.daysLeft <= 7
+                ? 'linear-gradient(135deg, rgba(255,56,92,0.12), rgba(255,56,92,0.05))'
+                : 'rgba(99,102,241,0.06)',
+              border: `1.5px solid ${sub.daysLeft <= 7 ? 'var(--corail)' : 'rgba(99,102,241,0.3)'}`,
+            }}>
+            <span style={{ fontSize: 22 }}>⭐</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-bold uppercase tracking-widest"
+                   style={{ fontFamily: 'DM Sans', color: sub.daysLeft <= 7 ? 'var(--corail-2)' : '#4F46E5' }}>
+                {sub.daysLeft <= 7 ? t('sub.trial_last_days') : t('sub.trial_banner').replace('{n}', sub.daysLeft).replace(/\{s\}/g, sub.daysLeft > 1 ? 's' : '')}
+              </div>
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-widest group-hover:translate-x-0.5 transition-transform"
+                  style={{ fontFamily: 'DM Sans', color: sub.daysLeft <= 7 ? 'var(--corail-2)' : '#4F46E5' }}>
+              {t('sub.subscribe')} →
+            </span>
+          </button>
+        )}
+        {sub.status === 'active' && (
+          <div className="mt-4 w-full p-3 flex items-center gap-3 rounded-xl"
+               style={{ background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.2)' }}>
+            <span style={{ fontSize: 18 }}>✓</span>
+            <span className="text-[11px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: '#059669' }}>
+              {t('sub.subscribed')}
+            </span>
+          </div>
+        )}
 
         {/* Pavé Reprendre — apparaît quand une conversation existe pour ce lang+level */}
         {resumeSession && (
@@ -7170,8 +7236,9 @@ function SignupForm({ onBack, onSuccess, onGoLogin }) {
 
 // ─── PROFILE / MON COMPTE ─────────────────────────────────────────────────────
 
-function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManualLevel, onChangeDevice, device, onOpenLexicon, signOut }) {
+function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManualLevel, onChangeDevice, device, onOpenLexicon, onOpenSubscription, signOut }) {
   const t = useT();
+  const sub = getSubscriptionState(profile);
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [email, setEmail] = useState(profile?.email || '');
@@ -7395,6 +7462,33 @@ function ProfileScreen({ profile, onBack, onProfileUpdated, onStartTest, onManua
             </button>
           </div>
         </form>
+
+        {/* Section: abonnement */}
+        {onOpenSubscription && (
+          <button onClick={onOpenSubscription}
+            className="w-full text-left wl-card p-5 sm:p-6 mt-5 flex items-center gap-4 hover:-translate-y-0.5 transition-all group"
+            style={{ borderRadius: '24px', border: `1.5px solid ${sub.status === 'active' ? 'rgba(5,150,105,0.3)' : sub.daysLeft <= 7 ? 'var(--corail)' : 'rgba(99,102,241,0.3)'}` }}>
+            <div className="rounded-full flex items-center justify-center shrink-0"
+                 style={{ width: 56, height: 56,
+                          background: sub.status === 'active' ? 'linear-gradient(135deg, #D1FAE5, #ECFDF5)'
+                                    : 'linear-gradient(135deg, #E0E7FF, #F0F4FF)',
+                          border: '1.5px solid rgba(99,102,241,0.3)' }}>
+              <span style={{ fontSize: 28 }}>⭐</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-medium" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--ink)' }}>
+                {sub.status === 'active' ? t('sub.subscribed') : t('sub.manage')}
+              </h2>
+              <div className="text-[13px] mt-0.5" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                {sub.isTrial && t('sub.trial_banner').replace('{n}', sub.daysLeft).replace(/\{s\}/g, sub.daysLeft > 1 ? 's' : '')}
+                {sub.status === 'expired' && t('sub.paywall_title')}
+                {sub.status === 'active' && '✓'}
+              </div>
+            </div>
+            <span className="text-[color:var(--gris)] text-xl group-hover:translate-x-1 transition-transform"
+                  style={{ fontFamily: 'Fraunces, Georgia, serif' }}>→</span>
+          </button>
+        )}
 
         {/* Section: lexique */}
         {onOpenLexicon && (
@@ -7789,6 +7883,25 @@ const TRANSLATIONS = {
   'tr.hint':                { fr: 'Idéal en voyage ou avec un interlocuteur natif.', en: 'Perfect for travel or chatting with a native speaker.', es: 'Ideal para viajes o para hablar con un nativo.', pt: 'Ideal para viagens ou falar com um nativo.', de: 'Ideal für Reisen oder Gespräche mit Muttersprachlern.' },
   'tr.pick_direction':      { fr: 'Choisissez la direction de la traduction', en: 'Pick the translation direction', es: 'Elige la dirección de la traducción', pt: 'Escolha a direção da tradução', de: 'Wählen Sie die Übersetzungsrichtung' },
   'tr.empty':               { fr: 'Appuyez sur le gros bouton puis parlez. Appuyez à nouveau pour arrêter.', en: 'Tap the big button and speak. Tap again to stop.', es: 'Pulsa el botón grande y habla. Pulsa de nuevo para parar.', pt: 'Toque no botão grande e fale. Toque novamente para parar.', de: 'Tippen Sie den großen Knopf an und sprechen Sie. Zum Stoppen erneut tippen.' },
+  // Abonnement
+  'sub.trial_banner':       { fr: 'Essai gratuit · {n} jour{s} restant{s}', en: 'Free trial · {n} day{s} left', es: 'Prueba gratis · quedan {n} día{s}', pt: 'Teste gratuito · faltam {n} dia{s}', de: 'Kostenlose Testphase · noch {n} Tag{s}' },
+  'sub.trial_last_days':    { fr: '⏰ Votre essai se termine bientôt — pensez à vous abonner', en: '⏰ Your trial ends soon — consider subscribing', es: '⏰ Tu prueba termina pronto — considera suscribirte', pt: '⏰ O seu teste termina em breve — considere subscrever', de: '⏰ Ihre Testphase endet bald — jetzt abonnieren' },
+  'sub.subscribed':         { fr: 'Abonnement actif ✓',              en: 'Subscribed ✓',                   es: 'Suscripción activa ✓',          pt: 'Subscrito ✓',                   de: 'Aktives Abonnement ✓' },
+  'sub.manage':             { fr: 'Gérer mon abonnement',            en: 'Manage subscription',            es: 'Gestionar suscripción',         pt: 'Gerir subscrição',              de: 'Abonnement verwalten' },
+  'sub.subscribe':          { fr: 'S\'abonner',                      en: 'Subscribe',                      es: 'Suscribirse',                   pt: 'Subscrever',                    de: 'Abonnieren' },
+  'sub.paywall_title':      { fr: 'Votre essai gratuit est terminé', en: 'Your free trial has ended',      es: 'Tu prueba gratis ha terminado',  pt: 'O seu teste gratuito terminou', de: 'Ihre kostenlose Testphase ist vorbei' },
+  'sub.paywall_sub':        { fr: 'Abonnez-vous pour continuer à apprendre avec votre prof.', en: 'Subscribe to keep learning with your teacher.', es: 'Suscríbete para seguir aprendiendo con tu profe.', pt: 'Subscreva para continuar a aprender com o seu professor.', de: 'Abonnieren Sie, um weiter mit Ihrem Lehrer zu lernen.' },
+  'sub.plan_monthly':       { fr: 'Mensuel',                        en: 'Monthly',                        es: 'Mensual',                       pt: 'Mensal',                        de: 'Monatlich' },
+  'sub.plan_yearly':        { fr: 'Annuel',                         en: 'Yearly',                         es: 'Anual',                         pt: 'Anual',                         de: 'Jährlich' },
+  'sub.plan_lifetime':      { fr: 'À vie',                          en: 'Lifetime',                       es: 'De por vida',                   pt: 'Vitalício',                     de: 'Lebenslang' },
+  'sub.yearly_save':        { fr: '2 mois offerts',                 en: '2 months free',                  es: '2 meses gratis',                pt: '2 meses grátis',                de: '2 Monate gratis' },
+  'sub.most_popular':       { fr: 'Le plus populaire',               en: 'Most popular',                   es: 'Más popular',                   pt: 'Mais popular',                  de: 'Am beliebtesten' },
+  'sub.per_month':          { fr: '/mois',                          en: '/month',                         es: '/mes',                          pt: '/mês',                          de: '/Monat' },
+  'sub.per_year':           { fr: '/an',                            en: '/year',                          es: '/año',                          pt: '/ano',                          de: '/Jahr' },
+  'sub.one_time':           { fr: 'paiement unique',                 en: 'one-time payment',               es: 'pago único',                    pt: 'pagamento único',               de: 'Einmalzahlung' },
+  'sub.coming_soon':        { fr: 'Le paiement arrive très bientôt — on te contacte dès que c\'est en ligne.', en: 'Payment coming very soon — we\'ll reach out as soon as it\'s live.', es: 'El pago llega pronto — te contactaremos cuando esté activo.', pt: 'Pagamento em breve — avisaremos quando estiver ativo.', de: 'Zahlung bald verfügbar — wir melden uns, sobald es live ist.' },
+  'sub.account_since':      { fr: 'Compte créé le',                 en: 'Account created on',             es: 'Cuenta creada el',              pt: 'Conta criada em',               de: 'Konto erstellt am' },
+  'sub.trial_ends':         { fr: 'Fin d\'essai le',                 en: 'Trial ends on',                  es: 'Fin de prueba el',              pt: 'Fim do teste em',               de: 'Testphase endet am' },
   // Reader
   'reader.title':           { fr: 'Lecture',                       en: 'Reader',                       es: 'Lectura',                       pt: 'Leitura',                      de: 'Lesen' },
   'reader.topic':           { fr: 'sujet',                         en: 'topic',                        es: 'tema',                          pt: 'tema',                         de: 'Thema' },
@@ -7908,6 +8021,136 @@ function AuthGate({ children }) {
 
   // User authenticated — render the app with profile context
   return React.cloneElement(children, { profile, signOut, reloadProfile });
+}
+
+// ─── SUBSCRIPTION / PAYWALL SCREEN ────────────────────────────────────────────
+// Affiché quand l'essai est expiré (bloque l'accès) OU quand l'utilisateur
+// clique sur "Gérer mon abonnement" dans le profil (consultation libre).
+// Les plans sont pour l'instant visuels — le paiement est à brancher plus tard
+// (Lemon Squeezy ou Stripe). Un clic sur un plan ouvre un dialogue "arrive bientôt".
+
+const SUBSCRIPTION_PLANS = [
+  { id: 'monthly',  price: '6,99 €', per: 'per_month', badge: null },
+  { id: 'yearly',   price: '49,99 €', per: 'per_year',  badge: 'save' },
+  { id: 'lifetime', price: '99 €',    per: 'one_time',  badge: 'popular' },
+];
+
+function SubscriptionScreen({ profile, forcedPaywall, onBack }) {
+  const t = useT();
+  const sub = getSubscriptionState(profile);
+  const dateLocale = { fr: 'fr-FR', en: 'en-US', es: 'es-ES', pt: 'pt-BR', de: 'de-DE' }[profile?.native_language || 'fr'];
+
+  const formatDate = (d) => {
+    if (!d) return '';
+    try { return new Date(d).toLocaleDateString(dateLocale, { day: '2-digit', month: 'long', year: 'numeric' }); } catch { return ''; }
+  };
+
+  const handlePickPlan = () => {
+    alert(t('sub.coming_soon'));
+  };
+
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor: 'transparent' }}>
+      <div className="max-w-2xl mx-auto">
+        {!forcedPaywall && (
+          <button onClick={onBack}
+            className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+            style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            <ArrowLeft size={14} /> {t('back')}
+          </button>
+        )}
+
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center rounded-full mb-3"
+               style={{ width: 80, height: 80, background: 'linear-gradient(135deg, #FF385C, #E31C5F)', boxShadow: '0 6px 18px rgba(255,56,92,0.3)' }}>
+            <span style={{ fontSize: 40 }}>⭐</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-medium leading-tight tracking-tight"
+              style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 800 }}>
+            {forcedPaywall ? t('sub.paywall_title') : t('sub.subscribe')}
+          </h1>
+          <p className="mt-3 text-[15px] max-w-md mx-auto"
+             style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            {t('sub.paywall_sub')}
+          </p>
+        </div>
+
+        {/* Infos compte */}
+        <div className="wl-card p-4 mb-5 flex flex-col gap-1"
+             style={{ borderRadius: '18px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <div className="text-xs" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            {t('sub.account_since')} <strong style={{ color: 'var(--ink)' }}>{formatDate(profile?.trial_started_at)}</strong>
+          </div>
+          <div className="text-xs" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            {t('sub.trial_ends')} <strong style={{ color: 'var(--ink)' }}>{formatDate(sub.trialExpiresAt)}</strong>
+          </div>
+          {sub.isTrial && sub.daysLeft > 0 && (
+            <div className="text-xs font-bold mt-1" style={{ fontFamily: 'DM Sans', color: 'var(--corail)' }}>
+              {t('sub.trial_banner').replace('{n}', sub.daysLeft).replace(/\{s\}/g, sub.daysLeft > 1 ? 's' : '')}
+            </div>
+          )}
+          {sub.status === 'active' && (
+            <div className="text-xs font-bold mt-1" style={{ fontFamily: 'DM Sans', color: '#059669' }}>
+              {t('sub.subscribed')}
+            </div>
+          )}
+        </div>
+
+        {/* Plans */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {SUBSCRIPTION_PLANS.map(plan => {
+            const isPopular = plan.badge === 'popular';
+            return (
+              <button key={plan.id} onClick={handlePickPlan}
+                className="relative p-5 rounded-2xl text-left transition-all hover:-translate-y-1"
+                style={{
+                  background: isPopular ? 'linear-gradient(135deg, #FFFFFF, #FFF3E0)' : 'white',
+                  border: isPopular ? '2.5px solid var(--corail)' : '1.5px solid rgba(90,78,69,0.2)',
+                  boxShadow: isPopular ? '0 10px 30px rgba(255,56,92,0.25)' : '0 2px 8px rgba(90,78,69,0.08)',
+                }}>
+                {plan.badge === 'save' && (
+                  <span className="absolute -top-2 -right-2 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full text-white"
+                        style={{ fontFamily: 'DM Sans', background: '#059669' }}>
+                    {t('sub.yearly_save')}
+                  </span>
+                )}
+                {plan.badge === 'popular' && (
+                  <span className="absolute -top-2 -right-2 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full text-white"
+                        style={{ fontFamily: 'DM Sans', background: 'var(--corail)' }}>
+                    {t('sub.most_popular')}
+                  </span>
+                )}
+                <div className="text-[11px] font-bold uppercase tracking-widest mb-2"
+                     style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                  {t(`sub.plan_${plan.id}`)}
+                </div>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 32, fontWeight: 700, color: 'var(--ink)' }}>
+                    {plan.price}
+                  </span>
+                  <span className="text-xs" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                    {t(`sub.${plan.per}`)}
+                  </span>
+                </div>
+                <div className="w-full py-2 px-3 rounded-full text-center text-xs font-bold uppercase tracking-widest"
+                     style={{
+                       fontFamily: 'DM Sans',
+                       background: isPopular ? 'var(--corail)' : 'rgba(90,78,69,0.08)',
+                       color: isPopular ? 'white' : 'var(--ink)',
+                     }}>
+                  {t('sub.subscribe')} →
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-xs text-center mt-5" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          ℹ️ {t('sub.coming_soon')}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 // ─── TRANSLATOR SCREEN ────────────────────────────────────────────────────────
@@ -8298,6 +8541,18 @@ function MainApp({ profile, signOut, reloadProfile }) {
     };
   }, []);
 
+  // Garde-fou abonnement : si l'essai est expiré et pas d'abonnement actif,
+  // on bloque TOUT l'accès à l'app (sauf écrans profile et subscription).
+  const sub = getSubscriptionState(profile);
+  const paywallBlocked = !sub.hasAccess && step !== 'subscription' && step !== 'profile' && step !== 'autoloading';
+  if (paywallBlocked) {
+    return <SubscriptionScreen profile={profile} forcedPaywall={true} />;
+  }
+  if (step === 'subscription') {
+    return <SubscriptionScreen profile={profile} forcedPaywall={!sub.hasAccess}
+      onBack={() => setStep(language ? 'mode' : 'language')} />;
+  }
+
   if (step === 'autoloading') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'transparent' }}>
@@ -8322,6 +8577,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onManualLevel={() => setStep('manuallevel')}
     onChangeDevice={() => setStep('device')}
     onOpenLexicon={() => setStep('lexicon')}
+    onOpenSubscription={() => setStep('subscription')}
     signOut={signOut}
     device={deviceChoice} />;
   if (step === 'picklangfortest') return <LanguagePickForTest
@@ -8364,6 +8620,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
     signOut={signOut}
     onOpenProfile={() => setStep('profile')}
     onOpenLexicon={() => setStep('lexicon')}
+    onOpenSubscription={() => setStep('subscription')}
     onSelect={(m) => {
       if (m === 'chat') { setScenario(null); return setStep('avatar'); }
       if (m === 'reader') return setStep('reader');

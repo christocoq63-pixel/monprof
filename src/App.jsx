@@ -1296,6 +1296,82 @@ function guessVoiceGender(voiceName) {
   return null;
 }
 
+// ─── VOICE PICKING ────────────────────────────────────────────────────────────
+// Cache module-level : UNE voix choisie définitivement par (avatar + langue).
+// Évite que la voix change entre deux appels pour le même prof.
+const CHOSEN_VOICE_CACHE = new Map();
+
+// Choisit la MEILLEURE voix pour un avatar dans une langue donnée.
+// Résultat mis en cache → même avatar = toujours même voix dans la session.
+// Retourne { voice, pitchShift } où pitchShift est à appliquer si on n'a pas
+// trouvé une voix du bon genre.
+function pickVoiceForAvatar(avatar, lang, voices, preferredVoiceURI) {
+  // 1. Voix explicitement choisie par l'utilisateur dans ses préférences
+  if (preferredVoiceURI) {
+    const explicit = voices.find(v => v.voiceURI === preferredVoiceURI);
+    if (explicit) return { voice: explicit, pitchShift: 0 };
+  }
+
+  // 2. Cache : même (avatar, langue) → même voix
+  const cacheKey = `${avatar?.id || 'none'}:${lang?.code || 'none'}:${lang?.ttsLocale || 'en-US'}`;
+  const cached = CHOSEN_VOICE_CACHE.get(cacheKey);
+  if (cached && voices.find(v => v.voiceURI === cached.voiceURI)) {
+    return { voice: cached.voice, pitchShift: cached.pitchShift };
+  }
+  if (!voices.length) return { voice: null, pitchShift: 0 };
+
+  // 3. Scoring : trouve la voix la plus pertinente
+  const targetLocale = lang?.ttsLocale || 'en-US';
+  const base = targetLocale.split('-')[0];
+  const langPool = voices.filter(v => v.lang.startsWith(base));
+  const exactPool = langPool.filter(v => v.lang === targetLocale);
+  const pool = exactPool.length ? exactPool : langPool;
+  if (!pool.length) return { voice: voices[0], pitchShift: 0 };
+
+  const targetGender = avatar?.gender || null;
+  const scored = pool.map(v => {
+    let score = 0;
+    const n = v.name.toLowerCase();
+    // Qualité : bonus énorme pour les voix naturelles / neural
+    if (/natural|premium|enhanced|neural|wavenet|studio/.test(n)) score += 150;
+    if (/google/.test(n)) score += 60;
+    if (/microsoft/.test(n) && /online|natural/.test(n)) score += 40;
+    // Hint explicite dans l'avatar (nom précis d'une voix)
+    if (avatar?.voiceHint?.length && avatar.voiceHint.some(h => n.includes(h.toLowerCase()))) score += 200;
+    // Préférer les voix cloud (meilleure qualité en général)
+    if (v.localService === false) score += 20;
+    // Locale exact-match bonus (ex. fr-FR plutôt que fr-CA)
+    if (v.lang === targetLocale) score += 50;
+    // Genre : énorme bonus si match, grosse pénalité sinon
+    if (targetGender) {
+      const voiceGender = guessVoiceGender(v.name);
+      if (voiceGender === targetGender) score += 1000;
+      else if (voiceGender && voiceGender !== targetGender) score -= 500;
+    }
+    return { v, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  const chosen = scored[0]?.v || pool[0];
+
+  // Calcul du pitchShift : si on n'a pas pu trouver une voix du bon genre,
+  // on module la hauteur pour simuler le genre voulu.
+  let pitchShift = 0;
+  if (targetGender && chosen) {
+    const chosenGender = guessVoiceGender(chosen.name);
+    if (chosenGender !== targetGender) {
+      if (targetGender === 'male' && (chosenGender === 'female' || chosenGender === null)) {
+        pitchShift = -0.35;
+      } else if (targetGender === 'female' && (chosenGender === 'male' || chosenGender === null)) {
+        pitchShift = 0.35;
+      }
+    }
+  }
+
+  // Mise en cache : plus jamais recalculé pour cet avatar
+  CHOSEN_VOICE_CACHE.set(cacheKey, { voiceURI: chosen.voiceURI, voice: chosen, pitchShift });
+  return { voice: chosen, pitchShift };
+}
+
 function useSpeech() {
   const [voices, setVoices] = useState([]);
   const [speakingText, setSpeakingText] = useState(null);
@@ -1303,9 +1379,23 @@ function useSpeech() {
 
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
-    const load = () => setVoices(window.speechSynthesis.getVoices());
+    const load = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length) {
+        // Nouvelle liste de voix → on vide le cache pour forcer une nouvelle sélection
+        // au prochain speak(). Ça gère le cas Chrome qui charge les voix tardivement.
+        if (voices.length === 0 && v.length > 0) {
+          CHOSEN_VOICE_CACHE.clear();
+        }
+        setVoices(v);
+      }
+    };
     load();
     window.speechSynthesis.onvoiceschanged = load;
+    // Fallback : certains navigateurs chargent les voix de façon asynchrone
+    const timer = setTimeout(load, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line
   }, []);
 
   const speak = (text, avatar, lang, preferredVoiceURI) => {
@@ -1313,68 +1403,19 @@ function useSpeech() {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang?.ttsLocale || 'en-US';
-    // Per-avatar rate/pitch override if defined
     u.rate = avatar?.rate ?? 0.9;
     u.pitch = avatar?.pitch ?? 1;
     u.onstart = () => { setSpeakingText(text); setSpeakingBoundary({ text, charIndex: 0, charLength: 0 }); };
     u.onend = () => { setSpeakingText(null); setSpeakingBoundary(null); };
     u.onerror = () => { setSpeakingText(null); setSpeakingBoundary(null); };
     u.onboundary = (evt) => {
-      // Fired for word/sentence boundaries. Not all browsers fire it, but Chrome/Safari do.
       if (evt.name === 'word' || !evt.name) {
         setSpeakingBoundary({ text, charIndex: evt.charIndex, charLength: evt.charLength || 0 });
       }
     };
-    if (voices.length) {
-      let chosen = null;
-      if (preferredVoiceURI) {
-        chosen = voices.find(v => v.voiceURI === preferredVoiceURI);
-      }
-      if (!chosen) {
-        const base = (lang?.ttsLocale || 'en-US').split('-')[0];
-        const langPool = voices.filter(v => v.lang.startsWith(base));
-        const exactPool = langPool.filter(v => v.lang === (lang?.ttsLocale || 'en-US'));
-        const pool = exactPool.length ? exactPool : langPool;
-
-        // Determine target gender from avatar
-        const targetGender = avatar?.gender || null;
-
-        const scored = pool.map(v => {
-          let score = 0;
-          const n = v.name.toLowerCase();
-          if (/natural|premium|enhanced|neural|wavenet|studio/.test(n)) score += 100;
-          if (/google/.test(n)) score += 60;
-          if (/microsoft/.test(n) && /online|natural/.test(n)) score += 40;
-          if (avatar && avatar.voiceHint.some(h => n.includes(h))) score += 80;
-          if (v.localService === false) score += 5;
-
-          // Gender matching: HUGE boost when it matches, big penalty otherwise
-          if (targetGender) {
-            const voiceGender = guessVoiceGender(v.name);
-            if (voiceGender === targetGender) score += 500;
-            else if (voiceGender && voiceGender !== targetGender) score -= 300;
-          }
-          return { v, score };
-        });
-        scored.sort((a, b) => b.score - a.score);
-        chosen = scored[0]?.v || pool[0];
-
-        // Fallback: if the chosen voice's gender doesn't match, modulate pitch
-        // to make male vs female audibly distinct even with the same underlying voice.
-        if (targetGender && chosen) {
-          const chosenGender = guessVoiceGender(chosen.name);
-          if (chosenGender !== targetGender) {
-            // No matching gender available → shift pitch to fake it
-            if (targetGender === 'male' && (chosenGender === 'female' || chosenGender === null)) {
-              u.pitch = Math.max(0.5, (avatar?.pitch ?? 1) - 0.35);
-            } else if (targetGender === 'female' && (chosenGender === 'male' || chosenGender === null)) {
-              u.pitch = Math.min(2.0, (avatar?.pitch ?? 1) + 0.35);
-            }
-          }
-        }
-      }
-      if (chosen) u.voice = chosen;
-    }
+    const { voice, pitchShift } = pickVoiceForAvatar(avatar, lang, voices, preferredVoiceURI);
+    if (voice) u.voice = voice;
+    if (pitchShift) u.pitch = Math.max(0.5, Math.min(2.0, u.pitch + pitchShift));
     window.speechSynthesis.speak(u);
   };
 
@@ -1399,19 +1440,10 @@ function useSpeech() {
         u.onstart = () => setSpeakingText(item.text);
         u.onend = () => { if (!cancelled) speakNext(); };
         u.onerror = () => { setSpeakingText(null); };
-        // Reuse the same voice-picking logic by delegating
-        if (voices.length) {
-          let chosen = null;
-          if (preferredVoiceURI) chosen = voices.find(v => v.voiceURI === preferredVoiceURI);
-          if (!chosen) {
-            const base = (lang?.ttsLocale || 'en-US').split('-')[0];
-            const langPool = voices.filter(v => v.lang.startsWith(base));
-            const exactPool = langPool.filter(v => v.lang === (lang?.ttsLocale || 'en-US'));
-            const pool = exactPool.length ? exactPool : langPool;
-            chosen = pool[0];
-          }
-          if (chosen) u.voice = chosen;
-        }
+        // MÊME logique de sélection de voix que speak() → cohérence garantie
+        const { voice, pitchShift } = pickVoiceForAvatar(avatar, lang, voices, preferredVoiceURI);
+        if (voice) u.voice = voice;
+        if (pitchShift) u.pitch = Math.max(0.5, Math.min(2.0, u.pitch + pitchShift));
         window.speechSynthesis.speak(u);
       }, delay);
     };
@@ -3931,7 +3963,6 @@ Respond ONLY with a JSON object, no code fences:
       setPlayingIdx(i);
       stopSpeak();
       await new Promise(res => {
-        // Give a moment before speaking to let previous stop settle
         setTimeout(() => {
           if (playCancelRef.current) return res();
           const line = dialogue.lines[i];
@@ -3939,6 +3970,17 @@ Respond ONLY with a JSON object, no code fences:
           const u = new SpeechSynthesisUtterance(line.text);
           u.lang = lang.ttsLocale || 'en-US';
           u.rate = 0.9;
+          // A et B ont des voix différentes : on crée des pseudo-avatars avec
+          // des genres opposés pour que le dialogue sonne comme deux personnes
+          const voices = window.speechSynthesis.getVoices();
+          const pseudoAvatar = {
+            id: `dialog-speaker-${line.speaker}`,
+            gender: line.speaker === 'A' ? 'female' : 'male',
+            voiceHint: [],
+          };
+          const { voice, pitchShift } = pickVoiceForAvatar(pseudoAvatar, lang, voices);
+          if (voice) u.voice = voice;
+          if (pitchShift) u.pitch = Math.max(0.5, Math.min(2.0, 1 + pitchShift));
           u.onend = () => res();
           u.onerror = () => res();
           window.speechSynthesis.speak(u);

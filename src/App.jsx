@@ -6120,7 +6120,30 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
           )}
         </div>
 
-        {/* Bandeau "abonné" uniquement — l'essai est désormais rappelé par le bandeau global en haut */}
+        {/* Bandeau abonnement — reprend le compteur + CTA en toute lettre pour cette page de menu */}
+        {sub.isTrial && (
+          <button onClick={() => onOpenSubscription?.()}
+            className="mt-4 w-full text-left transition-all hover:-translate-y-0.5 p-3 flex items-center gap-3 group"
+            style={{
+              borderRadius: '14px',
+              background: sub.daysLeft <= 7
+                ? 'linear-gradient(135deg, rgba(255,56,92,0.12), rgba(255,56,92,0.05))'
+                : 'rgba(99,102,241,0.06)',
+              border: `1.5px solid ${sub.daysLeft <= 7 ? 'var(--corail)' : 'rgba(99,102,241,0.3)'}`,
+            }}>
+            <span style={{ fontSize: 22 }}>⭐</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-bold uppercase tracking-widest"
+                   style={{ fontFamily: 'DM Sans', color: sub.daysLeft <= 7 ? 'var(--corail-2)' : '#4F46E5' }}>
+                {sub.daysLeft <= 7 ? t('sub.trial_last_days') : t('sub.trial_banner').replace('{n}', sub.daysLeft).replace(/\{s\}/g, sub.daysLeft > 1 ? 's' : '')}
+              </div>
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-widest group-hover:translate-x-0.5 transition-transform"
+                  style={{ fontFamily: 'DM Sans', color: sub.daysLeft <= 7 ? 'var(--corail-2)' : '#4F46E5' }}>
+              {t('sub.subscribe')} →
+            </span>
+          </button>
+        )}
         {sub.status === 'active' && (
           <div className="mt-4 w-full p-3 flex items-center gap-3 rounded-xl"
                style={{ background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.2)' }}>

@@ -8545,133 +8545,168 @@ function MainApp({ profile, signOut, reloadProfile }) {
   // on bloque TOUT l'accès à l'app (sauf écrans profile et subscription).
   const sub = getSubscriptionState(profile);
   const paywallBlocked = !sub.hasAccess && step !== 'subscription' && step !== 'profile' && step !== 'autoloading';
-  if (paywallBlocked) {
-    return <SubscriptionScreen profile={profile} forcedPaywall={true} />;
-  }
-  if (step === 'subscription') {
-    return <SubscriptionScreen profile={profile} forcedPaywall={!sub.hasAccess}
-      onBack={() => setStep(language ? 'mode' : 'language')} />;
-  }
 
-  if (step === 'autoloading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'transparent' }}>
-        <div className="text-center">
-          <Loader2 size={28} className="animate-spin inline mb-3" style={{ color: 'var(--corail-2)' }} />
-          <p style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)', fontSize: 15 }}>
-            {TRANSLATIONS['loading']?.[profile?.native_language || 'fr'] || 'un instant…'}
-          </p>
+  // Rend l'écran courant selon `step`. Encapsulé pour pouvoir superposer le
+  // bandeau d'essai en haut de TOUTES les pages via le return unique en bas.
+  const renderScreen = () => {
+    if (paywallBlocked) return <SubscriptionScreen profile={profile} forcedPaywall={true} />;
+    if (step === 'subscription') return <SubscriptionScreen profile={profile} forcedPaywall={!sub.hasAccess}
+      onBack={() => setStep(language ? 'mode' : 'language')} />;
+
+    if (step === 'autoloading') {
+      return (
+        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'transparent' }}>
+          <div className="text-center">
+            <Loader2 size={28} className="animate-spin inline mb-3" style={{ color: 'var(--corail-2)' }} />
+            <p style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)', fontSize: 15 }}>
+              {TRANSLATIONS['loading']?.[profile?.native_language || 'fr'] || 'un instant…'}
+            </p>
+          </div>
         </div>
-      </div>
-    );
-  }
-  if (step === 'device')   return <DeviceChooserScreen
-    forceShow={!hasDeviceChoice}
-    currentDevice={deviceChoice}
-    onSaved={(d) => { setDeviceChoice(d); setStep(hasDeviceChoice ? 'profile' : 'language'); }}
-    onSkip={hasDeviceChoice ? () => setStep('profile') : null} />;
-  if (step === 'profile')  return <ProfileScreen profile={profile}
-    onBack={() => setStep(language ? 'mode' : 'language')}
-    onProfileUpdated={reloadProfile}
-    onStartTest={() => setStep('picklangfortest')}
-    onManualLevel={() => setStep('manuallevel')}
-    onChangeDevice={() => setStep('device')}
-    onOpenLexicon={() => setStep('lexicon')}
-    onOpenSubscription={() => setStep('subscription')}
-    signOut={signOut}
-    device={deviceChoice} />;
-  if (step === 'picklangfortest') return <LanguagePickForTest
-    onBack={() => setStep('profile')}
-    onSelect={(l) => { setLanguage(l); setStep('leveltest'); }} />;
-  if (step === 'manuallevel') return <ManualLevelPickerScreen
-    onBack={() => setStep('profile')}
-    onSaved={() => setStep('profile')} />;
-  if (step === 'language') return <LanguagePicker
-    profile={profile} signOut={signOut}
-    onSelect={(l) => {
-      setLanguage(l);
-      // Si on est déjà venu dans cette langue, on retrouve son niveau + son prof.
-      const prev = loadLangChoice(profile?.id, l.code);
-      if (prev) {
-        const lv = LEVELS[prev.levelId];
-        const av = l.avatars.find(a => a.id === prev.avatarId);
-        if (lv && av) {
-          setLevel(lv);
-          setAvatar(av);
-          return setStep('mode');
+      );
+    }
+    if (step === 'device')   return <DeviceChooserScreen
+      forceShow={!hasDeviceChoice}
+      currentDevice={deviceChoice}
+      onSaved={(d) => { setDeviceChoice(d); setStep(hasDeviceChoice ? 'profile' : 'language'); }}
+      onSkip={hasDeviceChoice ? () => setStep('profile') : null} />;
+    if (step === 'profile')  return <ProfileScreen profile={profile}
+      onBack={() => setStep(language ? 'mode' : 'language')}
+      onProfileUpdated={reloadProfile}
+      onStartTest={() => setStep('picklangfortest')}
+      onManualLevel={() => setStep('manuallevel')}
+      onChangeDevice={() => setStep('device')}
+      onOpenLexicon={() => setStep('lexicon')}
+      onOpenSubscription={() => setStep('subscription')}
+      signOut={signOut}
+      device={deviceChoice} />;
+    if (step === 'picklangfortest') return <LanguagePickForTest
+      onBack={() => setStep('profile')}
+      onSelect={(l) => { setLanguage(l); setStep('leveltest'); }} />;
+    if (step === 'manuallevel') return <ManualLevelPickerScreen
+      onBack={() => setStep('profile')}
+      onSaved={() => setStep('profile')} />;
+    if (step === 'language') return <LanguagePicker
+      profile={profile} signOut={signOut}
+      onSelect={(l) => {
+        setLanguage(l);
+        const prev = loadLangChoice(profile?.id, l.code);
+        if (prev) {
+          const lv = LEVELS[prev.levelId];
+          const av = l.avatars.find(a => a.id === prev.avatarId);
+          if (lv && av) {
+            setLevel(lv);
+            setAvatar(av);
+            return setStep('mode');
+          }
         }
-      }
-      setStep('level');
-    }}
-    onOpenProfile={() => setStep('profile')}
-    onOpenLexicon={() => setStep('lexicon')}
-    onResumeLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar); setStep('chat'); }}
-    onChangeAvatarForLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(null); setStep('avatar'); }}
-  />;
-  if (step === 'level')    return <LevelPicker language={language}
-    onSelect={(lv) => { setLevel(lv); setStep('mode'); }}
-    onStartTest={() => setStep('leveltest')}
-    onBack={() => setStep('language')} />;
-  if (step === 'leveltest') return <LevelTestScreen language={language}
-    onLevelDetermined={(lv) => { setLevel(lv); setStep('mode'); }}
-    onBack={() => setStep('level')} />;
-  if (step === 'mode')     return <ModePicker language={language} level={level}
-    profile={profile}
-    signOut={signOut}
-    onOpenProfile={() => setStep('profile')}
-    onOpenLexicon={() => setStep('lexicon')}
-    onOpenSubscription={() => setStep('subscription')}
-    onSelect={(m) => {
-      if (m === 'chat') { setScenario(null); return setStep('avatar'); }
-      if (m === 'reader') return setStep('reader');
-      if (m === 'exercises') return setStep('exercises');
-      if (m === 'lexicon') return setStep('lexicon');
-      if (m === 'scenarios') return setStep('scenarios');
-      if (m === 'translator') return setStep('translator');
-    }}
-    onResumeChat={(av) => { setScenario(null); setAvatar(av); setStep('chat'); }}
-    onChangeLanguage={() => setStep('language')}
-    onBack={() => setStep('level')} />;
-  if (step === 'scenarios') return <ScenariosScreen lang={language} level={level}
-    onBack={() => setStep('mode')}
-    onStartScenario={(sc) => {
-      setScenario(sc);
-      // Utilise le prof déjà sélectionné pour cette langue :
-      //   1. Le prof en cours (avatar) s'il est chargé
-      //   2. Sinon, celui qu'on a stocké pour cette langue (loadLangChoice)
-      //   3. Sinon, le 1er prof de la langue (pas au hasard — comportement stable)
-      let av = avatar;
-      if (!av) {
-        const prev = loadLangChoice(profile?.id, language.code);
-        if (prev) av = language.avatars.find(a => a.id === prev.avatarId) || null;
-      }
-      if (!av) av = language.avatars[0];
-      setAvatar(av);
-      // On mémorise aussi ce prof comme choix pour cette langue
-      saveLangChoice(profile?.id, language.code, level.id, av.id);
+        setStep('level');
+      }}
+      onOpenProfile={() => setStep('profile')}
+      onOpenLexicon={() => setStep('lexicon')}
+      onResumeLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(s.avatar); setStep('chat'); }}
+      onChangeAvatarForLast={(s) => { setLanguage(s.lang); setLevel(s.level); setAvatar(null); setStep('avatar'); }}
+    />;
+    if (step === 'level')    return <LevelPicker language={language}
+      onSelect={(lv) => { setLevel(lv); setStep('mode'); }}
+      onStartTest={() => setStep('leveltest')}
+      onBack={() => setStep('language')} />;
+    if (step === 'leveltest') return <LevelTestScreen language={language}
+      onLevelDetermined={(lv) => { setLevel(lv); setStep('mode'); }}
+      onBack={() => setStep('level')} />;
+    if (step === 'mode')     return <ModePicker language={language} level={level}
+      profile={profile}
+      signOut={signOut}
+      onOpenProfile={() => setStep('profile')}
+      onOpenLexicon={() => setStep('lexicon')}
+      onOpenSubscription={() => setStep('subscription')}
+      onSelect={(m) => {
+        if (m === 'chat') { setScenario(null); return setStep('avatar'); }
+        if (m === 'reader') return setStep('reader');
+        if (m === 'exercises') return setStep('exercises');
+        if (m === 'lexicon') return setStep('lexicon');
+        if (m === 'scenarios') return setStep('scenarios');
+        if (m === 'translator') return setStep('translator');
+      }}
+      onResumeChat={(av) => { setScenario(null); setAvatar(av); setStep('chat'); }}
+      onChangeLanguage={() => setStep('language')}
+      onBack={() => setStep('level')} />;
+    if (step === 'scenarios') return <ScenariosScreen lang={language} level={level}
+      onBack={() => setStep('mode')}
+      onStartScenario={(sc) => {
+        setScenario(sc);
+        let av = avatar;
+        if (!av) {
+          const prev = loadLangChoice(profile?.id, language.code);
+          if (prev) av = language.avatars.find(a => a.id === prev.avatarId) || null;
+        }
+        if (!av) av = language.avatars[0];
+        setAvatar(av);
+        saveLangChoice(profile?.id, language.code, level.id, av.id);
+        setStep('chat');
+      }} />;
+    if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => {
+      setAvatar(a);
+      saveLangChoice(profile?.id, language.code, level.id, a.id);
       setStep('chat');
-    }} />;
-  if (step === 'avatar')   return <AvatarPicker language={language} level={level} onSelect={(a) => {
-    setAvatar(a);
-    // Sauvegarde dès la sélection du prof (avant même le 1er message)
-    saveLangChoice(profile?.id, language.code, level.id, a.id);
-    setStep('chat');
-  }} onBack={() => setStep('mode')} />;
-  // All 4 mode screens return to Screen 3 (ModePicker) on exit, keeping the
-  // language + level context — the user changes language only by explicit choice.
-  if (step === 'reader')   return <ReaderScreen lang={language} level={level}
-    onBack={() => setStep('mode')}
-    onOpenLexicon={() => setStep('lexicon')} />;
-  if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('mode')} />;
-  if (step === 'translator') return <TranslatorScreen lang={language} profile={profile} onBack={() => setStep('mode')} />;
-  if (step === 'lexicon')  return <LexiconScreen lang={language} profile={profile}
-    onBack={() => setStep(language ? 'mode' : 'language')} />;
-  return <ChatScreen lang={language} level={level} avatar={avatar} profile={profile}
-    scenario={scenario}
-    onChangeAvatar={() => { setScenario(null); setStep('avatar'); }}
-    onBackHome={() => { setScenario(null); setStep('mode'); }}
-    onOpenExercises={() => setStep('exercises')}
-    onOpenLexicon={() => setStep('lexicon')} />;
+    }} onBack={() => setStep('mode')} />;
+    if (step === 'reader')   return <ReaderScreen lang={language} level={level}
+      onBack={() => setStep('mode')}
+      onOpenLexicon={() => setStep('lexicon')} />;
+    if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('mode')} />;
+    if (step === 'translator') return <TranslatorScreen lang={language} profile={profile} onBack={() => setStep('mode')} />;
+    if (step === 'lexicon')  return <LexiconScreen lang={language} profile={profile}
+      onBack={() => setStep(language ? 'mode' : 'language')} />;
+    return <ChatScreen lang={language} level={level} avatar={avatar} profile={profile}
+      scenario={scenario}
+      onChangeAvatar={() => { setScenario(null); setStep('avatar'); }}
+      onBackHome={() => { setScenario(null); setStep('mode'); }}
+      onOpenExercises={() => setStep('exercises')}
+      onOpenLexicon={() => setStep('lexicon')} />;
+  };
+
+  // Le bandeau d'essai n'est pas montré sur l'écran de chargement initial ni
+  // sur la paywall elle-même (où l'info est déjà au centre).
+  const showTrialBar = sub.isTrial && step !== 'autoloading' && step !== 'subscription' && !paywallBlocked;
+
+  return (
+    <>
+      {showTrialBar && <TrialTopBar sub={sub} nativeLang={profile?.native_language || 'fr'} onClick={() => setStep('subscription')} />}
+      <div style={{ paddingTop: showTrialBar ? 36 : 0 }}>
+        {renderScreen()}
+      </div>
+    </>
+  );
+}
+
+// Bandeau sticky affiché en haut de toutes les pages pendant l'essai.
+// Click → ouvre la page d'abonnement. Change de couleur à partir de J-7.
+function TrialTopBar({ sub, nativeLang, onClick }) {
+  const t = (key) => {
+    const entry = TRANSLATIONS[key];
+    return entry?.[nativeLang] || entry?.fr || key;
+  };
+  const urgent = sub.daysLeft <= 7;
+  const bg = urgent
+    ? 'linear-gradient(90deg, #FF385C, #E31C5F)'
+    : 'linear-gradient(90deg, #6366F1, #4F46E5)';
+  const label = urgent
+    ? t('sub.trial_last_days')
+    : t('sub.trial_banner').replace('{n}', sub.daysLeft).replace(/\{s\}/g, sub.daysLeft > 1 ? 's' : '');
+  return (
+    <button onClick={onClick}
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-3 px-4 py-2 text-white text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all"
+      style={{
+        fontFamily: 'DM Sans',
+        background: bg,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+        height: 36,
+      }}>
+      <span style={{ fontSize: 14 }}>⭐</span>
+      <span className="truncate">{label}</span>
+      <span className="shrink-0">· {t('sub.subscribe')} →</span>
+    </button>
+  );
 }
 
 // Wrapper qui fournit le contexte i18n en fonction de la langue d'origine du profil

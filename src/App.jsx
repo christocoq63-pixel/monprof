@@ -6120,30 +6120,7 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
           )}
         </div>
 
-        {/* Bandeau abonnement : rappel discret si essai, visible si <7 jours */}
-        {sub.isTrial && (
-          <button onClick={() => onOpenSubscription?.()}
-            className="mt-4 w-full text-left transition-all hover:-translate-y-0.5 p-3 flex items-center gap-3 group"
-            style={{
-              borderRadius: '14px',
-              background: sub.daysLeft <= 7
-                ? 'linear-gradient(135deg, rgba(255,56,92,0.12), rgba(255,56,92,0.05))'
-                : 'rgba(99,102,241,0.06)',
-              border: `1.5px solid ${sub.daysLeft <= 7 ? 'var(--corail)' : 'rgba(99,102,241,0.3)'}`,
-            }}>
-            <span style={{ fontSize: 22 }}>⭐</span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-bold uppercase tracking-widest"
-                   style={{ fontFamily: 'DM Sans', color: sub.daysLeft <= 7 ? 'var(--corail-2)' : '#4F46E5' }}>
-                {sub.daysLeft <= 7 ? t('sub.trial_last_days') : t('sub.trial_banner').replace('{n}', sub.daysLeft).replace(/\{s\}/g, sub.daysLeft > 1 ? 's' : '')}
-              </div>
-            </div>
-            <span className="text-[11px] font-bold uppercase tracking-widest group-hover:translate-x-0.5 transition-transform"
-                  style={{ fontFamily: 'DM Sans', color: sub.daysLeft <= 7 ? 'var(--corail-2)' : '#4F46E5' }}>
-              {t('sub.subscribe')} →
-            </span>
-          </button>
-        )}
+        {/* Bandeau "abonné" uniquement — l'essai est désormais rappelé par le bandeau global en haut */}
         {sub.status === 'active' && (
           <div className="mt-4 w-full p-3 flex items-center gap-3 rounded-xl"
                style={{ background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.2)' }}>
@@ -7902,6 +7879,12 @@ const TRANSLATIONS = {
   'sub.coming_soon':        { fr: 'Le paiement arrive très bientôt — on te contacte dès que c\'est en ligne.', en: 'Payment coming very soon — we\'ll reach out as soon as it\'s live.', es: 'El pago llega pronto — te contactaremos cuando esté activo.', pt: 'Pagamento em breve — avisaremos quando estiver ativo.', de: 'Zahlung bald verfügbar — wir melden uns, sobald es live ist.' },
   'sub.account_since':      { fr: 'Compte créé le',                 en: 'Account created on',             es: 'Cuenta creada el',              pt: 'Conta criada em',               de: 'Konto erstellt am' },
   'sub.trial_ends':         { fr: 'Fin d\'essai le',                 en: 'Trial ends on',                  es: 'Fin de prueba el',              pt: 'Fim do teste em',               de: 'Testphase endet am' },
+  'sub.promo_label':        { fr: 'Code promo',                      en: 'Promo code',                     es: 'Código promocional',            pt: 'Código promocional',           de: 'Rabattcode' },
+  'sub.promo_placeholder':  { fr: 'Entrez votre code promo',          en: 'Enter your promo code',          es: 'Introduce tu código',           pt: 'Introduza o seu código',       de: 'Rabattcode eingeben' },
+  'sub.promo_apply':        { fr: 'Appliquer',                       en: 'Apply',                          es: 'Aplicar',                       pt: 'Aplicar',                      de: 'Anwenden' },
+  'sub.promo_invalid':      { fr: 'Code invalide',                   en: 'Invalid code',                   es: 'Código no válido',              pt: 'Código inválido',              de: 'Ungültiger Code' },
+  'sub.promo_applied':      { fr: '✓ Remise de {n}% appliquée',      en: '✓ {n}% discount applied',        es: '✓ Descuento del {n}% aplicado', pt: '✓ Desconto de {n}% aplicado',  de: '✓ {n}% Rabatt angewendet' },
+  'sub.promo_remove':       { fr: 'retirer',                         en: 'remove',                         es: 'quitar',                        pt: 'remover',                      de: 'entfernen' },
   // Reader
   'reader.title':           { fr: 'Lecture',                       en: 'Reader',                       es: 'Lectura',                       pt: 'Leitura',                      de: 'Lesen' },
   'reader.topic':           { fr: 'sujet',                         en: 'topic',                        es: 'tema',                          pt: 'tema',                         de: 'Thema' },
@@ -8029,16 +8012,54 @@ function AuthGate({ children }) {
 // Les plans sont pour l'instant visuels — le paiement est à brancher plus tard
 // (Lemon Squeezy ou Stripe). Un clic sur un plan ouvre un dialogue "arrive bientôt".
 
+// Prix en centimes d'euro (float pour les prix cassés : 6.99 → 699, 49.99 → 4999).
 const SUBSCRIPTION_PLANS = [
-  { id: 'monthly',  price: '6,99 €', per: 'per_month', badge: null },
-  { id: 'yearly',   price: '49,99 €', per: 'per_year',  badge: 'save' },
-  { id: 'lifetime', price: '99 €',    per: 'one_time',  badge: 'popular' },
+  { id: 'monthly',  priceCents: 699,  per: 'per_month', badge: null },
+  { id: 'yearly',   priceCents: 4999, per: 'per_year',  badge: 'save' },
+  { id: 'lifetime', priceCents: 9900, per: 'one_time',  badge: 'popular' },
 ];
+
+// Codes promo valides (clés en minuscules, valeur = fraction de remise 0-1).
+// Comparaison insensible à la casse : code.trim().toLowerCase().
+const DISCOUNT_CODES = {
+  smarttraveller: 0.5,  // -50%
+  mauriceaccueil: 0.5,  // -50%
+};
+
+function formatPrice(cents) {
+  const euros = cents / 100;
+  // Si c'est un multiple de 1 €, on omet les décimales (ex. 99 €, 25 €).
+  if (euros === Math.floor(euros)) return `${euros} €`;
+  return `${euros.toFixed(2).replace('.', ',')} €`;
+}
 
 function SubscriptionScreen({ profile, forcedPaywall, onBack }) {
   const t = useT();
   const sub = getSubscriptionState(profile);
   const dateLocale = { fr: 'fr-FR', en: 'en-US', es: 'es-ES', pt: 'pt-BR', de: 'de-DE' }[profile?.native_language || 'fr'];
+
+  // État du code promo
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState(null); // { code, discount }
+  const [promoError, setPromoError] = useState(null);
+
+  const applyPromo = () => {
+    const normalized = promoInput.trim().toLowerCase();
+    const discount = DISCOUNT_CODES[normalized];
+    if (discount != null) {
+      setAppliedPromo({ code: normalized, discount });
+      setPromoError(null);
+    } else {
+      setAppliedPromo(null);
+      setPromoError(t('sub.promo_invalid'));
+    }
+  };
+
+  const removePromo = () => {
+    setAppliedPromo(null);
+    setPromoInput('');
+    setPromoError(null);
+  };
 
   const formatDate = (d) => {
     if (!d) return '';
@@ -8048,6 +8069,8 @@ function SubscriptionScreen({ profile, forcedPaywall, onBack }) {
   const handlePickPlan = () => {
     alert(t('sub.coming_soon'));
   };
+
+  const discountPct = appliedPromo ? Math.round(appliedPromo.discount * 100) : 0;
 
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor: 'transparent' }}>
@@ -8096,10 +8119,69 @@ function SubscriptionScreen({ profile, forcedPaywall, onBack }) {
           )}
         </div>
 
+        {/* Code promo */}
+        <div className="mb-5">
+          <label className="text-[11px] font-bold uppercase tracking-widest ml-1 mb-1.5 block"
+                 style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+            {t('sub.promo_label')}
+          </label>
+          {!appliedPromo ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={promoInput}
+                onChange={(e) => { setPromoInput(e.target.value); setPromoError(null); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyPromo(); } }}
+                placeholder={t('sub.promo_placeholder')}
+                className="flex-1 px-4 py-3 rounded-xl text-sm"
+                style={{
+                  fontFamily: 'DM Sans',
+                  background: 'white',
+                  border: `1.5px solid ${promoError ? 'var(--corail)' : 'rgba(90,78,69,0.2)'}`,
+                  color: 'var(--ink)',
+                  textTransform: 'none',
+                }}
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false} />
+              <button onClick={applyPromo} disabled={!promoInput.trim()}
+                className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-white disabled:opacity-30 transition-all hover:brightness-110"
+                style={{
+                  fontFamily: 'DM Sans',
+                  background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+                }}>
+                {t('sub.promo_apply')}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl"
+                 style={{ background: 'rgba(5,150,105,0.1)', border: '1.5px solid #059669' }}>
+              <span className="flex-1 text-sm font-bold" style={{ fontFamily: 'DM Sans', color: '#059669' }}>
+                {t('sub.promo_applied').replace('{n}', discountPct)}
+                <span className="ml-2 opacity-70 font-normal">· {appliedPromo.code}</span>
+              </span>
+              <button onClick={removePromo}
+                className="text-xs font-bold uppercase tracking-widest hover:opacity-70"
+                style={{ fontFamily: 'DM Sans', color: '#059669' }}>
+                {t('sub.promo_remove')}
+              </button>
+            </div>
+          )}
+          {promoError && (
+            <div className="mt-1.5 text-xs" style={{ fontFamily: 'DM Sans', color: 'var(--corail-2)' }}>
+              ⚠️ {promoError}
+            </div>
+          )}
+        </div>
+
         {/* Plans */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {SUBSCRIPTION_PLANS.map(plan => {
             const isPopular = plan.badge === 'popular';
+            const originalPrice = formatPrice(plan.priceCents);
+            const discountedCents = appliedPromo ? Math.round(plan.priceCents * (1 - appliedPromo.discount)) : plan.priceCents;
+            const discountedPrice = formatPrice(discountedCents);
+            const hasDiscount = !!appliedPromo;
             return (
               <button key={plan.id} onClick={handlePickPlan}
                 className="relative p-5 rounded-2xl text-left transition-all hover:-translate-y-1"
@@ -8108,6 +8190,12 @@ function SubscriptionScreen({ profile, forcedPaywall, onBack }) {
                   border: isPopular ? '2.5px solid var(--corail)' : '1.5px solid rgba(90,78,69,0.2)',
                   boxShadow: isPopular ? '0 10px 30px rgba(255,56,92,0.25)' : '0 2px 8px rgba(90,78,69,0.08)',
                 }}>
+                {hasDiscount && (
+                  <span className="absolute -top-2 -left-2 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full text-white"
+                        style={{ fontFamily: 'DM Sans', background: '#059669', boxShadow: '0 2px 8px rgba(5,150,105,0.4)' }}>
+                    -{discountPct}%
+                  </span>
+                )}
                 {plan.badge === 'save' && (
                   <span className="absolute -top-2 -right-2 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full text-white"
                         style={{ fontFamily: 'DM Sans', background: '#059669' }}>
@@ -8124,9 +8212,21 @@ function SubscriptionScreen({ profile, forcedPaywall, onBack }) {
                      style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
                   {t(`sub.plan_${plan.id}`)}
                 </div>
+                {/* Prix d'origine barré si remise appliquée */}
+                {hasDiscount && (
+                  <div className="text-sm line-through mb-0.5"
+                       style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)', textDecorationThickness: 2 }}>
+                    {originalPrice}
+                  </div>
+                )}
                 <div className="flex items-baseline gap-1 mb-2">
-                  <span style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 32, fontWeight: 700, color: 'var(--ink)' }}>
-                    {plan.price}
+                  <span style={{
+                    fontFamily: 'Fraunces, Georgia, serif',
+                    fontSize: 32,
+                    fontWeight: 700,
+                    color: hasDiscount ? '#059669' : 'var(--ink)',
+                  }}>
+                    {discountedPrice}
                   </span>
                   <span className="text-xs" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
                     {t(`sub.${plan.per}`)}

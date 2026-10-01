@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle, LogOut, Mail, Lock, User, UserCircle, Calendar, MapPin, Phone, Globe2, Check, Eye as EyeIcon, EyeOff as EyeOffIcon } from 'lucide-react';
+import { Volume2, Send, ArrowLeft, Loader2, BookOpen, RefreshCw, Mic, MicOff, BookText, X, MessageCircle, LogOut, Mail, Lock, User, UserCircle, Calendar, MapPin, Phone, Globe2, Check, Eye as EyeIcon, EyeOff as EyeOffIcon, ArrowLeftRight } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 // ─── COUNTRY DIAL CODES ───────────────────────────────────────────────────────
@@ -5999,15 +5999,17 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
   }, [language.code, level.id]);
 
   const modes = [
-    { id: 'chat',      label: t('mode.discuss'),   icon: null,          emoji: null,   svg: 'discuss',
+    { id: 'chat',       label: t('mode.discuss'),   icon: null,          emoji: null,   svg: 'discuss',
       desc: t('mode.discuss_sub') },
-    { id: 'scenarios', label: t('mode.scenarios'), icon: null,          emoji: null,   svg: 'scenario', badge: 'new',
+    { id: 'scenarios',  label: t('mode.scenarios'), icon: null,          emoji: null,   svg: 'scenario',
       desc: t('mode.scenarios_sub') },
-    { id: 'reader',    label: t('mode.reader'),    icon: null,          emoji: null,   svg: 'reader',
+    { id: 'translator', label: t('mode.translator'),icon: null,          emoji: null,   svg: 'translator', badge: 'new',
+      desc: t('mode.translator_sub') },
+    { id: 'reader',     label: t('mode.reader'),    icon: null,          emoji: null,   svg: 'reader',
       desc: t('mode.reader_sub') },
-    { id: 'exercises', label: t('mode.exercises'), icon: null,          emoji: null,   svg: 'exercises',
+    { id: 'exercises',  label: t('mode.exercises'), icon: null,          emoji: null,   svg: 'exercises',
       desc: t('mode.exercises_sub') },
-    { id: 'lexicon',   label: t('mode.lexicon'),   icon: null,          emoji: null,   svg: 'lexicon',
+    { id: 'lexicon',    label: t('mode.lexicon'),   icon: null,          emoji: null,   svg: 'lexicon',
       desc: t('mode.lexicon_sub') },
   ];
   return (
@@ -6123,7 +6125,7 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {modes.map(m => {
             const Icon = m.icon;
             return (
@@ -6145,11 +6147,12 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
                 {(() => {
                   // Per-icon color scheme (each mode gets its own visual identity)
                   const SCHEMES = {
-                    discuss:  { bg: 'linear-gradient(135deg, #FFF3D9, #FFFCEF)', border: '#FCD34D' },
-                    scenario: { bg: 'linear-gradient(135deg, #F5D9CC, #FBEDE3)', border: '#B85B3F' },
-                    reader:   { bg: 'linear-gradient(135deg, #FBFAF3, #EDE7D8)', border: '#1a1a1a' },
-                    exercises:{ bg: 'linear-gradient(135deg, #DCF3FA, #F0FBFF)', border: '#0EA5E9' },
-                    lexicon:  { bg: 'linear-gradient(135deg, #FFE5D9, #FFF3E0)', border: '#FCD34D' },
+                    discuss:    { bg: 'linear-gradient(135deg, #FFF3D9, #FFFCEF)', border: '#FCD34D' },
+                    scenario:   { bg: 'linear-gradient(135deg, #F5D9CC, #FBEDE3)', border: '#B85B3F' },
+                    translator: { bg: 'linear-gradient(135deg, #E0E7FF, #F0F4FF)', border: '#6366F1' },
+                    reader:     { bg: 'linear-gradient(135deg, #FBFAF3, #EDE7D8)', border: '#1a1a1a' },
+                    exercises:  { bg: 'linear-gradient(135deg, #DCF3FA, #F0FBFF)', border: '#0EA5E9' },
+                    lexicon:    { bg: 'linear-gradient(135deg, #FFE5D9, #FFF3E0)', border: '#FCD34D' },
                   };
                   const sch = SCHEMES[m.svg];
                   return (
@@ -6171,7 +6174,9 @@ function ModePicker({ language, level, onSelect, onBack, onResumeChat, profile, 
                               ? <ExercisesIcon size={40} />
                               : m.svg === 'discuss'
                                 ? <DiscussIcon size={40} />
-                                : Icon ? <Icon size={26} /> : <span>{m.emoji}</span>}
+                                : m.svg === 'translator'
+                                  ? <ArrowLeftRight size={34} style={{ color: '#6366F1' }} />
+                                  : Icon ? <Icon size={26} /> : <span>{m.emoji}</span>}
                     </div>
                   );
                 })()}
@@ -7767,7 +7772,23 @@ const TRANSLATIONS = {
   'mode.reader_sub':        { fr: 'Textes courts pour lire et apprendre', en: 'Short texts to read and learn', es: 'Textos cortos para leer y aprender', pt: 'Textos curtos para ler e aprender', de: 'Kurze Texte zum Lesen und Lernen' },
   'mode.exercises_sub':     { fr: 'Grammaire, vocabulaire, correction', en: 'Grammar, vocabulary, corrections', es: 'Gramática, vocabulario, corrección', pt: 'Gramática, vocabulário, correção', de: 'Grammatik, Wortschatz, Korrektur' },
   'mode.lexicon_sub':       { fr: 'Tes mots enregistrés',           en: 'Your saved words',             es: 'Tus palabras guardadas',        pt: 'As suas palavras guardadas',    de: 'Ihre gespeicherten Wörter' },
+  'mode.translator':        { fr: 'Traducteur live',               en: 'Live translator',              es: 'Traductor en vivo',             pt: 'Tradutor ao vivo',             de: 'Live-Übersetzer' },
+  'mode.translator_sub':    { fr: 'Appuie pour écouter et traduire en direct', en: 'Tap to listen and translate on the fly', es: 'Pulsa para escuchar y traducir al instante', pt: 'Toque para ouvir e traduzir ao vivo', de: 'Tippen zum Hören und sofort übersetzen' },
   'mode.change_lang':       { fr: '← changer de langue',            en: '← change language',            es: '← cambiar de idioma',           pt: '← mudar de idioma',            de: '← Sprache wechseln' },
+  // Translator screen
+  'tr.title':               { fr: 'Traducteur live',               en: 'Live translator',              es: 'Traductor en vivo',             pt: 'Tradutor ao vivo',             de: 'Live-Übersetzer' },
+  'tr.they_speak':          { fr: 'Il/elle parle',                 en: 'They speak',                   es: 'Él/ella habla',                 pt: 'Ele/ela fala',                 de: 'Er/sie spricht' },
+  'tr.i_speak':             { fr: 'Je parle',                      en: 'I speak',                      es: 'Yo hablo',                      pt: 'Eu falo',                      de: 'Ich spreche' },
+  'tr.tap_to_start':        { fr: 'Appuyez pour démarrer',          en: 'Tap to start',                 es: 'Toca para empezar',             pt: 'Toque para iniciar',           de: 'Zum Starten tippen' },
+  'tr.listening':           { fr: 'écoute…',                       en: 'listening…',                   es: 'escuchando…',                   pt: 'a ouvir…',                     de: 'höre zu…' },
+  'tr.translating':         { fr: 'traduction…',                   en: 'translating…',                 es: 'traduciendo…',                  pt: 'a traduzir…',                  de: 'übersetze…' },
+  'tr.tap_again':           { fr: 'Appuyez pour arrêter',           en: 'Tap to stop',                  es: 'Toca para parar',               pt: 'Toque para parar',             de: 'Zum Stoppen tippen' },
+  'tr.original':            { fr: 'texte original',                en: 'original text',                es: 'texto original',                pt: 'texto original',               de: 'Originaltext' },
+  'tr.translation':         { fr: 'traduction',                    en: 'translation',                  es: 'traducción',                    pt: 'tradução',                     de: 'Übersetzung' },
+  'tr.replay':              { fr: 'réécouter',                     en: 'replay',                       es: 'reproducir de nuevo',           pt: 'ouvir novamente',              de: 'erneut abspielen' },
+  'tr.hint':                { fr: 'Idéal en voyage ou avec un interlocuteur natif.', en: 'Perfect for travel or chatting with a native speaker.', es: 'Ideal para viajes o para hablar con un nativo.', pt: 'Ideal para viagens ou falar com um nativo.', de: 'Ideal für Reisen oder Gespräche mit Muttersprachlern.' },
+  'tr.pick_direction':      { fr: 'Choisissez la direction de la traduction', en: 'Pick the translation direction', es: 'Elige la dirección de la traducción', pt: 'Escolha a direção da tradução', de: 'Wählen Sie die Übersetzungsrichtung' },
+  'tr.empty':               { fr: 'Appuyez sur le gros bouton puis parlez. Appuyez à nouveau pour arrêter.', en: 'Tap the big button and speak. Tap again to stop.', es: 'Pulsa el botón grande y habla. Pulsa de nuevo para parar.', pt: 'Toque no botão grande e fale. Toque novamente para parar.', de: 'Tippen Sie den großen Knopf an und sprechen Sie. Zum Stoppen erneut tippen.' },
   // Reader
   'reader.title':           { fr: 'Lecture',                       en: 'Reader',                       es: 'Lectura',                       pt: 'Leitura',                      de: 'Lesen' },
   'reader.topic':           { fr: 'sujet',                         en: 'topic',                        es: 'tema',                          pt: 'tema',                         de: 'Thema' },
@@ -7887,6 +7908,305 @@ function AuthGate({ children }) {
 
   // User authenticated — render the app with profile context
   return React.cloneElement(children, { profile, signOut, reloadProfile });
+}
+
+// ─── TRANSLATOR SCREEN ────────────────────────────────────────────────────────
+// Traducteur live bidirectionnel : capture la voix, traduit via Claude, lit la
+// traduction à voix haute. Deux directions :
+//   • "they" = l'interlocuteur parle en langue cible → traduit en langue native
+//   • "me"   = l'utilisateur parle en langue native → traduit en langue cible
+// Idéal en voyage ou en entretien avec un natif.
+
+// Mapping code langue native → locale BCP-47 pour la reconnaissance vocale et
+// la synthèse. Pour les 5 langues d'origine supportées (fr/en/es/pt/de).
+const NATIVE_SR_LOCALE = { fr: 'fr-FR', en: 'en-US', es: 'es-ES', pt: 'pt-BR', de: 'de-DE' };
+const NATIVE_TTS_LOCALE = { fr: 'fr-FR', en: 'en-US', es: 'es-ES', pt: 'pt-BR', de: 'de-DE' };
+
+function TranslatorScreen({ lang, profile, onBack }) {
+  const t = useT();
+  const nativeCode = profile?.native_language || 'fr';
+  const nativeLabel = NATIVE_LANGUAGES[nativeCode]?.label || 'Français';
+  const nativeFlag = NATIVE_LANGUAGES[nativeCode]?.flag || '🇫🇷';
+  const nativeEnName = NATIVE_LANGUAGES[nativeCode]?.enName || 'French';
+
+  // "they" (interlocuteur en langue cible) ou "me" (utilisateur en langue native)
+  const [direction, setDirection] = useState('they');
+  const [recording, setRecording] = useState(false);
+  const [interim, setInterim] = useState('');
+  const [original, setOriginal] = useState('');
+  const [translation, setTranslation] = useState('');
+  const [translating, setTranslating] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Deux instances de reconnaissance vocale : une par direction, car la locale change
+  const theySR = useRecognition(lang.srLocale);                     // interlocuteur parle en cible
+  const meSR   = useRecognition(NATIVE_SR_LOCALE[nativeCode] || 'fr-FR'); // utilisateur parle en natif
+  const sr = direction === 'they' ? theySR : meSR;
+
+  const sourceLangName = direction === 'they' ? lang.name       : nativeLabel;
+  const sourceLangNat  = direction === 'they' ? lang.nativeName : nativeLabel;
+  const targetLangName = direction === 'they' ? nativeLabel     : lang.name;
+  const sourceEnName   = direction === 'they' ? lang.name       : nativeEnName;
+  const targetEnName   = direction === 'they' ? nativeEnName    : lang.name;
+  const targetTtsLocale = direction === 'they'
+    ? (NATIVE_TTS_LOCALE[nativeCode] || 'fr-FR')
+    : (lang.ttsLocale || 'en-US');
+  const sourceAccent = direction === 'they' ? lang.accent : '#6366F1';
+
+  const resetAll = () => {
+    setOriginal(''); setTranslation(''); setInterim(''); setError(null);
+  };
+
+  const translateText = async (text) => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return;
+    setTranslating(true); setError(null);
+    try {
+      const system = `You are a professional live interpreter.
+Translate the following text FROM ${sourceEnName} TO ${targetEnName}.
+Respond ONLY with the translation in ${targetEnName}, nothing else — no quotes, no explanation, no labels.
+Keep the register and tone natural, as if the speaker said it directly in ${targetEnName}.`;
+      const data = await chatWithFallback({
+        system,
+        messages: [{ role: 'user', content: trimmed }],
+        maxTokens: 400,
+        cache: false,
+      });
+      const out = (data?.content?.[0]?.text || '').trim();
+      setTranslation(out);
+      // Lecture à voix haute automatique dans la langue cible
+      if (out && 'speechSynthesis' in window) {
+        try {
+          const u = new SpeechSynthesisUtterance(out);
+          u.lang = targetTtsLocale;
+          u.rate = 0.95;
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(u);
+        } catch { /* ignore */ }
+      }
+    } catch (e) {
+      setError(e.message || 'Erreur de traduction');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const startListening = () => {
+    if (!sr.supported) { setError('mic'); return; }
+    resetAll();
+    setRecording(true);
+    sr.listen({
+      onInterim: (txt) => setInterim(txt),
+      onFinal: (full) => { setOriginal(full); setInterim(''); },
+      onEnd: () => {
+        setRecording(false);
+        // Dernier buffer final → traduire
+        setOriginal(prev => {
+          const text = (prev || '').trim();
+          if (text) translateText(text);
+          return prev;
+        });
+      },
+      onError: (e) => {
+        setRecording(false);
+        if (e?.error !== 'no-speech' && e?.error !== 'aborted') {
+          setError(e?.error || 'erreur micro');
+        }
+      },
+    });
+  };
+
+  const stopListening = () => { sr.stop(); };
+
+  const replayTranslation = () => {
+    if (!translation || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(translation);
+      u.lang = targetTtsLocale;
+      u.rate = 0.95;
+      window.speechSynthesis.speak(u);
+    } catch { /* ignore */ }
+  };
+
+  const switchDirection = (d) => {
+    if (recording) sr.stop();
+    setDirection(d);
+    resetAll();
+  };
+
+  return (
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-10" style={{ backgroundColor: 'transparent' }}>
+      <div className="max-w-2xl mx-auto">
+        <button onClick={onBack}
+          className="flex items-center gap-2 mb-4 text-sm font-bold hover:opacity-70"
+          style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+          <ArrowLeft size={14} /> {t('back')}
+        </button>
+
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-5">
+          <div className="rounded-2xl flex items-center justify-center shrink-0"
+               style={{ width: 60, height: 72,
+                        background: 'linear-gradient(135deg, #E0E7FF, #F0F4FF)',
+                        border: `1.5px solid #6366F1` }}>
+            <ArrowLeftRight size={32} style={{ color: '#6366F1' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              {lang.name} ⇄ {nativeLabel}
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-medium leading-none tracking-tight" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+              <em>{t('tr.title')}</em>
+            </h1>
+            <p className="mt-2 text-[14px]" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+              {t('tr.hint')}
+            </p>
+          </div>
+        </div>
+
+        {/* Direction switcher */}
+        <div className="text-[10px] uppercase tracking-widest text-[color:var(--gris)] mb-2" style={{ fontFamily: 'DM Sans' }}>
+          {t('tr.pick_direction')}
+        </div>
+        <div className="grid grid-cols-2 gap-2 mb-6">
+          <button onClick={() => switchDirection('they')}
+            className="p-3 rounded-2xl transition-all hover:-translate-y-0.5 text-left"
+            style={{
+              background: direction === 'they' ? lang.accent : 'white',
+              color: direction === 'they' ? 'white' : 'var(--ink)',
+              border: `1.5px solid ${lang.accent}`,
+              boxShadow: direction === 'they' ? `0 4px 14px ${lang.accent}55` : 'none',
+              fontFamily: 'DM Sans',
+            }}>
+            <div className="text-[10px] font-bold uppercase tracking-widest opacity-80">
+              {t('tr.they_speak')}
+            </div>
+            <div className="text-sm font-semibold mt-0.5">
+              {lang.glyph} {lang.name} → {nativeFlag}
+            </div>
+          </button>
+          <button onClick={() => switchDirection('me')}
+            className="p-3 rounded-2xl transition-all hover:-translate-y-0.5 text-left"
+            style={{
+              background: direction === 'me' ? '#6366F1' : 'white',
+              color: direction === 'me' ? 'white' : 'var(--ink)',
+              border: `1.5px solid #6366F1`,
+              boxShadow: direction === 'me' ? `0 4px 14px #6366F155` : 'none',
+              fontFamily: 'DM Sans',
+            }}>
+            <div className="text-[10px] font-bold uppercase tracking-widest opacity-80">
+              {t('tr.i_speak')}
+            </div>
+            <div className="text-sm font-semibold mt-0.5">
+              {nativeFlag} {nativeLabel} → {lang.glyph}
+            </div>
+          </button>
+        </div>
+
+        {/* BIG MIC BUTTON */}
+        <div className="flex flex-col items-center my-8">
+          <button
+            onClick={recording ? stopListening : startListening}
+            disabled={translating || !sr.supported}
+            className="relative rounded-full flex items-center justify-center transition-all disabled:opacity-40"
+            style={{
+              width: 180, height: 180,
+              background: recording
+                ? `radial-gradient(circle at 30% 30%, ${sourceAccent}, ${sourceAccent}CC)`
+                : `radial-gradient(circle at 30% 30%, ${sourceAccent}, ${sourceAccent}DD)`,
+              boxShadow: recording
+                ? `0 0 0 10px ${sourceAccent}22, 0 10px 40px ${sourceAccent}66`
+                : `0 10px 30px ${sourceAccent}55`,
+              animation: recording ? 'avatar-bounce 1.2s ease-in-out infinite' : 'none',
+            }}>
+            {recording && (
+              <span className="absolute inset-0 rounded-full"
+                style={{
+                  background: `${sourceAccent}55`,
+                  animation: 'avatar-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+                }} />
+            )}
+            {translating
+              ? <Loader2 size={64} className="animate-spin text-white relative z-10" />
+              : recording
+                ? <MicOff size={64} className="text-white relative z-10" />
+                : <Mic size={64} className="text-white relative z-10" />
+            }
+          </button>
+          <div className="mt-4 text-[13px] font-bold uppercase tracking-widest text-center" style={{ fontFamily: 'DM Sans', color: sourceAccent }}>
+            {translating ? t('tr.translating') : recording ? t('tr.tap_again') : t('tr.tap_to_start')}
+          </div>
+          {!sr.supported && (
+            <div className="mt-3 text-xs text-amber-700 text-center" style={{ fontFamily: 'DM Sans' }}>
+              ⚠️ La reconnaissance vocale n'est pas disponible sur ce navigateur.
+            </div>
+          )}
+        </div>
+
+        {/* Interim text while listening */}
+        {recording && interim && (
+          <div className="wl-card p-3 mb-3" style={{ borderRadius: '14px', background: 'rgba(99,102,241,0.08)' }}>
+            <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'DM Sans', color: sourceAccent }}>
+              {t('tr.listening')}
+            </div>
+            <div className="italic text-[color:var(--gris)]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+              {interim}
+            </div>
+          </div>
+        )}
+
+        {/* Result cards */}
+        {!original && !recording && !translating && (
+          <div className="text-center py-6 text-sm italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--gris)' }}>
+            {t('tr.empty')}
+          </div>
+        )}
+
+        {original && (
+          <div className="wl-card p-4 sm:p-5 mb-3" style={{ borderRadius: '20px', border: `1.5px solid ${sourceAccent}44` }}>
+            <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ fontFamily: 'DM Sans', color: sourceAccent }}>
+              {t('tr.original')} · {sourceLangNat}
+            </div>
+            <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 18, color: 'var(--ink)' }}
+                 dir={direction === 'they' && lang.rtl ? 'rtl' : 'ltr'}>
+              {original}
+            </div>
+          </div>
+        )}
+
+        {translation && (
+          <div className="wl-card p-4 sm:p-5" style={{
+            borderRadius: '20px',
+            border: `2px solid ${direction === 'they' ? '#6366F1' : lang.accent}`,
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.05), rgba(99,102,241,0.02))',
+          }}>
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div className="text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: direction === 'they' ? '#6366F1' : lang.accent }}>
+                {t('tr.translation')} · {targetLangName}
+              </div>
+              <button onClick={replayTranslation}
+                className="w-8 h-8 rounded-full grid place-items-center shrink-0"
+                style={{ background: direction === 'they' ? '#6366F1' : lang.accent, color: 'white' }}
+                title={t('tr.replay')}>
+                <Volume2 size={14} />
+              </button>
+            </div>
+            <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 20, fontWeight: 500, color: 'var(--ink)' }}
+                 dir={direction === 'me' && lang.rtl ? 'rtl' : 'ltr'}>
+              {translation}
+            </div>
+          </div>
+        )}
+
+        {error && error !== 'mic' && (
+          <div className="wl-card p-3 mt-3 text-sm" style={{ borderRadius: '14px', color: 'var(--corail-2)', background: 'var(--peche)', fontFamily: 'DM Sans' }}>
+            ⚠️ {error}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
@@ -8050,6 +8370,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
       if (m === 'exercises') return setStep('exercises');
       if (m === 'lexicon') return setStep('lexicon');
       if (m === 'scenarios') return setStep('scenarios');
+      if (m === 'translator') return setStep('translator');
     }}
     onResumeChat={(av) => { setScenario(null); setAvatar(av); setStep('chat'); }}
     onChangeLanguage={() => setStep('language')}
@@ -8085,6 +8406,7 @@ function MainApp({ profile, signOut, reloadProfile }) {
     onBack={() => setStep('mode')}
     onOpenLexicon={() => setStep('lexicon')} />;
   if (step === 'exercises') return <ExercisesScreen lang={language} level={level} onBack={() => setStep('mode')} />;
+  if (step === 'translator') return <TranslatorScreen lang={language} profile={profile} onBack={() => setStep('mode')} />;
   if (step === 'lexicon')  return <LexiconScreen lang={language} profile={profile}
     onBack={() => setStep(language ? 'mode' : 'language')} />;
   return <ChatScreen lang={language} level={level} avatar={avatar} profile={profile}

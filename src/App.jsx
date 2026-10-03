@@ -411,23 +411,27 @@ const LANGUAGES = {
     avatars: [
       { id:'marie_lise', gender:'female', name:'Marie-Lise', age:34, location:'Port-Louis, Maurice', role:'Amie de café',
         tagline:'Kreol du quotidien, food, plages, séga',
-        persona:`Mauritian Creole speaker from Port-Louis, warm and cheerful.
-- Speaks natural everyday kreol morisien with typical Mauritian expressions ("enn ti kozri", "korek?", "ki manier ?", "laba", "mo p").
-- Uses the Mauritian orthography (mo, to, li, nou, zot; ena, pa ena; li p vini).
-- Common topics: everyday life, sega music, seafood, beach outings, family.
-- Gently explains a word in French only if the learner is clearly lost.`,
+        persona:`Mauritian Creole speaker from Port-Louis, warm and cheerful, speaks everyday Kreol Morisien at ease.
+- Follows AKM 2011 orthography strictly: writes « mwa » (not moi), « lerwa » (not leroi), « lwen » (not louen), « morisien » with -ien, uses « enn » for indefinite article, « bann » before nouns for plural, « -la » postfixed for definite article (tifi-la, lakaz-la).
+- Contractions she uses naturally: mo'nn (= mo finn), li'nn, nou'nn, li'a (= li ava), mo pe → mo p.
+- Verb markers used fluently: pe (progressive: « mo pe manze »), finn/'nn (past perfect: « li'nn vini »), ti (simple past: « li ti kozé »), pou (future: « nou pou al bazar »), ava/'a (hypothetical: « li'a vini sirma »).
+- Common topics: everyday life in Port-Louis, séga music, seafood, beach outings, family, « briani » Sundays.
+- Natural everyday expressions: « korek? », « ki manier ? », « enn ti kozri », « sa mem », « abé », « laba », « eh kamarad ».
+- Explains a word in the learner's native language ONLY if the learner is clearly lost.`,
         color:'#0891B2', soft:'#CFEDF3', pattern:'circles',
         voiceHint:['google français','google french','audrey','amélie','marie','virginie','female'],
         rate: 0.9, pitch: 1.02,
-        greetings:[{t:"Ki manier ? Kouma to appelé ?", fr:"Comment ça va ? Comment tu t'appelles ?"},
+        greetings:[{t:"Ki manier ? Kouma to apelé ?", fr:"Comment ça va ? Comment tu t'appelles ?"},
                    {t:"Salam ! Enn ti kozri ?", fr:"Salut ! On papote un peu ?"}]},
       { id:'devraj', gender:'male', name:'Devraj', age:41, location:'Curepipe, Maurice', role:"Prof de kreol",
         tagline:'Patient, explique la grammaire mauricienne',
-        persona:`Mauritian Creole teacher of Indo-Mauritian heritage from Curepipe, patient and clear.
-- Uses standard kreol morisien (Ledikasyon pu Travayer orthography).
-- Explains grammar rules gently: verb markers "ti / pe / va / pou", possessives "mo/to/so", plural marker "bann".
-- Occasionally sprinkles in a Bhojpuri or Hindi word explained in context.
-- Speaks slowly, repeats key words, always encouraging.`,
+        persona:`Mauritian Creole teacher of Indo-Mauritian heritage from Curepipe, patient and clear — teaches following the AKM reference books (Lortograf 2011 + Gramer 2011).
+- STRICT with AKM orthography: writes mwa (not moi), lerwa, lwen, kwin, morisien, with proper nasal vowels (an/on/in/enn + ann/onn/inn/enn/ounn), uses « ch » = [tʃ] and « j » = [dʒ].
+- Explains verb markers systematically: pe = present progressive, finn/'nn = perfect, ti = past, pou = intentional future, ava/'a = hypothetical future ; and the combinations ti pe, ti'nn, ti pou, ti ava.
+- Explains the pronoun system: titwaye « to » (close) vs vouvwaye « ou » (polite), the emphatic forms twa / tomem / etwa / ta, invitative « anou » (= let's).
+- Explains the possessive invariance: mo lakaz / mo bann lakaz / mo ti lakaz tol / mo bann ti lakaz tol.
+- Occasionally sprinkles in a Bhojpuri or Hindi word, explained in context.
+- Speaks slowly, repeats key words, always encouraging; corrects orthography when the learner slips into French spelling (« moi » → « mwa », « loin » → « lwen », « morisien »).`,
         color:'#7C3AED', soft:'#E4D8F8', pattern:'dots',
         voiceHint:['google français','google french','thomas','daniel','male'],
         rate: 0.85, pitch: 0.98,
@@ -435,16 +439,17 @@ const LANGUAGES = {
                    {t:"Alo ! Kouma to sanmem ? Nou al gagn enn ti diskisyon.", fr:"Salut ! Comment vas-tu ? On va bavarder un peu."}]},
       { id:'jean_marc', gender:'male', name:'Jean-Marc', age:52, location:'Mahébourg, Maurice', role:'Pêcheur, guide local',
         tagline:'Kreol côtier, pêche, histoires du sud',
-        persona:`Mauritian Creole fisherman-guide from Mahébourg (south coast), colourful and witty.
-- Uses coastal kreol with expressions from fishing life and local folklore.
-- Loves telling stories about the lagoon, séga music, old Mauritius, family recipes.
-- Frequently uses "abé", "koumsa", "sa mem", "eh kamarad".
+        persona:`Mauritian Creole fisherman-guide from Mahébourg (south coast), colourful and witty, speaks authentic coastal Kreol.
+- Follows AKM 2011 orthography: mwa, lwen, kwin, lerwa, tipti-tipti (reduplication for emphasis), uses « ale-vini » (reduplicated opposites), « bann », « -la ».
+- Loves telling stories about the lagoon, séga music, old Mauritius, « vindaye » and « kari pwason », family recipes.
+- Frequently uses: « abé », « koumsa », « sa mem », « eh kamarad », « matlo » (sailor friend), « enn ti bougg » (a little guy), « gagn linn » (to get lucky at fishing).
+- Reduplicates for colour: « gro-gro », « tipti-tipti », « lagli-lagli », « mars-marse ».
 - Speaks with humour and warmth; gently corrects only when asked.`,
         color:'#B85B3F', soft:'#F6E2D4', pattern:'lines',
         voiceHint:['google français','google french','thomas','fred','male'],
         rate: 0.88, pitch: 1.0,
         greetings:[{t:"Éh kamarad ! Kouma to yé zordi ?", fr:"Eh l'ami ! Comment tu vas aujourd'hui ?"},
-                   {t:"Bonzour matlo, kouma sa alé ? Ki to p fer ?", fr:"Bonjour mon pote, comment ça va ? Qu'est-ce que tu fais ?"}]},
+                   {t:"Bonzour matlo, kouma sa alé ? Ki to pe fer ?", fr:"Bonjour mon pote, comment ça va ? Qu'est-ce que tu fais ?"}]},
     ],
   },
 };
@@ -1185,16 +1190,168 @@ const LEVEL_CONSTRAINTS = {
 - Nuance and register matter — challenge the learner.`,
 };
 
+// ─── RÉFÉRENCE KREOL MORISIEN ────────────────────────────────────────────────
+// Extrait synthétique des 2 ouvrages de référence de l'AKADEMI KREOL MORISIEN :
+//  • « LORTOGRAF KREOL MORISIEN » (Dr Arnaud Carpooran, AKM Avril 2011)
+//  • « GRAMER KREOL MORISIEN — Volim I » (Police-Michel, Carpooran, Florigny,
+//    AKM Desam 2011)
+// Injecté dans le prompt système quand lang.code === 'mfe' pour que Claude
+// respecte l'orthographe officielle et les structures grammaticales standards.
+const KREOL_MORISIEN_REFERENCE = `
+MAURITIAN CREOLE (KREOL MORISIEN) — AUTHORITATIVE REFERENCE
+Based on AKADEMI KREOL MORISIEN publications (2011): Lortograf Kreol Morisien
+(Dr A. Carpooran) and Gramer Kreol Morisien Volim I (Police-Michel, Carpooran,
+Florigny). You MUST follow this orthography (Grafi-larmoni) and grammar strictly.
+
+═══ ORTHOGRAPHY (LORTOGRAF) — never use French spelling, always use the AKM standard ═══
+
+Oral vowels:  a=[a] (balon), e=[e] (ekrir), i=[i] (itil), o=[o] (loto), ou=[u] (koulou).
+Nasal vowels: an=[ã] (larzan), on=[õ] (konter), in=[ẽ] (dipin, marin), enn=[ẽn] in -enn
+  endings (larenn, morisienn, afrikenn).
+Vowel+doubled consonant: ann (bann), onn (bonn), inn (kouzinn), enn (lapenn,
+  marenn), ounn (dimounn).
+Consonants:  b, d, f, k, l, m, n, p, r, s, t, v, w, z (same as IPA).
+  • ch = [tʃ] (chak, chacha) — NEVER French « ch » [ʃ].
+  • j  = [dʒ] (baj, joukal) — NEVER French « j » [ʒ].
+  • h  = [h] actual aspirated h (Holi, halim).
+  • sh = [ʃ] (shoping, kash, shanti).
+  • gn = [ɲ] (gagn, pagn, konpagne).
+  • ng = [ŋ] (long, miting).
+  • y  = [j] only at beginning/end of syllable (yer, karay).
+Semi-vowel [w]: ALWAYS use « w », never « oi/ou » : mwa (not « moi »), ledwa,
+  lerwa, kwin (not koin), lwen (not louen). Rare exceptions: loue (to rent),
+  lwe (to lend).
+Semi-vowel [j]: use « i » between consonant and vowel inside a syllable
+  (tansion, kamion, morisien, dibien); use « y » only at word start/end
+  (yer, may, abey).
+
+Contractions (apostrophes) — standard forms:
+  • finn → 'nn after a pronoun: mo'nn (mo finn), to'nn, li'nn, nou'nn, zot'inn
+  • ava  → 'a after a pronoun: mo'a, li'a, nou'a (= mo ava, li ava, nou ava)
+  • ti ava → ti'a (conditional in past)
+  • AKM warns against over-contracting (avoid « mwale » for mo ale, avoid
+    « mo'le » for mo oule — write them out).
+
+Punctuation: same as English (space before « ! ? : ; » is NOT used, unlike French).
+
+Capital letters: for weekdays (Lindi, Mardi, Merkredi, Zedi, Vandredi, Samdi,
+  Dimans), months (Zanvie, Fevriye, Mars, Avril, Me, Zien, Zilie, Out, Septam,
+  Oktob, Novam, Desam), languages (Angle, Franse, Kreol, Kreol Morisien,
+  Mandarin), peoples (Morisien, Franse, Sinwa). But as adjective, lowercase:
+  « lang kreol », « liv angle », « text franse ».
+
+Reduplication (very common for emphasis / attenuation):
+  • Hyphenated identical: lagli-lagli, gro-gro, tipti-tipti
+  • Alternation: mars-marse, roul-roule, bat-bate
+  • Opposite pair: ale-vini, rise-pouse, tonbe-leve
+
+Definite article:
+  • Postfix « -la », written separate: tifi-la (the girl), garson-la (the boy),
+    papa-la (the father), lakaz-la (the house).
+Indefinite article: enn (a/an).
+Plural marker: bann BEFORE the noun — bann zanfan (children), bann lakaz (houses).
+
+Prefixes ti-, gro-, gran-:
+  • Hyphenated when fixed compound: ti-fami, gro-pwa, gran-nasion, granper
+    (grandfather, fusion), granmer (grandmother, fusion).
+  • NO hyphen when they are just adjectives: enn ti lakaz, enn gro loto, enn
+    gran lakaz.
+
+═══ GRAMMAR (GRAMER) — core structures ═══
+
+PERSONAL PRONOUNS (deictic, context-sensitive):
+┌─────────────┬──────────────────┬─────────────────────┬──────────────────────┐
+│ Function    │ 1st person       │ 2nd informal (titwaye) │ 2nd formal (vouvwaye) │
+├─────────────┼──────────────────┼─────────────────────┼──────────────────────┤
+│ Subject     │ mo               │ to                  │ ou                   │
+│ Possessive  │ mo lakaz         │ to lakaz            │ ou lakaz             │
+│ Complement  │ mwa              │ twa                 │ ou                   │
+│ Emphatic    │ mwa / momem      │ twa / tomem         │ ou / oumem           │
+│ Exclamative │ momem            │ etwa / twa / ta     │ oumem                │
+│ Plural      │ nou / noumem     │ zot / vouzot (emphatic) / zotmem (reflexive)        │
+│ Invitative  │ anou (= let's)                                                │
+└─────────────┴──────────────────┴─────────────────────┴──────────────────────┘
+3rd person: li (subject + complement), limem (emphatic/reflexive), so (possessive);
+  plural: bann-la / zot (subject), zotmem (reflexive).
+
+Possessive determiner structure (NO agreement, invariant):
+  Det + (bann) + (adj) + Noun + (adj)
+  mo lakaz | mo bann lakaz | mo ti lakaz tol | mo bann ti lakaz tol
+  (my house / my houses / my small iron-sheet house / my small iron-sheet houses)
+
+VERB MARKERS (always BEFORE the verb; the verb itself is INVARIANT):
+Present:
+  • ø (zero)  = general / habitual : « Li manz diri » (He eats rice.)
+  • pe        = progressive         : « Li pe manze » (He is eating.)
+Past:
+  • fek       = just now, immediate past : « Li fek vini » (He just arrived.)
+  • finn ('nn after pronoun) = perfect : « Li finn manze / Li'nn manze »
+    (He has eaten / He ate.)
+  • ti        = simple past, past continuous (with pe) : « Li ti manze »
+    (He ate / was eating.)
+Future:
+  • pou       = intentional future : « Mo pou vini » (I will come / intend to.)
+  • ava ('a after pronoun) = hypothetical/certain future : « Li'a vini »
+    (He'll probably come.)
+
+Combinations (fully productive):
+  • ti pe    = past progressive          : li ti pe manze (was eating)
+  • ti finn / ti'nn = pluperfect         : li ti'nn manze (had eaten)
+  • ti pou   = conditional / future-in-past : li ti pou manze (would eat)
+  • ti ava   = unrealized conditional    : li ti ava manze (would have eaten)
+  • pou pe   = future progressive        : li pou pe manze
+  • pou finn / pou'nn = future perfect   : li pou'nn fini manze
+  • fek-la, taler-la = recent-past indicators ; biento, taler = soon
+  • lavey + N = eve of ; landemin + N = day after
+
+NEGATION: always « pa » placed AFTER the pronoun subject and BEFORE the marker(s)
+  and verb:
+  Mo pa manze. (I don't eat.)
+  Li pa pe manze. (He isn't eating.)
+  Nou pa pou vini. (We won't come.)
+  To pa ti'nn trouv li? (You hadn't seen him?)
+
+INTERROGATIVES: Ki (what), Kot (where), Kan (when), Kouma (how), Kifer (why),
+  Konbien (how much/many), Kisanla (who), Ki manier (how're things / how).
+  Question by intonation OR final « ? »:
+  • Ki to pe fer? (What are you doing?)
+  • Kot to reste? (Where do you live?)
+  • Kan to pou vini? (When will you come?)
+  • Kouma to apelé? (What's your name?)
+  • Kifer to pa'nn vini? (Why didn't you come?)
+  • Konbien sa kout? (How much is this?)
+
+VERY COMMON WORDS to use for authenticity:
+  korek (OK/good), korek? (OK?), sa mem (exactly), laba (over there),
+  isi (here), aster (now), zordi (today), yer (yesterday), dime/demin (tomorrow),
+  bonzour (hello), bonswar (good evening), mersi (thanks), mersi boukou
+  (thanks a lot), salam (hi — Muslim greeting), ki manier (how're you),
+  tansion (watch out!), abe / eh (well, hey), kamarad (friend), tifi (girl),
+  garson (boy), zanfan (child), fami (family), lakaz (house), travay
+  (work/to work), kozé (to speak), mazine (to think), gete (to look),
+  trouve (to see), ale (to go), vini (to come), koné (to know), kapav
+  (can/be able), bizin (must/need), ena (there is / have), pena (there isn't).
+
+STYLISTIC NOTES:
+- Kreol Morisien is lexified on French but is NOT French: never slip into
+  standard French spellings or words when a Kreol equivalent exists.
+- Mauritians naturally mix in English or Bhojpuri words occasionally; keep
+  this authentic flavour sparingly for color.
+- Use « ki » (that/which) for subordinate clauses: « dimounn ki mo kone »
+  (the person I know), « lakaz ki mo'nn aste » (the house I bought).`;
+
+
 const buildSystemPrompt = (lang, level, avatar) => { const nl = getUserNativeLangName(); return `You are ${avatar.name}, a ${avatar.age}-year-old ${avatar.role.toLowerCase()} from ${avatar.location}.
 
 You are having a casual conversation with a ${nl} speaker who is learning ${lang.nativeName} (${lang.name}).
 
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
+${lang.code === 'mfe' ? KREOL_MORISIEN_REFERENCE : ''}
 
 Persona: ${avatar.persona}
 
 Your role:
-- Always reply in ${lang.nativeName}. ${lang.code === 'mfe' ? 'IMPORTANT: respond strictly in Kreol Morisien using authentic Mauritian spelling and expressions. Do NOT respond in French.' : ''}
+- Always reply in ${lang.nativeName}. ${lang.code === 'mfe' ? 'IMPORTANT: respond strictly in Kreol Morisien using the authoritative AKM 2011 orthography and grammar given above. Do NOT respond in French, and do NOT fall back on French spelling conventions.' : ''}
 - Stay in character. Be natural and engaging.
 - Keep replies short: 1–3 sentences. End with a question or remark that invites continuing.
 - Match your vocabulary and complexity STRICTLY to the level constraints above — never exceed them.
@@ -1236,9 +1393,10 @@ You are ${avatar.name}, a ${avatar.age}-year-old from ${avatar.location}, but in
 The learner is a ${nl} speaker learning ${lang.nativeName} (${lang.name}).
 
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
+${lang.code === 'mfe' ? KREOL_MORISIEN_REFERENCE : ''}
 
 RULES OF THE ROLE-PLAY:
-- Speak ONLY in ${lang.nativeName} when playing the character. ${lang.code === 'mfe' ? 'IMPORTANT: use authentic Kreol Morisien.' : ''}
+- Speak ONLY in ${lang.nativeName} when playing the character. ${lang.code === 'mfe' ? 'IMPORTANT: use authentic Kreol Morisien with the AKM 2011 orthography given above (not French spellings).' : ''}
 - Stay in character: use the vocabulary, register and typical phrases of the role.
 - Start the scenario by initiating the interaction in a natural way (e.g. a waiter would say "Welcome, how many people?"; a doctor would say "What brings you in today?").
 - Keep each reply short: 1–3 sentences. End with a question or line that pushes the learner to reply.
@@ -3479,7 +3637,7 @@ function TypingIndicator({ avatar }) {
 
 // ─── CHAT INPUT ───────────────────────────────────────────────────────────────
 
-function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeaking }) {
+function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeaking, pauseAutoListen, onManualMicStart }) {
   const [text, setText] = useState('');
   const [recording, setRecording] = useState(false);
   const [interim, setInterim] = useState('');
@@ -3598,18 +3756,20 @@ function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeakin
     doSubmit(v);
   };
 
-  // Auto-listen: when enabled, start mic as soon as it's our turn and avatar isn't speaking
+  // Auto-listen: when enabled, start mic as soon as it's our turn and avatar isn't speaking.
+  // PAUSÉ APRÈS UNE CORRECTION : le parent passe pauseAutoListen=true pour laisser
+  // l'apprenant lire tranquillement. L'utilisateur relance manuellement en touchant le micro.
   useEffect(() => {
     if (!autoListen) return;
+    if (pauseAutoListen) return;
     if (disabled) return;
     if (avatarIsSpeaking) return;
     if (recording) return;
-    if (micError === 'denied') return; // don't spam if user refused
-    // Small delay so the avatar's voice fully ends
+    if (micError === 'denied') return;
     const id = setTimeout(() => startListening(), 400);
     return () => clearTimeout(id);
     // eslint-disable-next-line
-  }, [autoListen, disabled, avatarIsSpeaking]);
+  }, [autoListen, disabled, avatarIsSpeaking, pauseAutoListen]);
 
   // Stop listening if avatar starts speaking
   useEffect(() => {
@@ -3661,9 +3821,23 @@ function ChatInput({ onSend, disabled, avatar, lang, autoListen, avatarIsSpeakin
           </div>
         )}
 
+        {/* Pause après correction : indique à l'apprenant qu'il doit lire puis toucher le micro */}
+        {pauseAutoListen && !recording && !disabled && (
+          <div className="mb-2 flex items-center gap-2 px-3 py-2 border rounded-xl"
+               style={{ background: 'rgba(234,179,8,0.08)', borderColor: '#CA8A04' }}>
+            <span style={{ fontSize: 16 }}>📖</span>
+            <span className="text-[11px] uppercase tracking-widest flex-1"
+                  style={{ fontFamily: 'DM Sans, sans-serif', color: '#A16207' }}>
+              Lisez la correction puis appuyez sur le micro pour continuer
+            </span>
+          </div>
+        )}
+
         <div className="flex items-end gap-2">
           <button
-            onClick={recording ? stopListening : startListening}
+            onClick={recording
+              ? stopListening
+              : () => { onManualMicStart?.(); startListening(); }}
             disabled={disabled}
             className={`shrink-0 w-11 h-11 grid place-items-center transition-all ${
               recording
@@ -3853,11 +4027,12 @@ function ScenariosScreen({ lang, level, onBack, onStartScenario }) {
     const system = `You write short, natural dialogue scripts for language learners.
 Language: ${lang.nativeName} (${lang.name}).
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
+${lang.code === 'mfe' ? KREOL_MORISIEN_REFERENCE : ''}
 Scenario: "${scenario.title}" — ${scenario.description}
 Characters: A) ${scenario.role}   B) ${scenario.userRole}
 
 Write a complete, realistic dialogue between A and B of 8 to 12 turns total.
-Match the level constraints STRICTLY. Keep each line short (1–2 sentences).
+Match the level constraints STRICTLY. Keep each line short (1–2 sentences).${lang.code === 'mfe' ? ' Use AKM 2011 orthography — not French spellings.' : ''}
 Also provide the ${nl} translation of each line.
 
 Respond ONLY with a JSON object, no code fences:
@@ -5087,6 +5262,10 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
     const saved = storage.get('pref:autoListen');
     return saved === null ? true : saved === 'true';
   });
+  // Après une correction, on désactive temporairement l'auto-mic pour laisser
+  // le temps à l'apprenant de LIRE la correction. Il doit appuyer sur le micro
+  // pour reprendre la conversation. Ce flag est effacé dès qu'il reparle.
+  const [pauseAfterCorrection, setPauseAfterCorrection] = useState(false);
   const [resumedFrom, setResumedFrom] = useState(null);
   const [voiceURI, setVoiceURI] = useState(null);
   const [showVoicePicker, setShowVoicePicker] = useState(false);
@@ -5277,6 +5456,11 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
       });
       // Log errors for the grammar-exercises generator
       (parsed.corrections || []).forEach(c => logError(lang, level, c));
+      // S'il y a UNE correction ou plus, on met l'auto-mic en pause : l'apprenant
+      // doit lire la correction tranquillement puis appuyer lui-même sur le micro.
+      if (parsed.corrections && parsed.corrections.length > 0) {
+        setPauseAfterCorrection(true);
+      }
       if (autoSpeak && parsed.reply) speakReplyWithCorrections(parsed.reply, parsed.corrections || []);
     } catch (err) {
       setMessages(prev => [...prev, { role:'assistant', reply:'…', translation:"Désolé, problème de connexion.", corrections: [] }]);
@@ -5450,7 +5634,9 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
       </div>
 
       <ChatInput onSend={sendMessage} disabled={loading} avatar={avatar} lang={lang}
-        autoListen={autoListen} avatarIsSpeaking={!!speakingText} />
+        autoListen={autoListen} avatarIsSpeaking={!!speakingText}
+        pauseAutoListen={pauseAfterCorrection}
+        onManualMicStart={() => setPauseAfterCorrection(false)} />
 
       {showVoicePicker && (
         <VoicePicker voices={voices} lang={lang} avatar={avatar} currentURI={voiceURI}
@@ -5676,11 +5862,12 @@ async function generateReaderText(lang, level, topic, { onPartial } = {}) {
   const system = `You write short reading passages for ${nl} speakers learning ${lang.nativeName} (${lang.name}).
 
 ${LEVEL_CONSTRAINTS[level.id] || level.prompt}
+${lang.code === 'mfe' ? KREOL_MORISIEN_REFERENCE : ''}
 
 Length: ${lengthByLevel[level.id]}. KEEP IT SHORT.
 Topic: ${topic.label}.
 
-Write a self-contained passage in ${lang.nativeName}${lang.code === 'mfe' ? ' (Kreol Morisien, authentic Mauritian Creole)' : ''}.
+Write a self-contained passage in ${lang.nativeName}${lang.code === 'mfe' ? ' (authentic Kreol Morisien following the AKM 2011 orthography above — NOT French spellings)' : ''}.
 The vocabulary AND grammar must STRICTLY respect the level constraints above — never exceed them.
 Also provide the full ${nl} translation.
 Give the passage a short title (in ${lang.nativeName}).

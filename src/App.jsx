@@ -406,11 +406,17 @@ const LANGUAGES = {
     // Aucune voix TTS/reconnaissance vocale dédiée dans les navigateurs pour le
     // kreol morisien — on tombe sur les voix françaises, qui prononcent
     // correctement le vocabulaire (base fortement lexifiée sur le français).
+    // Pour une meilleure qualité, chaque avatar mauricien a un `elevenLabsVoiceId`
+    // (voix ElevenLabs multilingue), activé si ELEVENLABS_API_KEY est configurée
+    // sur Vercel. Fallback automatique sur voix navigateur sinon.
     ttsLocale: 'fr-FR', srLocale: 'fr-FR', srSupported: true,
+    elevenLabsLang: 'fr',
     accent: '#0891B2',
     avatars: [
       { id:'marie_lise', gender:'female', name:'Marie-Lise', age:34, location:'Port-Louis, Maurice', role:'Amie de café',
         tagline:'Kreol du quotidien, food, plages, séga',
+        // ElevenLabs : "Charlotte" (fem, calm, warm) — bon rendu accent créolisé
+        elevenLabsVoiceId: 'XB0fDUnXU5powFXDhCwa',
         persona:`Mauritian Creole speaker from Port-Louis, warm and cheerful, speaks everyday Kreol Morisien at ease.
 - Follows AKM 2011 orthography strictly: writes « mwa » (not moi), « lerwa » (not leroi), « lwen » (not louen), « morisien » with -ien, uses « enn » for indefinite article, « bann » before nouns for plural, « -la » postfixed for definite article (tifi-la, lakaz-la).
 - Contractions she uses naturally: mo'nn (= mo finn), li'nn, nou'nn, li'a (= li ava), mo pe → mo p.
@@ -425,6 +431,8 @@ const LANGUAGES = {
                    {t:"Salam ! Enn ti kozri ?", fr:"Salut ! On papote un peu ?"}]},
       { id:'devraj', gender:'male', name:'Devraj', age:41, location:'Curepipe, Maurice', role:"Prof de kreol",
         tagline:'Patient, explique la grammaire mauricienne',
+        // ElevenLabs : "Daniel" (male, authoritative, warm) — bon pour un enseignant
+        elevenLabsVoiceId: 'onwK4e9ZLuTAKqWW03F9',
         persona:`Mauritian Creole teacher of Indo-Mauritian heritage from Curepipe, patient and clear — teaches following the AKM reference books (Lortograf 2011 + Gramer 2011).
 - STRICT with AKM orthography: writes mwa (not moi), lerwa, lwen, kwin, morisien, with proper nasal vowels (an/on/in/enn + ann/onn/inn/enn/ounn), uses « ch » = [tʃ] and « j » = [dʒ].
 - Explains verb markers systematically: pe = present progressive, finn/'nn = perfect, ti = past, pou = intentional future, ava/'a = hypothetical future ; and the combinations ti pe, ti'nn, ti pou, ti ava.
@@ -439,6 +447,8 @@ const LANGUAGES = {
                    {t:"Alo ! Kouma to sanmem ? Nou al gagn enn ti diskisyon.", fr:"Salut ! Comment vas-tu ? On va bavarder un peu."}]},
       { id:'jean_marc', gender:'male', name:'Jean-Marc', age:52, location:'Mahébourg, Maurice', role:'Pêcheur, guide local',
         tagline:'Kreol côtier, pêche, histoires du sud',
+        // ElevenLabs : "George" (male, older, warm UK) — vieux marin
+        elevenLabsVoiceId: 'JBFqnCBsd6RMkjVDRZzb',
         persona:`Mauritian Creole fisherman-guide from Mahébourg (south coast), colourful and witty, speaks authentic coastal Kreol.
 - Follows AKM 2011 orthography: mwa, lwen, kwin, lerwa, tipti-tipti (reduplication for emphasis), uses « ale-vini » (reduplicated opposites), « bann », « -la ».
 - Loves telling stories about the lagoon, séga music, old Mauritius, « vindaye » and « kari pwason », family recipes.
@@ -1338,7 +1348,106 @@ STYLISTIC NOTES:
 - Mauritians naturally mix in English or Bhojpuri words occasionally; keep
   this authentic flavour sparingly for color.
 - Use « ki » (that/which) for subordinate clauses: « dimounn ki mo kone »
-  (the person I know), « lakaz ki mo'nn aste » (the house I bought).`;
+  (the person I know), « lakaz ki mo'nn aste » (the house I bought).
+
+═══ CORE VOCABULARY (AKM-standardized, from Dict. Sténio Félix + AKM) ═══
+
+Verbs of daily life (use these natural Kreol forms, invariable):
+  manze (eat), bwar (drink), dormi (sleep), ale (go), vini (come),
+  retourne (return), rete (stay/live), reste (remain), kozé (speak),
+  tande (hear), gete (look at), trouve (see/find), rode (search for),
+  travay (work), zwe (play), amize (have fun), pran (take), done (give),
+  gagne (get/obtain/win), perdi (lose), kone (know), kapav (can/be able),
+  bizin (must/need), oule / le (want), kontan (love/like), deteste (hate),
+  galoupe (run), marse (walk), tonbe (fall), leve (get up), asize (sit),
+  dibout (stand), fer (do/make), dir (say), ekrir (write), lir (read),
+  aste (buy), vann (sell), peye (pay), kout (cost), aprann (learn),
+  konpran (understand), montre (show), repete (repeat), bliye (forget),
+  rapel (remember), espere (hope), demann (ask for), reponn (answer),
+  ouver (open), ferme (close), rant (enter), sorti (go out), monte (go up),
+  desann (go down), kasiet (hide), rire (laugh), plore (cry), sant (sing),
+  danse (dance), avoy (send), telefone (call), rankontre (meet), zwenn (meet),
+  atann (wait), kontinie (continue), aret (stop), komanse (start), fini (finish).
+
+Common nouns with fused l-/la-/le-/di- prefix (do NOT split):
+  lakaz (house), lakour (yard/courtyard), lari (street), lavil (town),
+  lerwa (king), larenn (queen), larzan (money), latab (table), lasiz (chair),
+  lavi (life), lamor (death), lamour (love), lamin (hand), lipie (foot),
+  lizie (eye), lizour (day), leswar (evening), lanwit (night), lesiel (sky),
+  disel (salt), disik (sugar), dipin (bread), diri (rice), delo (water),
+  dilo (water, also), dilwil (oil), dite (tea), dife (fire), divin (wine),
+  dibien (asset/goods), dimounn (person/people), zanfan (child), fami (family),
+  mama (mum), papa (dad), fifi (daughter) [rare], tifi (girl), garson (boy),
+  frer (brother), ser (sister), tonton (uncle), tantinn (aunt),
+  granper (grandfather), granmer (grandmother), zanimo (animal), lisien (dog),
+  minet / sat (cat), seval (horse), pwason (fish), poul (chicken), vas (cow),
+  kabri (goat), zwazo (bird), pie (tree), fler (flower), fri (fruit),
+  legim (vegetable), vian (meat), kari (curry), masala (spices),
+  nam (soul/food), lakor (body), latet (head), seve (hair), lamain (hand),
+  ledan (teeth), labous (mouth), nene (nose), zorey (ears), leker (heart).
+
+Mauritian-specific vocabulary (unique to the island):
+  séga (traditional music/dance), briani (biryani), dholl puri (flatbread),
+  gato pima (chilli cake), vindaye (fish dish), rougail (tomato relish),
+  faratha (flatbread), satini (chutney), achard (pickles), bazar (market),
+  tabazi (small shop), kamyonet (van), lotobus (bus), tirla (over there),
+  pangar (watch out!), yer-swar (last night), apre-dime (day after tomorrow),
+  avan-yer (day before yesterday), lanwit lontan (long ago at night).
+
+High-frequency function words:
+  isi (here), laba (over there), tirla (right there), lao (up), anba (down),
+  deryer (behind), devan (in front), kote (next to/side), dan (in), lor (on),
+  anba (under), omilie (middle), deor (outside), andan (inside),
+  aster (now), zordi (today), yer (yesterday), dime/demin (tomorrow),
+  biento (soon), taler (later), lontan (long ago), toultan (always),
+  parfwa (sometimes), zame (never), souvan (often), rarman (rarely),
+  tigit (a little), boukou (a lot), ase (enough), tro (too much), mwens (less),
+  plis (more), tou (all), nanye (nothing), kiksoz (something),
+  dimounn (someone/people), toudimounn (everyone), nersonn (no one),
+  bon (good), move (bad), zoli (pretty), led (ugly), gran (big), ti (small),
+  long (long), kourt (short), gro (fat), meg (thin), neuf (new, pron. « nef »),
+  vie (old), zenn (young), vit (fast), dous (slow/sweet), fer (strong),
+  feb (weak), fasil (easy), difisil (difficult), interessan (interesting),
+  anmerdan (annoying).
+
+Common idiomatic phrases (very frequent in daily conversation):
+  « Ki manier? » = How are you? / What's up?
+  « Korek? » / « Korek! » = OK? / All good!
+  « Pangar! » = Watch out! / Careful!
+  « Sa mem! » = Exactly! / That's it!
+  « Enn ti kozri » = A little chat
+  « Mo pa kone » = I don't know
+  « Mo pa konpran » = I don't understand
+  « Ki to ole dir? » = What do you mean?
+  « Kot to pe ale? » = Where are you going?
+  « Vinn gete » = Come and see
+  « Les mwa trankil » = Leave me alone
+  « Pa bliye » = Don't forget
+  « Mersi boukou » = Thanks a lot
+  « Pardon, eskiz mwa » = Sorry, excuse me
+  « Si Bondie oule » = God willing (Insh'Allah equivalent)
+  « Enn kou » = Suddenly / Once
+  « Ti kou-la » = Just now / A moment ago
+  « Dan enn ti moman » = In a little while
+  « Al dormi! » = Go to sleep!
+  « To korek ar sa? » = Are you OK with that?
+  « Ki pou fer? » = What can we do? (resigned)
+  « Pena problem » = No problem
+  « Ale, kontigne » = Go on, continue
+  « Zis enn minit » = Just a minute
+  « Mo pou vini aster-la mem » = I'll come right now
+  « Fer vit! » = Hurry up!
+  « Dousman » = Slowly / Gently
+  « Laisse li fer » = Let him do it
+  « Pa gagn traka » = Don't worry
+  « Bondie beni twa » = God bless you.
+
+NEGATION patterns (confirmed by both sources — « pa » always before marker/verb):
+  Mo pa kone. (I don't know.)
+  Li pa pe vini. (He isn't coming.)
+  Nou pa'nn trouv li. (We didn't see him.)
+  To pa pou gagn tan. (You won't have time.)
+  Mo pa ti pou dir sa. (I wouldn't have said that.)`;
 
 
 const buildSystemPrompt = (lang, level, avatar) => { const nl = getUserNativeLangName(); return `You are ${avatar.name}, a ${avatar.age}-year-old ${avatar.role.toLowerCase()} from ${avatar.location}.
@@ -1530,10 +1639,93 @@ function pickVoiceForAvatar(avatar, lang, voices, preferredVoiceURI) {
   return { voice: chosen, pitchShift };
 }
 
+// ─── ELEVENLABS TTS (haute qualité pour langues sans voix native) ────────────
+// Activé automatiquement pour les avatars qui ont un `elevenLabsVoiceId`.
+// Cache côté client pour éviter les rappels API sur phrases répétées.
+// Préférence utilisateur persistée dans localStorage : 'pref:elevenlabs'.
+
+const ELEVENLABS_AUDIO_CACHE = new Map(); // key: `${voice_id}:${text}` → Blob URL
+const ELEVENLABS_CACHE_MAX = 50;
+
+function getElevenLabsPref() {
+  try {
+    const v = storage.get('pref:elevenlabs');
+    return v === null ? true : v === 'true'; // activé par défaut
+  } catch { return true; }
+}
+function setElevenLabsPref(enabled) {
+  try { storage.set('pref:elevenlabs', String(!!enabled)); } catch {}
+}
+
+// Appelle /api/tts et retourne un Blob URL audio. Cache en mémoire pour les
+// phrases répétées (greetings, phrases courantes).
+async function fetchElevenLabsAudio(text, voiceId, languageCode = 'fr') {
+  const trimmed = (text || '').trim();
+  if (!trimmed || !voiceId) throw new Error('text and voiceId required');
+  const cacheKey = `${voiceId}:${trimmed}`;
+  if (ELEVENLABS_AUDIO_CACHE.has(cacheKey)) {
+    return ELEVENLABS_AUDIO_CACHE.get(cacheKey);
+  }
+  const res = await fetch('/api/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: trimmed,
+      voice_id: voiceId,
+      model_id: 'eleven_multilingual_v2',
+      language_code: languageCode,
+    }),
+  });
+  if (!res.ok) {
+    let msg = `TTS ${res.status}`;
+    try { const j = await res.json(); if (j.error) msg += `: ${j.error}`; } catch {}
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  // LRU basique : si on dépasse la taille max, on vire l'entrée la plus ancienne
+  if (ELEVENLABS_AUDIO_CACHE.size >= ELEVENLABS_CACHE_MAX) {
+    const firstKey = ELEVENLABS_AUDIO_CACHE.keys().next().value;
+    const oldUrl = ELEVENLABS_AUDIO_CACHE.get(firstKey);
+    try { URL.revokeObjectURL(oldUrl); } catch {}
+    ELEVENLABS_AUDIO_CACHE.delete(firstKey);
+  }
+  ELEVENLABS_AUDIO_CACHE.set(cacheKey, url);
+  return url;
+}
+
+// Lecteur audio ElevenLabs partagé entre speak() et speakSequence()
+let __currentElevenAudio = null;
+function stopElevenLabsAudio() {
+  if (__currentElevenAudio) {
+    try { __currentElevenAudio.pause(); __currentElevenAudio.currentTime = 0; } catch {}
+    __currentElevenAudio = null;
+  }
+}
+async function playElevenLabsAudio(text, voiceId, { languageCode = 'fr', rate = 1, onStart, onEnd, onError } = {}) {
+  stopElevenLabsAudio();
+  try {
+    const url = await fetchElevenLabsAudio(text, voiceId, languageCode);
+    const audio = new Audio(url);
+    audio.playbackRate = Math.max(0.5, Math.min(2.0, rate));
+    __currentElevenAudio = audio;
+    audio.onplay = () => onStart?.();
+    audio.onended = () => { if (__currentElevenAudio === audio) __currentElevenAudio = null; onEnd?.(); };
+    audio.onerror = (e) => { if (__currentElevenAudio === audio) __currentElevenAudio = null; onError?.(e); };
+    await audio.play();
+    return audio;
+  } catch (e) {
+    onError?.(e);
+    throw e;
+  }
+}
+
 function useSpeech() {
   const [voices, setVoices] = useState([]);
   const [speakingText, setSpeakingText] = useState(null);
   const [speakingBoundary, setSpeakingBoundary] = useState(null); // { text, charIndex, charLength }
+  const [elevenLabsEnabled, setElevenLabsEnabledState] = useState(() => getElevenLabsPref());
+  const setElevenLabsEnabled = (v) => { setElevenLabsPref(v); setElevenLabsEnabledState(!!v); };
 
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
@@ -1557,6 +1749,31 @@ function useSpeech() {
   }, []);
 
   const speak = (text, avatar, lang, preferredVoiceURI) => {
+    if (!text) return;
+
+    // Chemin ElevenLabs : avatar avec elevenLabsVoiceId + préférence activée
+    if (elevenLabsEnabled && avatar?.elevenLabsVoiceId) {
+      // On arrête tout — la voix navigateur ET l'audio ElevenLabs en cours
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      stopElevenLabsAudio();
+      playElevenLabsAudio(text, avatar.elevenLabsVoiceId, {
+        languageCode: lang?.elevenLabsLang || 'fr',
+        rate: avatar?.rate ?? 1,
+        onStart: () => { setSpeakingText(text); setSpeakingBoundary({ text, charIndex: 0, charLength: 0 }); },
+        onEnd: () => { setSpeakingText(null); setSpeakingBoundary(null); },
+        onError: () => { setSpeakingText(null); setSpeakingBoundary(null); },
+      }).catch(() => {
+        // En cas d'échec ElevenLabs (quota, offline, clé manquante), on bascule
+        // sur la voix navigateur comme filet de sécurité
+        speakViaBrowser(text, avatar, lang, preferredVoiceURI);
+      });
+      return;
+    }
+
+    speakViaBrowser(text, avatar, lang, preferredVoiceURI);
+  };
+
+  const speakViaBrowser = (text, avatar, lang, preferredVoiceURI) => {
     if (!('speechSynthesis' in window) || !text) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -1580,10 +1797,13 @@ function useSpeech() {
   // Speak several pieces one after the other, with an optional pause between them.
   // Usage: speakSequence([{text: "Hello."}, {text: "How are you?", pauseBefore: 700}], avatar, lang, uri)
   const speakSequence = (items, avatar, lang, preferredVoiceURI) => {
-    if (!('speechSynthesis' in window) || !items?.length) return;
-    window.speechSynthesis.cancel();
+    if (!items?.length) return;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    stopElevenLabsAudio();
     let cancelled = false;
     let idx = 0;
+
+    const useEleven = elevenLabsEnabled && !!avatar?.elevenLabsVoiceId;
 
     const speakNext = () => {
       if (cancelled || idx >= items.length) { setSpeakingText(null); return; }
@@ -1591,6 +1811,23 @@ function useSpeech() {
       const delay = item.pauseBefore || 0;
       setTimeout(() => {
         if (cancelled) return;
+        if (useEleven) {
+          playElevenLabsAudio(item.text, avatar.elevenLabsVoiceId, {
+            languageCode: lang?.elevenLabsLang || 'fr',
+            rate: item.rate ?? avatar?.rate ?? 1,
+            onStart: () => setSpeakingText(item.text),
+            onEnd: () => { if (!cancelled) speakNext(); },
+            onError: () => { setSpeakingText(null); },
+          }).catch(() => {
+            // Filet de sécurité : on continue avec la voix du navigateur
+            const u = new SpeechSynthesisUtterance(item.text);
+            u.lang = lang?.ttsLocale || 'en-US';
+            u.rate = item.rate ?? avatar?.rate ?? 0.9;
+            u.onend = () => { if (!cancelled) speakNext(); };
+            window.speechSynthesis.speak(u);
+          });
+          return;
+        }
         const u = new SpeechSynthesisUtterance(item.text);
         u.lang = lang?.ttsLocale || 'en-US';
         u.rate = item.rate ?? avatar?.rate ?? 0.9;
@@ -1598,7 +1835,6 @@ function useSpeech() {
         u.onstart = () => setSpeakingText(item.text);
         u.onend = () => { if (!cancelled) speakNext(); };
         u.onerror = () => { setSpeakingText(null); };
-        // MÊME logique de sélection de voix que speak() → cohérence garantie
         const { voice, pitchShift } = pickVoiceForAvatar(avatar, lang, voices, preferredVoiceURI);
         if (voice) u.voice = voice;
         if (pitchShift) u.pitch = Math.max(0.5, Math.min(2.0, u.pitch + pitchShift));
@@ -1606,16 +1842,21 @@ function useSpeech() {
       }, delay);
     };
     speakNext();
-    // Return a canceller
-    return () => { cancelled = true; window.speechSynthesis.cancel(); setSpeakingText(null); };
+    return () => {
+      cancelled = true;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      stopElevenLabsAudio();
+      setSpeakingText(null);
+    };
   };
 
   const stop = () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    stopElevenLabsAudio();
     setSpeakingText(null);
     setSpeakingBoundary(null);
   };
-  return { speak, speakSequence, stop, speakingText, speakingBoundary, voices };
+  return { speak, speakSequence, stop, speakingText, speakingBoundary, voices, elevenLabsEnabled, setElevenLabsEnabled };
 }
 
 function useRecognition(srLocale) {
@@ -5275,7 +5516,7 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
   const [vocabLoading, setVocabLoading] = useState(false);
   const [vocabRevealed, setVocabRevealed] = useState({}); // { idx: true } — words whose FR is revealed
   const [vocabShowAllFr, setVocabShowAllFr] = useState(false);
-  const { speak, speakSequence, stop, speakingText, speakingBoundary, voices } = useSpeech();
+  const { speak, speakSequence, stop, speakingText, speakingBoundary, voices, elevenLabsEnabled, setElevenLabsEnabled } = useSpeech();
   const endRef = useRef(null);
   const initDone = useRef(false);
 
@@ -5566,6 +5807,14 @@ function ChatScreen({ lang, level, avatar, onChangeAvatar, onBackHome, onOpenExe
           <button onClick={() => setAutoSpeak(s => !s)} className={`w-9 h-9 grid place-items-center border ${autoSpeak ? 'wl-btn-secondary border-transparent' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`} title="lecture auto">
             <Volume2 size={14} />
           </button>
+          {avatar?.elevenLabsVoiceId && (
+            <button onClick={() => setElevenLabsEnabled(!elevenLabsEnabled)}
+              className={`w-9 h-9 grid place-items-center border text-[10px] font-bold ${elevenLabsEnabled ? 'border-transparent text-white' : 'border-[color:rgba(90,78,69,0.3)] hover:bg-[color:rgba(255,255,255,0.5)]'}`}
+              style={elevenLabsEnabled ? { background: '#6366F1' } : {}}
+              title={elevenLabsEnabled ? "voix haute qualité (ElevenLabs) activée" : "voix haute qualité (ElevenLabs) désactivée — bascule sur voix navigateur"}>
+              HQ
+            </button>
+          )}
           {scenario && (
             <button onClick={() => setShowVocab(v => !v)}
               className="w-9 h-9 grid place-items-center rounded-full border transition-colors relative"

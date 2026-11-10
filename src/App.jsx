@@ -415,8 +415,9 @@ const LANGUAGES = {
     avatars: [
       { id:'marie_lise', gender:'female', name:'Marie-Lise', age:34, location:'Port-Louis, Maurice', role:'Amie de café',
         tagline:'Kreol du quotidien, food, plages, séga',
-        // ElevenLabs : "Charlotte" (fem, calm, warm) — bon rendu accent créolisé
-        elevenLabsVoiceId: 'XB0fDUnXU5powFXDhCwa',
+        // ElevenLabs : "Nicole" (fem, expressive, soft, carries island warmth)
+        //   Change-la toi-même via l'ElevenLabs Voice Library si tu trouves mieux.
+        elevenLabsVoiceId: 'piTKgcLEGmPE4e6mEKli',
         persona:`Mauritian Creole speaker from Port-Louis, warm and cheerful, speaks everyday Kreol Morisien at ease.
 - Follows AKM 2011 orthography strictly: writes « mwa » (not moi), « lerwa » (not leroi), « lwen » (not louen), « morisien » with -ien, uses « enn » for indefinite article, « bann » before nouns for plural, « -la » postfixed for definite article (tifi-la, lakaz-la).
 - Contractions she uses naturally: mo'nn (= mo finn), li'nn, nou'nn, li'a (= li ava), mo pe → mo p.
@@ -431,8 +432,8 @@ const LANGUAGES = {
                    {t:"Salam ! Enn ti kozri ?", fr:"Salut ! On papote un peu ?"}]},
       { id:'devraj', gender:'male', name:'Devraj', age:41, location:'Curepipe, Maurice', role:"Prof de kreol",
         tagline:'Patient, explique la grammaire mauricienne',
-        // ElevenLabs : "Daniel" (male, authoritative, warm) — bon pour un enseignant
-        elevenLabsVoiceId: 'onwK4e9ZLuTAKqWW03F9',
+        // ElevenLabs : "Antoni" (male, FR warm, less UK-neutral than Daniel)
+        elevenLabsVoiceId: 'ErXwobaYiN019PkySvjV',
         persona:`Mauritian Creole teacher of Indo-Mauritian heritage from Curepipe, patient and clear — teaches following the AKM reference books (Lortograf 2011 + Gramer 2011).
 - STRICT with AKM orthography: writes mwa (not moi), lerwa, lwen, kwin, morisien, with proper nasal vowels (an/on/in/enn + ann/onn/inn/enn/ounn), uses « ch » = [tʃ] and « j » = [dʒ].
 - Explains verb markers systematically: pe = present progressive, finn/'nn = perfect, ti = past, pou = intentional future, ava/'a = hypothetical future ; and the combinations ti pe, ti'nn, ti pou, ti ava.
@@ -447,8 +448,9 @@ const LANGUAGES = {
                    {t:"Alo ! Kouma to sanmem ? Nou al gagn enn ti diskisyon.", fr:"Salut ! Comment vas-tu ? On va bavarder un peu."}]},
       { id:'jean_marc', gender:'male', name:'Jean-Marc', age:52, location:'Mahébourg, Maurice', role:'Pêcheur, guide local',
         tagline:'Kreol côtier, pêche, histoires du sud',
-        // ElevenLabs : "George" (male, older, warm UK) — vieux marin
-        elevenLabsVoiceId: 'JBFqnCBsd6RMkjVDRZzb',
+        // ElevenLabs : "Fin" (male IE Irish sailor) — voix rauque de marin
+        //   Accent irlandais prononcé, sonne plus "island" que le UK neutre.
+        elevenLabsVoiceId: 'D38z5RcWu1voky8WS1ja',
         persona:`Mauritian Creole fisherman-guide from Mahébourg (south coast), colourful and witty, speaks authentic coastal Kreol.
 - Follows AKM 2011 orthography: mwa, lwen, kwin, lerwa, tipti-tipti (reduplication for emphasis), uses « ale-vini » (reduplicated opposites), « bann », « -la ».
 - Loves telling stories about the lagoon, séga music, old Mauritius, « vindaye » and « kari pwason », family recipes.
@@ -1211,7 +1213,27 @@ const KREOL_MORISIEN_REFERENCE = `
 MAURITIAN CREOLE (KREOL MORISIEN) — AUTHORITATIVE REFERENCE
 Based on AKADEMI KREOL MORISIEN publications (2011): Lortograf Kreol Morisien
 (Dr A. Carpooran) and Gramer Kreol Morisien Volim I (Police-Michel, Carpooran,
-Florigny). You MUST follow this orthography (Grafi-larmoni) and grammar strictly.
+Florigny), plus the National Library of Mauritius practical guide and
+Sténio Félix's dictionary. You MUST follow this orthography (Grafi-larmoni)
+and grammar strictly.
+
+═══ PHONETIC CONVERSION RULES (French → Kreol, per Mauritius National Library) ═══
+
+Kreol Morisien is HIGHLY PHONETIC — write exactly what you hear, no silent letters.
+Core transformations from French to Kreol:
+  • French « u »     → Kreol « i »    : « sucre »  → « sik »,   « lune »  → « lalinn »
+  • French « j »     → Kreol « z »    : « jour »   → « zour »,  « jamais » → « zame »
+  • French « ch »    → Kreol « s »    : « chat »   → « sat »,   « cherche » → « rode »
+  • French hard « c »→ Kreol « k »    : « coeur »  → « leker », « cours »  → « kour »
+  • French « x »     → Kreol « s / ks / gz » : « expliquer » → « eksplike »,
+      « taxi » → « taksi », « examen » → « egzame »
+  • French « qu »    → Kreol « k »    : « quand »  → « kan »,   « qui »    → « ki »
+  • French « gu »    → Kreol « g »    : « guerre » → « ger »
+  • French silent letters are DROPPED : « petit » → « ti »,  « froid » → « frwa »,
+      « trop » → « tro »,  « assez » → « ase »
+  • Every written letter is pronounced — no silent endings.
+  • Nasal vowels keep French-like sounds but spelled an / on / in (not ain, ein,
+    ym, etc.): « pain » → « dipin », « combien » → « konbien ».
 
 ═══ ORTHOGRAPHY (LORTOGRAF) — never use French spelling, always use the AKM standard ═══
 
@@ -1411,35 +1433,51 @@ High-frequency function words:
   anmerdan (annoying).
 
 Common idiomatic phrases (very frequent in daily conversation):
-  « Ki manier? » = How are you? / What's up?
-  « Korek? » / « Korek! » = OK? / All good!
-  « Pangar! » = Watch out! / Careful!
-  « Sa mem! » = Exactly! / That's it!
-  « Enn ti kozri » = A little chat
-  « Mo pa kone » = I don't know
+  — Greetings & basics (from Mauritius National Library guide + AKM) —
+  « Bonzour » = Hello / Good morning
+  « Bonswar » = Good evening
+  « Ki manier? » / « Ki manyer? » = How are you? / What's up?
+  « Korek? » = Everything OK? (also used as a greeting)
+  « Korek! » / « Mo bien » = All good / I'm fine
+  « Wi » = Yes   « Non » = No
+  « Mersi » = Thank you   « Mersi boukou » = Thanks a lot
+  « Silteple » = Please (if-you-please, written as ONE word)
+  « Siouple » = Please (polite, from « s'il vous plaît »)
+  « Pardon, eskiz mwa » = Sorry, excuse me
+  « Ayo! » = Multi-purpose interjection — surprise, joy, weariness or annoyance
+         depending on tone (THE quintessential Mauritian interjection)
+  « Ayo mo gagn dimal! » = Ouch, that hurts!
+
+  — Daily communication —
   « Mo pa konpran » = I don't understand
+  « Mo pa kone » = I don't know
   « Ki to ole dir? » = What do you mean?
+  « Komie sa? » = How much is this? (preferred over « Konbien »)
   « Kot to pe ale? » = Where are you going?
+  « Kot to reste? » = Where do you live?
+  « Mo pe al laplaz » = I'm going to the beach
+  « Mo kontan twa » = I love you (also « Mo kontan ou » for formal)
   « Vinn gete » = Come and see
   « Les mwa trankil » = Leave me alone
   « Pa bliye » = Don't forget
-  « Mersi boukou » = Thanks a lot
-  « Pardon, eskiz mwa » = Sorry, excuse me
-  « Si Bondie oule » = God willing (Insh'Allah equivalent)
-  « Enn kou » = Suddenly / Once
-  « Ti kou-la » = Just now / A moment ago
-  « Dan enn ti moman » = In a little while
-  « Al dormi! » = Go to sleep!
-  « To korek ar sa? » = Are you OK with that?
-  « Ki pou fer? » = What can we do? (resigned)
+  « Pa gagn traka » = Don't worry
   « Pena problem » = No problem
+  « Sa mem! » = Exactly! / That's it!
+  « Enn ti kozri » = A little chat
+  « Pangar! » = Watch out! / Careful!
+  « Fer vit! » = Hurry up!
+  « Dousman » = Slowly / Gently
   « Ale, kontigne » = Go on, continue
   « Zis enn minit » = Just a minute
   « Mo pou vini aster-la mem » = I'll come right now
-  « Fer vit! » = Hurry up!
-  « Dousman » = Slowly / Gently
+  « Al dormi! » = Go to sleep!
+  « To korek ar sa? » = Are you OK with that?
+  « Ki pou fer? » = What can we do? (resigned, fatalistic)
+  « Enn kou » = Suddenly / Once
+  « Ti kou-la » = Just now / A moment ago
+  « Dan enn ti moman » = In a little while
   « Laisse li fer » = Let him do it
-  « Pa gagn traka » = Don't worry
+  « Si Bondie oule » = God willing (Insh'Allah equivalent)
   « Bondie beni twa » = God bless you.
 
 NEGATION patterns (confirmed by both sources — « pa » always before marker/verb):

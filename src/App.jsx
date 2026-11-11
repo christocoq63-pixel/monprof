@@ -8819,6 +8819,9 @@ function TranslatorScreen({ lang, profile, onBack }) {
   const [translation, setTranslation] = useState('');
   const [translating, setTranslating] = useState(false);
   const [error, setError] = useState(null);
+  // Mode de saisie : "voice" (micro) ou "text" (champ texte)
+  const [inputMode, setInputMode] = useState('voice');
+  const [typedText, setTypedText] = useState('');
 
   // Deux instances de reconnaissance vocale : une par direction, car la locale change
   const theySR = useRecognition(lang.srLocale);                     // interlocuteur parle en cible
@@ -8837,6 +8840,25 @@ function TranslatorScreen({ lang, profile, onBack }) {
 
   const resetAll = () => {
     setOriginal(''); setTranslation(''); setInterim(''); setError(null);
+  };
+
+  // Soumission texte : prend le texte tapé, le place en "original", puis traduit
+  const submitTypedText = () => {
+    const trimmed = typedText.trim();
+    if (!trimmed) return;
+    setError(null);
+    setOriginal(trimmed);
+    setTranslation('');
+    setInterim('');
+    translateText(trimmed);
+    setTypedText('');
+  };
+
+  // Change de mode input ; stoppe l'enregistrement si on quitte le mode voice
+  const switchInputMode = (m) => {
+    if (recording) sr.stop();
+    setInputMode(m);
+    resetAll();
   };
 
   const translateText = async (text) => {
@@ -8986,45 +9008,121 @@ Keep the register and tone natural, as if the speaker said it directly in ${targ
           </button>
         </div>
 
-        {/* BIG MIC BUTTON */}
-        <div className="flex flex-col items-center my-8">
-          <button
-            onClick={recording ? stopListening : startListening}
-            disabled={translating || !sr.supported}
-            className="relative rounded-full flex items-center justify-center transition-all disabled:opacity-40"
+        {/* Switch mode VOIX / TEXTE */}
+        <div className="flex items-center justify-center gap-2 mb-5">
+          <button onClick={() => switchInputMode('voice')}
+            className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 transition-all"
             style={{
-              width: 180, height: 180,
-              background: recording
-                ? `radial-gradient(circle at 30% 30%, ${sourceAccent}, ${sourceAccent}CC)`
-                : `radial-gradient(circle at 30% 30%, ${sourceAccent}, ${sourceAccent}DD)`,
-              boxShadow: recording
-                ? `0 0 0 10px ${sourceAccent}22, 0 10px 40px ${sourceAccent}66`
-                : `0 10px 30px ${sourceAccent}55`,
-              animation: recording ? 'avatar-bounce 1.2s ease-in-out infinite' : 'none',
+              fontFamily: 'DM Sans',
+              background: inputMode === 'voice' ? sourceAccent : 'white',
+              color: inputMode === 'voice' ? 'white' : 'var(--ink)',
+              border: `1.5px solid ${sourceAccent}`,
+              boxShadow: inputMode === 'voice' ? `0 2px 8px ${sourceAccent}66` : 'none',
             }}>
-            {recording && (
-              <span className="absolute inset-0 rounded-full"
-                style={{
-                  background: `${sourceAccent}55`,
-                  animation: 'avatar-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-                }} />
-            )}
-            {translating
-              ? <Loader2 size={64} className="animate-spin text-white relative z-10" />
-              : recording
-                ? <MicOff size={64} className="text-white relative z-10" />
-                : <Mic size={64} className="text-white relative z-10" />
-            }
+            <Mic size={13} /> voix
           </button>
-          <div className="mt-4 text-[13px] font-bold uppercase tracking-widest text-center" style={{ fontFamily: 'DM Sans', color: sourceAccent }}>
-            {translating ? t('tr.translating') : recording ? t('tr.tap_again') : t('tr.tap_to_start')}
-          </div>
-          {!sr.supported && (
-            <div className="mt-3 text-xs text-amber-700 text-center" style={{ fontFamily: 'DM Sans' }}>
-              ⚠️ La reconnaissance vocale n'est pas disponible sur ce navigateur.
-            </div>
-          )}
+          <button onClick={() => switchInputMode('text')}
+            className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 transition-all"
+            style={{
+              fontFamily: 'DM Sans',
+              background: inputMode === 'text' ? sourceAccent : 'white',
+              color: inputMode === 'text' ? 'white' : 'var(--ink)',
+              border: `1.5px solid ${sourceAccent}`,
+              boxShadow: inputMode === 'text' ? `0 2px 8px ${sourceAccent}66` : 'none',
+            }}>
+            ✍️ texte
+          </button>
         </div>
+
+        {/* MODE VOIX — gros bouton micro */}
+        {inputMode === 'voice' && (
+          <div className="flex flex-col items-center my-6">
+            <button
+              onClick={recording ? stopListening : startListening}
+              disabled={translating || !sr.supported}
+              className="relative rounded-full flex items-center justify-center transition-all disabled:opacity-40"
+              style={{
+                width: 180, height: 180,
+                background: recording
+                  ? `radial-gradient(circle at 30% 30%, ${sourceAccent}, ${sourceAccent}CC)`
+                  : `radial-gradient(circle at 30% 30%, ${sourceAccent}, ${sourceAccent}DD)`,
+                boxShadow: recording
+                  ? `0 0 0 10px ${sourceAccent}22, 0 10px 40px ${sourceAccent}66`
+                  : `0 10px 30px ${sourceAccent}55`,
+                animation: recording ? 'avatar-bounce 1.2s ease-in-out infinite' : 'none',
+              }}>
+              {recording && (
+                <span className="absolute inset-0 rounded-full"
+                  style={{
+                    background: `${sourceAccent}55`,
+                    animation: 'avatar-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+                  }} />
+              )}
+              {translating
+                ? <Loader2 size={64} className="animate-spin text-white relative z-10" />
+                : recording
+                  ? <MicOff size={64} className="text-white relative z-10" />
+                  : <Mic size={64} className="text-white relative z-10" />
+              }
+            </button>
+            <div className="mt-4 text-[13px] font-bold uppercase tracking-widest text-center" style={{ fontFamily: 'DM Sans', color: sourceAccent }}>
+              {translating ? t('tr.translating') : recording ? t('tr.tap_again') : t('tr.tap_to_start')}
+            </div>
+            {!sr.supported && (
+              <div className="mt-3 text-xs text-amber-700 text-center" style={{ fontFamily: 'DM Sans' }}>
+                ⚠️ La reconnaissance vocale n'est pas disponible sur ce navigateur. Passe en mode texte.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MODE TEXTE — champ de saisie + bouton traduire */}
+        {inputMode === 'text' && (
+          <div className="my-6">
+            <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
+                   style={{ fontFamily: 'DM Sans', color: sourceAccent }}>
+              texte à traduire ({sourceLangNat})
+            </label>
+            <textarea
+              value={typedText}
+              onChange={(e) => setTypedText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  submitTypedText();
+                }
+              }}
+              placeholder={`Tapez votre texte en ${sourceLangNat}…`}
+              rows={4}
+              dir={direction === 'they' && lang.rtl ? 'rtl' : 'ltr'}
+              className="w-full p-4 rounded-2xl resize-y text-base"
+              style={{
+                fontFamily: 'Fraunces, Georgia, serif',
+                background: 'white',
+                border: `1.5px solid ${sourceAccent}55`,
+                color: 'var(--ink)',
+                minHeight: 110,
+              }}
+              disabled={translating}
+            />
+            <div className="flex items-center justify-between gap-3 mt-3">
+              <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: 'DM Sans', color: 'var(--gris)' }}>
+                ↵ Entrée pour traduire · Maj+↵ pour sauter une ligne
+              </span>
+              <button onClick={submitTypedText} disabled={translating || !typedText.trim()}
+                className="px-5 py-2.5 rounded-full text-white text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 disabled:opacity-30 transition-all hover:brightness-110"
+                style={{
+                  fontFamily: 'DM Sans',
+                  background: sourceAccent,
+                  boxShadow: `0 3px 10px ${sourceAccent}55`,
+                }}>
+                {translating
+                  ? <><Loader2 size={13} className="animate-spin" /> {t('tr.translating')}</>
+                  : <>✨ traduire</>}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Interim text while listening */}
         {recording && interim && (

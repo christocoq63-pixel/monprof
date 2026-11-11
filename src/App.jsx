@@ -141,6 +141,20 @@ const LANGUAGES = {
         voiceHint:['paulina','esperanza','female'],
         greetings:[{t:"Hola, mucho gusto. ¿Cómo te llamas?", fr:"Bonjour, enchantée. Comment tu t'appelles ?"},
                    {t:"Bienvenido. ¿De qué te gustaría hablar?", fr:"Bienvenue. De quoi aimerais-tu parler ?"}]},
+      { id:'juan_carlos', gender:'male', name:'Juan Carlos', age:58, location:'Bogotá, Colombia', role:'Journaliste retraité',
+        tagline:'Espagnol colombien très clair, histoire, café',
+        persona:'Colombian Spanish from Bogotá, famously clear and neutral pronunciation, courteous (uses "usted" warmly), loves history, coffee culture and storytelling',
+        color:'#92400E', soft:'#F3E0C8', pattern:'grid',
+        voiceHint:['jorge','juan','carlos','diego','male'],
+        greetings:[{t:"Buenas, ¿cómo le va? Siéntese, tomemos un tintico.", fr:"Bonjour, comment allez-vous ? Asseyez-vous, prenons un petit café."},
+                   {t:"Mucho gusto. Cuénteme, ¿de dónde viene usted?", fr:"Enchanté. Dites-moi, d'où venez-vous ?"}]},
+      { id:'sara', gender:'female', name:'Sara', age:28, location:'Sevilla, España', role:'Blogueuse voyage',
+        tagline:'Andalouse, voyages, bons plans, tapas',
+        persona:'lively Andalusian Spanish from Seville, travel blogger, enthusiastic, talks about trips, food and hidden spots; keeps vocabulary accessible',
+        color:'#DB2777', soft:'#FBDCEA', pattern:'lines',
+        voiceHint:['monica','marisol','paulina','female'],
+        greetings:[{t:"¡Hola, guapo! ¿Adónde te gustaría viajar?", fr:"Salut ! Où aimerais-tu voyager ?"},
+                   {t:"¡Buenas! ¿Cuál ha sido tu mejor viaje?", fr:"Salut ! Quel a été ton meilleur voyage ?"}]},
     ],
   },
   de: {
@@ -169,6 +183,13 @@ const LANGUAGES = {
         voiceHint:['petra','greta','female'],
         greetings:[{t:"Grüß Sie! Wie geht es Ihnen?", fr:"Bonjour ! Comment allez-vous ?"},
                    {t:"Hallo. Lassen Sie uns ein bisschen plaudern.", fr:"Bonjour. Bavardons un peu."}]},
+      { id:'franziska', gender:'female', name:'Franziska', age:24, location:'Hamburg, Deutschland', role:'Barista, étudiante',
+        tagline:'Allemand jeune et quotidien, café, musique',
+        persona:'young everyday German from Hamburg, barista and student, relaxed, uses common colloquial phrases ("na", "genau", "krass") but stays easy to follow',
+        color:'#B45309', soft:'#F5E3C9', pattern:'circles',
+        voiceHint:['anna','helena','steffi','petra','female'],
+        greetings:[{t:"Na, alles klar? Was darf's sein?", fr:"Alors, ça va ? Qu'est-ce que je te sers ?"},
+                   {t:"Moin! Erzähl mal, was machst du heute?", fr:"Salut ! Raconte, tu fais quoi aujourd'hui ?"}]},
     ],
   },
   it: {
@@ -197,6 +218,20 @@ const LANGUAGES = {
         voiceHint:['alice','federica','silvia','female'],
         greetings:[{t:"Salve! Da dove viene?", fr:"Bonjour ! D'où venez-vous ?"},
                    {t:"Ciao. Come ti chiami?", fr:"Salut. Comment tu t'appelles ?"}]},
+      { id:'rosa', gender:'female', name:'Nonna Rosa', age:68, location:'Napoli, Italia', role:'Grand-mère napolitaine',
+        tagline:'Cuisine, famille, proverbes, tendresse',
+        persona:'warm Neapolitan grandmother speaking standard Italian with a few affectionate southern expressions ("tesoro", "bello mio"), talks about cooking, family and proverbs, speaks slowly and lovingly',
+        color:'#BE123C', soft:'#F9D9DF', pattern:'dots',
+        voiceHint:['alice','federica','silvia','female'],
+        greetings:[{t:"Ciao, tesoro! Hai già mangiato?", fr:"Bonjour, mon trésor ! Tu as déjà mangé ?"},
+                   {t:"Vieni, siediti qui. Raccontami tutto.", fr:"Viens, assieds-toi ici. Raconte-moi tout."}]},
+      { id:'luca', gender:'male', name:'Luca', age:27, location:'Bologna, Italia', role:'Étudiant, musicien',
+        tagline:'Italien jeune, musique, calcio, soirées',
+        persona:'young casual Italian from Bologna, student and guitarist, friendly and funny, talks about music, football and student life with everyday expressions ("dai", "figurati", "che figata")',
+        color:'#0E7490', soft:'#D0EAF0', pattern:'lines',
+        voiceHint:['luca','paolo','marco','male'],
+        greetings:[{t:"Ciao! Tutto a posto? Che fai di bello?", fr:"Salut ! Tout va bien ? Tu fais quoi de beau ?"},
+                   {t:"Ehi, piacere! Che musica ascolti?", fr:"Hé, enchanté ! Tu écoutes quelle musique ?"}]},
     ],
   },
   pt: {
@@ -225,6 +260,13 @@ const LANGUAGES = {
         voiceHint:['felipe','daniel','ricardo','male'],
         greetings:[{t:"Olá! Como você se chama?", fr:"Salut ! Comment tu t'appelles ?"},
                    {t:"Oi, prazer. Sobre o que quer conversar?", fr:"Bonjour, enchanté. De quoi veux-tu parler ?"}]},
+      { id:'mariana', gender:'female', name:'Mariana', age:39, location:'Salvador, Brasil', role:'Cheffe cuisinière',
+        tagline:'Brésil du Nordeste, cuisine, musique, fêtes',
+        persona:'warm Brazilian Portuguese from Salvador (Bahia), chef, joyful and expressive, talks about food, music and festivals; clear standard Brazilian vocabulary',
+        color:'#C2410C', soft:'#FBE4D2', pattern:'grid',
+        voiceHint:['luciana','joana','catarina','female'],
+        greetings:[{t:"Oi, meu bem! Você já provou comida baiana?", fr:"Salut, mon cœur ! Tu as déjà goûté la cuisine de Bahia ?"},
+                   {t:"E aí, tudo joia? O que você gosta de comer?", fr:"Alors, tout va bien ? Qu'est-ce que tu aimes manger ?"}]},
     ],
   },
   ja: {
@@ -253,6 +295,13 @@ const LANGUAGES = {
         voiceHint:['kyoko','sayaka','female'],
         greetings:[{t:"こんにちは！日本語を勉強していますか？", fr:"Bonjour ! Tu étudies le japonais ?"},
                    {t:"はじめまして！ゆっくり話しましょうね。", fr:"Enchantée ! Parlons doucement, d'accord ?"}]},
+      { id:'ken', gender:'male', name:'Ken', age:25, location:'東京 (Tokyo)', role:'Gamer, étudiant',
+        tagline:'Japonais jeune, jeux vidéo, anime, manga',
+        persona:'young casual Tokyo Japanese (plain form, friendly), gamer and student, talks about video games, anime and manga, enthusiastic but keeps sentences short and simple',
+        color:'#4F46E5', soft:'#DDDCF8', pattern:'grid',
+        voiceHint:['otoya','hattori','male'],
+        greetings:[{t:"やあ！元気？ゲームは好き？", fr:"Salut ! Ça va ? Tu aimes les jeux vidéo ?"},
+                   {t:"よろしく！最近、何のアニメを見てる？", fr:"Enchanté ! Tu regardes quel anime en ce moment ?"}]},
     ],
   },
   zh: {
@@ -281,6 +330,13 @@ const LANGUAGES = {
         voiceHint:['sin-ji','meijia','female'],
         greetings:[{t:"嗨，你好！你住在哪裡？", fr:"Salut ! Tu habites où ?"},
                    {t:"哈囉，最近做什麼？", fr:"Coucou, qu'est-ce que tu fais en ce moment ?"}]},
+      { id:'hao', gender:'male', name:'Hao', age:52, location:'成都 (Chengdu)', role:'Maître de thé',
+        tagline:'Calme, thé, calligraphie, proverbes',
+        persona:'calm standard Mandarin, tea master from Chengdu, speaks slowly and serenely, talks about tea, calligraphy, food and Chinese proverbs (chengyu) which he explains simply',
+        color:'#166534', soft:'#D3E8D8', pattern:'circles',
+        voiceHint:['tian-tian','male'],
+        greetings:[{t:"你好，请坐。喝茶吗？", fr:"Bonjour, asseyez-vous. Vous prenez du thé ?"},
+                   {t:"欢迎。你学中文多久了？", fr:"Bienvenue. Depuis combien de temps apprenez-vous le chinois ?"}]},
     ],
   },
   ar: {
@@ -302,6 +358,20 @@ const LANGUAGES = {
         voiceHint:['majed','tarik','male'],
         greetings:[{t:"السلام عليكم. ما اسمك؟", fr:"Salam aleykoum. Comment t'appelles-tu ?"},
                    {t:"مرحبا. هل تتعلم العربية؟", fr:"Bonjour. Apprends-tu l'arabe ?"}]},
+      { id:'nour', gender:'female', name:'Nour', age:27, location:'Casablanca, Maroc', role:'Architecte',
+        tagline:'Arabe moderne, design, voyages, quotidien',
+        persona:'Modern Standard Arabic spoken naturally by a young Moroccan architect, friendly and modern, occasionally mentions a Moroccan word and explains it; talks about design, travel and daily life',
+        color:'#BE185D', soft:'#F8D8E6', pattern:'lines',
+        voiceHint:['laila','female'],
+        greetings:[{t:"أهلا وسهلا! كيف حالك؟", fr:"Bienvenue ! Comment vas-tu ?"},
+                   {t:"مرحبا! من أين أنت؟", fr:"Bonjour ! D'où viens-tu ?"}]},
+      { id:'youssef', gender:'male', name:'Youssef', age:47, location:'الإسكندرية (Alexandrie)', role:'Chauffeur de taxi',
+        tagline:'Arabe égyptien, humour, vie de quartier',
+        persona:'Egyptian Arabic (the most widely understood dialect), talkative and funny taxi driver from Alexandria, tells anecdotes about the city, football and food; explains dialect words when the learner seems lost',
+        color:'#0F766E', soft:'#CDE8E5', pattern:'grid',
+        voiceHint:['majed','tarik','male'],
+        greetings:[{t:"أهلا يا باشا! إزيك النهارده؟", fr:"Salut chef ! Comment ça va aujourd'hui ?"},
+                   {t:"اتفضل! إنت منين؟", fr:"Je t'en prie ! Tu viens d'où ?"}]},
     ],
   },
   mfe: {
@@ -462,6 +532,20 @@ const LANGUAGES = {
         rate: 0.88, pitch: 1.0,
         greetings:[{t:"Éh kamarad ! Kouma to yé zordi ?", fr:"Eh l'ami ! Comment tu vas aujourd'hui ?"},
                    {t:"Bonzour matlo, kouma sa alé ? Ki to pe fer ?", fr:"Bonjour mon pote, comment ça va ? Qu'est-ce que tu fais ?"}]},
+      { id:'anjali', gender:'female', name:'Anjali', age:28, location:'Rose-Hill, Maurice', role:'Infirmière',
+        tagline:'Kreol jeune et doux, santé, famille, sorties',
+        // ElevenLabs : "Charlotte" (fem, calme). À remplacer par une voix clonée mauricienne.
+        elevenLabsVoiceId: 'XB0fDUnXU5powFXDhCwa',
+        persona:`young Indo-Mauritian nurse from Rose-Hill, gentle and caring, speaks modern everyday Kreol Morisien.
+- Follows AKM 2011 orthography strictly: mwa, twa, lwen, zordi, lakaz, lopital, dokter, with markers pe / finn ('nn) / ti / pou.
+- Talks about daily life, health and well-being, family, festivals (Divali, Cavadee, Eid, Nwel), weekend outings, street food (dholl-puri, gato pima, alouda).
+- Natural expressions: « ki manier ? », « korek », « pa gagn traka », « pran kont », « tigit-tigit », « ayo ! ».
+- Reassuring tone, short sentences; explains a word in the learner's native language ONLY if the learner is clearly lost.`,
+        color:'#DB2777', soft:'#FBDCEA', pattern:'grid',
+        voiceHint:['google français','google french','amélie','audrey','virginie','female'],
+        rate: 0.9, pitch: 1.05,
+        greetings:[{t:"Bonzour ! Ki manier ? To pe bien zordi ?", fr:"Bonjour ! Comment ça va ? Tu vas bien aujourd'hui ?"},
+                   {t:"Alo ! Kouma to apele ? Rakont mwa enn ti zafer.", fr:"Salut ! Comment tu t'appelles ? Raconte-moi un petit quelque chose."}]},
     ],
   },
 };
@@ -554,6 +638,29 @@ const FACES = {
                 hair:'short',   hairColor:'black',    skin:'tan' },
   jean_marc:  { eyes:'round',  mouth:'smirk',      accessory:null,          moustache:true,
                 hair:'short',   hairColor:'grey',     skin:'tan' },
+  anjali:     { eyes:'lashes', mouth:'smile',      accessory:'bindi',
+                hair:'ponytail',hairColor:'black',    skin:'tan' },
+  // ─── Nouveaux profs ──────────────────────
+  juan_carlos:{ eyes:'round',  mouth:'smile',      accessory:'glasses-round', moustache:true,
+                hair:'short',   hairColor:'grey',     skin:'medium' },
+  sara:       { eyes:'lashes', mouth:'wide-smile', accessory:null,
+                hair:'ponytail',hairColor:'darkbrown',skin:'peach' },
+  franziska:  { eyes:'round',  mouth:'smile',      accessory:null,          freckles:true,
+                hair:'buns',    hairColor:'ginger',   skin:'light' },
+  rosa:       { eyes:'round',  mouth:'wide-smile', accessory:'glasses-round',
+                hair:'updo',    hairColor:'white',    skin:'peach' },
+  luca:       { eyes:'round',  mouth:'smirk',      accessory:'beard',
+                hair:'quiff',   hairColor:'darkbrown',skin:'peach' },
+  mariana:    { eyes:'lashes', mouth:'wide-smile', accessory:'lipstick',
+                hair:'curly',   hairColor:'black',    skin:'brown' },
+  ken:        { eyes:'oval',   mouth:'wide-smile', accessory:null,
+                hair:'headphones', hairColor:'bluish', skin:'light' },
+  hao:        { eyes:'oval',   mouth:'smile',      accessory:null,          moustache:true,
+                hair:'bald',    hairColor:'grey',     skin:'light' },
+  nour:       { eyes:'lashes', mouth:'smile',      accessory:'lipstick',
+                hair:'wave',    hairColor:'darkbrown',skin:'medium' },
+  youssef:    { eyes:'round',  mouth:'wide-smile', accessory:null,          moustache:true,
+                hair:'curly-m', hairColor:'black',    skin:'tan' },
 };
 
 const LEVELS = {
@@ -1974,285 +2081,499 @@ function useRecognition(srLocale) {
 
 // ─── ANIMATED AVATAR ──────────────────────────────────────────────────────────
 
-function Eye({ cx, style, blink }) {
-  if (blink) {
-    return <line x1={cx-5} y1={42} x2={cx+5} y2={42} stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" />;
-  }
-  switch (style) {
-    case 'oval':
-      return <ellipse cx={cx} cy={42} rx={5} ry={3.5} fill="#1a1a1a" />;
-    case 'lashes':
-      return (
-        <g>
-          <ellipse cx={cx} cy={42} rx={3.8} ry={4.5} fill="#1a1a1a" />
-          <line x1={cx-6} y1={35} x2={cx-3} y2={38.5} stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1={cx} y1={33} x2={cx} y2={37.5} stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1={cx+6} y1={35} x2={cx+3} y2={38.5} stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" />
-        </g>
-      );
-    default:
-      return <circle cx={cx} cy={42} r={4} fill="#1a1a1a" />;
-  }
-}
+// ─── AVATARS — PORTRAITS SEMI-RÉALISTES (100 % SVG, aucun outil tiers) ────────
+// Chaque visage est dessiné en code : peau en dégradé avec ombres, yeux avec
+// iris/pupille/reflet, nez, oreilles, lèvres, cheveux en dégradé avec mèches,
+// cou et épaules. Les rides légères apparaissent selon l'âge du prof.
 
-function Accessory({ kind }) {
-  switch (kind) {
-    case 'glasses-round':
-      return (
-        <g stroke="#1a1a1a" strokeWidth="2" fill="rgba(255,255,255,0.18)">
-          <circle cx={34} cy={42} r={11} />
-          <circle cx={66} cy={42} r={11} />
-          <line x1={45} y1={42} x2={55} y2={42} strokeWidth="2.5" />
-        </g>
-      );
-    case 'glasses-square':
-      return (
-        <g stroke="#1a1a1a" strokeWidth="2" fill="rgba(255,255,255,0.18)">
-          <rect x={23} y={34} width={22} height={16} rx={2} />
-          <rect x={55} y={34} width={22} height={16} rx={2} />
-          <line x1={45} y1={42} x2={55} y2={42} strokeWidth="2.5" />
-        </g>
-      );
-    case 'bindi':
-      return <circle cx={50} cy={27} r={3} fill="#B91C1C" />;
-    case 'beard':
-      return (
-        <path d="M 28 66 Q 28 82 50 86 Q 72 82 72 66 L 67 72 Q 58 80 50 81 Q 42 80 33 72 Z"
-              fill="#1a1a1a" opacity={0.88} />
-      );
-    default:
-      return null;
-  }
-}
-
-function Mouth({ style, speaking, color }) {
-  if (speaking) {
-    return (
-      <ellipse cx={50} cy={68} rx={6} ry={3} fill={color}>
-        <animate attributeName="ry" values="1.5;5.5;2.5;6;1.5" dur="0.45s" repeatCount="indefinite" />
-        <animate attributeName="rx" values="6;4.5;6;5;6" dur="0.45s" repeatCount="indefinite" />
-      </ellipse>
-    );
-  }
-  switch (style) {
-    case 'wide-smile':
-      return <path d="M 38 63 Q 50 75 62 63" stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" />;
-    case 'smirk':
-      return <path d="M 42 68 Q 50 71 58 64" stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" />;
-    case 'neutral':
-      return <line x1={43} y1={68} x2={57} y2={68} stroke={color} strokeWidth="2.5" strokeLinecap="round" />;
-    case 'smile':
-    default:
-      return <path d="M 42 65 Q 50 71 58 65" stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" />;
-  }
-}
-
-// Palettes for cartoon character avatars (à la illustration flat colorée).
 const HAIR_COLORS = {
-  black: '#1F1B1A', darkbrown: '#3E2A1E', brown: '#6B4423', chestnut: '#A0522D',
-  ginger: '#C05621', orange: '#EA580C', blonde: '#E8B76B', platinum: '#F0E4C8',
-  red: '#B91C1C', grey: '#78716C', white: '#F0EBE5', bluish: '#334155',
+  black: '#1F1B1A', darkbrown: '#3E2A1E', brown: '#6B4423', chestnut: '#8E4A2A',
+  ginger: '#B5561F', orange: '#D2601A', blonde: '#D9A95C', platinum: '#E9DDBF',
+  red: '#B91C1C', grey: '#8A8480', white: '#E9E4DE', bluish: '#334155',
 };
 const SKIN_TONES = {
-  light: '#FFDBB5', peach: '#F3C99A', medium: '#D8A778',
-  tan: '#B5814C', brown: '#8B5A2B', deep: '#5C3317',
+  light: '#F6D3B3', peach: '#EDC198', medium: '#D4A070',
+  tan: '#B37D4C', brown: '#8A5A30', deep: '#5E3A22',
 };
 const HAIR_C_KEYS = Object.keys(HAIR_COLORS);
 const SKIN_KEYS   = Object.keys(SKIN_TONES);
-const HAIRS_F = ['bob', 'long', 'ponytail', 'buns', 'curly', 'wave'];
+const HAIRS_F = ['bob', 'long', 'ponytail', 'buns', 'curly', 'wave', 'updo'];
 const HAIRS_M = ['short', 'quiff', 'crew', 'curly-m', 'wave-m', 'bald', 'spike', 'cap', 'headphones'];
 
 // Deterministic pick from id — same avatar always gets the same look.
 function _hashN(s) { let h = 0; for (let i = 0; i < s.length; i++) h = ((h * 31) + s.charCodeAt(i)) | 0; return Math.abs(h); }
 function _pickFrom(id, salt, arr) { return arr[_hashN(id + salt) % arr.length]; }
 
+// Mélange deux couleurs hex (t = 0 → a, t = 1 → b)
+function mixHex(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ch = (sh) => {
+    const ca = (pa >> sh) & 255, cb = (pb >> sh) & 255;
+    return Math.round(ca + (cb - ca) * t);
+  };
+  return '#' + [16, 8, 0].map(sh => ch(sh).toString(16).padStart(2, '0')).join('');
+}
+
 function deriveAvatarLook(avatar) {
   const face = FACES[avatar.id] || {};
   const isM = avatar.gender === 'male';
   const hair = face.hair || _pickFrom(avatar.id, 'h', isM ? HAIRS_M : HAIRS_F);
-  const hairColor = HAIR_COLORS[face.hairColor] || HAIR_COLORS[_pickFrom(avatar.id, 'hc', HAIR_C_KEYS)];
-  const skin = SKIN_TONES[face.skin] || SKIN_TONES[_pickFrom(avatar.id, 'sk', SKIN_KEYS)];
-  return { hair, hairColor, skin };
+  const hairKey = HAIR_COLORS[face.hairColor] ? face.hairColor : _pickFrom(avatar.id, 'hc', HAIR_C_KEYS);
+  const skinKey = SKIN_TONES[face.skin] ? face.skin : _pickFrom(avatar.id, 'sk', SKIN_KEYS);
+  // Couleur des yeux : cohérente avec le teint et les cheveux
+  let eyeColor = '#5A3A22';
+  if (face.eyeColor) eyeColor = face.eyeColor;
+  else if (skinKey === 'light' && ['blonde', 'platinum'].includes(hairKey)) eyeColor = '#4F7CA8';
+  else if (skinKey === 'light' && ['ginger', 'orange'].includes(hairKey)) eyeColor = '#5E8A5A';
+  else if (skinKey === 'light' && ['grey', 'white'].includes(hairKey)) eyeColor = '#6B8296';
+  else if (['light', 'peach'].includes(skinKey) && ['brown', 'chestnut'].includes(hairKey)) eyeColor = '#7A5230';
+  else if (['brown', 'deep'].includes(skinKey) || hairKey === 'black') eyeColor = '#3B2416';
+  return { hair, hairColor: HAIR_COLORS[hairKey], skin: SKIN_TONES[skinKey], eyeColor };
 }
 
-function HairPath({ style, color }) {
-  const s = { stroke: '#1a1a1a', strokeWidth: 2.5, strokeLinejoin: 'round' };
+// ─── Œil : blanc en amande, iris, pupille, reflet, paupière, cils ────────────
+function Eye({ cx, style, blink, look, eyeColor, skin, clipId }) {
+  const y = 43;
+  const top = style === 'oval' ? 40.4 : style === 'lashes' ? 38.9 : 39.3;
+  const bot = style === 'oval' ? 45.6 : 46.2;
+  const almond = `M ${cx - 5.2} ${y + 0.3} Q ${cx} ${top} ${cx + 5.2} ${y + 0.3} Q ${cx} ${bot} ${cx - 5.2} ${y + 0.3} Z`;
+  const lid = `M ${cx - 5.4} ${y + 0.4} Q ${cx} ${top - 0.2} ${cx + 5.4} ${y + 0.4}`;
+  const lashW = style === 'lashes' ? 1.5 : 1.05;
+  const outer = cx < 50 ? -1 : 1; // côté extérieur du visage
+  if (blink) {
+    return (
+      <g>
+        <path d={almond} fill={skin} />
+        <path d={`M ${cx - 5.3} ${y + 0.4} Q ${cx} ${y + 2.6} ${cx + 5.3} ${y + 0.4}`}
+              stroke="#2A1B15" strokeWidth={lashW} fill="none" strokeLinecap="round" />
+      </g>
+    );
+  }
+  const ix = cx + (look?.x || 0) * 0.7;
+  const iy = y + (look?.y || 0) * 0.5;
+  return (
+    <g>
+      <clipPath id={clipId}><path d={almond} /></clipPath>
+      <path d={almond} fill="#FBF8F4" />
+      <g clipPath={`url(#${clipId})`}>
+        <g style={{ transition: 'transform 0.5s ease-out', transform: `translate(${ix - cx}px, ${iy - y}px)` }}>
+          <circle cx={cx} cy={y} r={3} fill={eyeColor} />
+          <circle cx={cx} cy={y} r={3} fill="none" stroke="#1A120E" strokeWidth={0.5} opacity={0.6} />
+          <circle cx={cx} cy={y} r={1.45} fill="#120C0A" />
+          <circle cx={cx + 1} cy={y - 1.1} r={0.75} fill="#FFFFFF" opacity={0.95} />
+        </g>
+        {/* Ombre portée de la paupière sur le blanc de l'œil */}
+        <path d={`M ${cx - 5.4} ${y + 0.4} Q ${cx} ${top - 0.2} ${cx + 5.4} ${y + 0.4} Q ${cx} ${top + 1.6} ${cx - 5.4} ${y + 0.4} Z`}
+              fill="#2A1B15" opacity={0.22} />
+      </g>
+      {/* Paupière supérieure + pli */}
+      <path d={lid} stroke="#2A1B15" strokeWidth={lashW} fill="none" strokeLinecap="round" />
+      {style !== 'oval' && (
+        <path d={`M ${cx - 4.6} ${y - 2.3} Q ${cx} ${top - 2.4} ${cx + 4.6} ${y - 2.3}`}
+              stroke="#2A1B15" strokeWidth={0.45} fill="none" strokeLinecap="round" opacity={0.3} />
+      )}
+      {/* Paupière inférieure, discrète */}
+      <path d={`M ${cx - 4.4} ${y + 1.5} Q ${cx} ${bot + 0.2} ${cx + 4.4} ${y + 1.5}`}
+            stroke="#2A1B15" strokeWidth={0.4} fill="none" strokeLinecap="round" opacity={0.28} />
+      {/* Cils allongés */}
+      {style === 'lashes' && (
+        <g stroke="#2A1B15" strokeWidth={0.8} strokeLinecap="round">
+          <line x1={cx + outer * 5.2} y1={y + 0.2} x2={cx + outer * 6.9} y2={y - 1.3} />
+          <line x1={cx + outer * 3.9} y1={y - 1.5} x2={cx + outer * 5.2} y2={y - 3.1} />
+          <line x1={cx + outer * 2.2} y1={y - 2.7} x2={cx + outer * 3} y2={y - 4.3} />
+        </g>
+      )}
+    </g>
+  );
+}
+
+// ─── Lunettes / bindi ─────────────────────────────────────────────────────────
+function Accessory({ kind }) {
+  switch (kind) {
+    case 'glasses-round':
+      return (
+        <g stroke="#2B2623" strokeWidth={1.3} fill="rgba(255,255,255,0.14)">
+          <circle cx={39} cy={43.4} r={7.4} />
+          <circle cx={61} cy={43.4} r={7.4} />
+          <path d="M 46.4 42.6 Q 50 40.6 53.6 42.6" fill="none" />
+          <line x1={31.6} y1={42.4} x2={26.5} y2={41.4} />
+          <line x1={68.4} y1={42.4} x2={73.5} y2={41.4} />
+          <path d="M 34.5 39.5 L 37.5 37.6 M 56.5 39.5 L 59.5 37.6" stroke="#FFFFFF" strokeWidth={0.8} opacity={0.6} strokeLinecap="round" />
+        </g>
+      );
+    case 'glasses-square':
+      return (
+        <g stroke="#2B2623" strokeWidth={1.4} fill="rgba(255,255,255,0.14)">
+          <rect x={30.6} y={37.6} width={16.2} height={11.6} rx={2.6} />
+          <rect x={53.2} y={37.6} width={16.2} height={11.6} rx={2.6} />
+          <path d="M 46.8 42 Q 50 40.4 53.2 42" fill="none" />
+          <line x1={30.6} y1={41.6} x2={26.5} y2={41} />
+          <line x1={69.4} y1={41.6} x2={73.5} y2={41} />
+          <path d="M 33.5 40.6 L 36.5 38.8 M 56 40.6 L 59 38.8" stroke="#FFFFFF" strokeWidth={0.8} opacity={0.6} strokeLinecap="round" />
+        </g>
+      );
+    case 'bindi':
+      return <circle cx={50} cy={34.2} r={1.5} fill="#B91C1C" />;
+    default:
+      return null;
+  }
+}
+
+// ─── Bouche : vraies lèvres, dents sur les grands sourires ───────────────────
+function Mouth({ style, speaking, lip }) {
+  const lipDark = mixHex(lip, '#3A1418', 0.45);
+  const lipLight = mixHex(lip, '#FFFFFF', 0.16);
+  if (speaking) {
+    return (
+      <g>
+        <ellipse cx={50} cy={62.6} rx={5.4} ry={2} fill="#4A1A1E" stroke={lip} strokeWidth={1.5}>
+          <animate attributeName="ry" values="0.9;3.7;1.7;4.3;2.4;0.9" dur="0.5s" repeatCount="indefinite" />
+          <animate attributeName="rx" values="5.6;4.6;5.5;4.8;5.2;5.6" dur="0.5s" repeatCount="indefinite" />
+        </ellipse>
+        <path d="M 46.4 61.5 Q 50 62.3 53.6 61.5 L 53.4 62.5 Q 50 63.1 46.6 62.5 Z" fill="#FFFFFF" opacity={0.9} />
+        <path d="M 44 61 C 46.5 59.9 48.6 59.7 50 60.5 C 51.4 59.7 53.5 59.9 56 61 Q 50 61.9 44 61 Z" fill={lip} />
+      </g>
+    );
+  }
   switch (style) {
-    case 'bald':
-      // Just a subtle shine on top of the scalp
-      return <ellipse cx={50} cy={20} rx={6} ry={2.5} fill="white" opacity="0.4"/>;
-    case 'crew':
-      // Very short buzz cut — a thin cap hugging the skull
-      return <path d="M 22 30 Q 22 18 50 16 Q 78 18 78 30 L 76 28 Q 66 22 50 22 Q 34 22 24 28 Z" fill={color} {...s}/>;
-    case 'short':
-      // Classic short cut with side part
-      return <path d="M 18 38 Q 16 10 50 10 Q 84 10 82 38 L 78 30 Q 72 22 50 20 Q 28 22 22 30 Z M 40 16 L 62 16 L 60 22 L 42 22 Z" fill={color} {...s}/>;
-    case 'quiff':
-      // High pompadour with a visible tuft/wave in front
+    case 'wide-smile':
       return (
-        <g {...s}>
-          <path d="M 18 42 Q 18 12 50 8 Q 82 12 82 42 L 78 32 Q 68 18 50 16 Q 32 18 22 32 Z" fill={color}/>
-          <path d="M 34 14 Q 40 2 52 6 Q 62 10 68 14 Q 60 8 50 10 Q 42 6 34 14 Z" fill={color}/>
+        <g>
+          <path d="M 40.8 59.8 Q 50 61.8 59.2 59.8 Q 50 69 40.8 59.8 Z" fill="#4A1A1E" />
+          <path d="M 42.2 60.2 Q 50 61.9 57.8 60.2 Q 50 65.8 42.2 60.2 Z" fill="#FFFFFF" />
+          <path d="M 40.5 59.6 C 45 58.9 48.5 58.6 50 59.5 C 51.5 58.6 55 58.9 59.5 59.6 Q 50 62 40.5 59.6 Z" fill={lip} />
+          <path d="M 40.8 59.9 Q 50 69.2 59.2 59.9 Q 50 72 40.8 59.9 Z" fill={lipLight} />
+          <path d="M 40.2 59.4 L 39.4 58.7 M 59.8 59.4 L 60.6 58.7" stroke={lipDark} strokeWidth={0.6} strokeLinecap="round" opacity={0.6} />
         </g>
       );
-    case 'curly-m':
-      // Big fluffy afro-like curls — many round bumps
+    case 'smirk':
       return (
-        <g {...s}>
-          <path d="M 14 42 Q 6 30 16 20 Q 18 8 32 12 Q 40 2 50 10 Q 60 2 68 12 Q 82 8 84 20 Q 94 30 86 42 Q 80 30 72 30 Q 78 22 68 22 Q 60 14 52 20 Q 50 12 48 20 Q 40 14 32 22 Q 22 22 28 30 Q 20 30 14 42 Z" fill={color}/>
-          <circle cx="24" cy="20" r="4" fill={color}/>
-          <circle cx="76" cy="20" r="4" fill={color}/>
+        <g>
+          <path d="M 43 62 C 46 60.8 48.5 60.3 50 61.1 C 51.5 60.1 54.5 59.7 58 60 Q 50 63.6 43 62 Z" fill={lip} />
+          <path d="M 43 62 Q 50 63.6 58 60 Q 51.5 67.4 43 62 Z" fill={lipLight} />
+          <path d="M 43 62 Q 50 63.6 58 60" stroke={lipDark} strokeWidth={0.6} fill="none" strokeLinecap="round" />
         </g>
       );
-    case 'wave-m':
-      // Side-swept wave (fringe swept)
-      return <path d="M 18 40 Q 18 12 50 10 Q 82 12 82 40 Q 76 22 66 24 Q 60 18 50 22 Q 40 30 30 24 Q 22 20 18 40 Z" fill={color} {...s}/>;
-    case 'spike':
-      // Spiky punk hair — jagged edges pointing up
-      return <path d="M 20 34 L 18 20 L 26 30 L 30 12 L 36 28 L 42 8 L 48 26 L 54 8 L 60 28 L 66 12 L 70 30 L 78 20 L 76 34 Q 74 28 50 24 Q 26 28 20 34 Z" fill={color} {...s}/>;
+    case 'neutral':
+      return (
+        <g>
+          <path d="M 43 61.5 C 46 60.3 48.5 59.9 50 60.8 C 51.5 59.9 54 60.3 57 61.5 Q 50 62.5 43 61.5 Z" fill={lip} />
+          <path d="M 43 61.5 Q 50 62.5 57 61.5 Q 50 66.2 43 61.5 Z" fill={lipLight} />
+          <path d="M 43 61.5 Q 50 62.5 57 61.5" stroke={lipDark} strokeWidth={0.6} fill="none" strokeLinecap="round" />
+        </g>
+      );
+    case 'smile':
+    default:
+      return (
+        <g>
+          <path d="M 42 60.4 C 45.5 59.9 48.5 59.5 50 60.5 C 51.5 59.5 54.5 59.9 58 60.4 Q 50 64.3 42 60.4 Z" fill={lip} />
+          <path d="M 42 60.4 Q 50 64.3 58 60.4 Q 50 68.6 42 60.4 Z" fill={lipLight} />
+          <path d="M 42 60.4 Q 50 64.3 58 60.4" stroke={lipDark} strokeWidth={0.6} fill="none" strokeLinecap="round" />
+          <path d="M 41.6 60.2 L 40.9 59.5 M 58.4 60.2 L 59.1 59.5" stroke={lipDark} strokeWidth={0.55} strokeLinecap="round" opacity={0.55} />
+        </g>
+      );
+  }
+}
+
+// ─── Cheveux : couche ARRIÈRE (derrière la tête) ─────────────────────────────
+function HairBack({ style, fill }) {
+  switch (style) {
     case 'bob':
-      // Chin-length bob framing the face
-      return <path d="M 12 54 Q 10 16 50 8 Q 90 16 88 54 L 82 30 Q 72 20 50 18 Q 28 20 18 30 Z" fill={color} {...s}/>;
+      return <path d="M 22 40 C 17 17 34 6 50 6 C 66 6 83 17 78 40 C 81 52 80 62 75 69 L 64 71 L 36 71 L 25 69 C 20 62 19 52 22 40 Z" fill={fill} />;
     case 'long':
-      // Long straight hair past the shoulders
-      return <path d="M 8 78 Q 4 18 50 8 Q 96 18 92 78 L 82 40 Q 74 22 50 18 Q 26 22 18 40 Z" fill={color} {...s}/>;
+      return <path d="M 20 42 C 14 15 34 5 50 5 C 66 5 86 15 80 42 C 83 60 85 80 87 100 L 13 100 C 15 80 17 60 20 42 Z" fill={fill} />;
+    case 'wave':
+      return <path d="M 20 42 C 13 15 34 5 50 5 C 66 5 87 15 80 42 C 87 51 80 60 85 69 C 90 79 82 88 87 100 L 13 100 C 18 88 10 79 15 69 C 20 60 13 51 20 42 Z" fill={fill} />;
     case 'ponytail':
-      // Hair pulled back with a side ponytail
       return (
-        <g {...s}>
-          <path d="M 20 40 Q 16 14 50 10 Q 84 14 80 40 L 76 30 Q 70 22 50 20 Q 30 22 24 30 Z" fill={color}/>
-          <ellipse cx="90" cy="42" rx="8" ry="16" fill={color} transform="rotate(28 90 42)"/>
+        <g>
+          <path d="M 70 15 C 86 12 94 28 90 46 C 88 58 84 68 81 77 C 76 66 79 53 77 41 C 77 30 74 22 70 15 Z" fill={fill} />
+          <ellipse cx={74} cy={17.5} rx={2.6} ry={3.6} fill="#EC4899" transform="rotate(-35 74 17.5)" />
         </g>
       );
     case 'buns':
-      // Twin side buns (playful)
       return (
-        <g {...s}>
-          <path d="M 22 42 Q 18 18 50 12 Q 82 18 78 42 L 74 32 Q 68 22 50 20 Q 32 22 26 32 Z" fill={color}/>
-          <circle cx="18" cy="18" r="10" fill={color}/>
-          <circle cx="82" cy="18" r="10" fill={color}/>
+        <g fill={fill}>
+          <circle cx={29} cy={11.5} r={9} />
+          <circle cx={71} cy={11.5} r={9} />
         </g>
       );
+    case 'updo':
+      return <ellipse cx={50} cy={7.5} rx={10} ry={7.5} fill={fill} />;
     case 'curly':
-      // Big fluffy curls (female afro-style)
       return (
-        <g {...s}>
-          <path d="M 10 42 Q 4 20 20 12 Q 26 2 40 8 Q 50 0 60 8 Q 74 2 80 12 Q 96 20 90 42 Q 84 30 78 30 Q 84 20 74 20 Q 68 12 60 18 Q 54 8 50 16 Q 46 8 40 18 Q 32 12 26 20 Q 16 20 22 30 Q 16 30 10 42 Z" fill={color}/>
-          <circle cx="16" cy="22" r="4" fill={color}/>
-          <circle cx="84" cy="22" r="4" fill={color}/>
+        <g fill={fill}>
+          <ellipse cx={50} cy={36} rx={32} ry={30} />
+          {[[19,57,9],[15,45,10],[17,32,10],[24,20,10],[36,11,10],[50,8,10],[64,11,10],[76,20,10],[83,32,10],[85,45,10],[81,57,9],[22,67,8],[78,67,8]]
+            .map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} />)}
         </g>
       );
-    case 'wave':
-      // Wavy long hair
-      return <path d="M 10 60 Q 6 14 50 10 Q 94 14 90 60 L 82 34 Q 74 22 50 20 Q 26 22 18 34 Z" fill={color} {...s}/>;
     case 'headband-tails':
-      // Two low ponytails with a headband on top
       return (
-        <g {...s}>
-          {/* Base hair */}
-          <path d="M 20 42 Q 16 16 50 12 Q 84 16 80 42 L 76 30 Q 70 22 50 20 Q 30 22 24 30 Z" fill={color}/>
-          {/* Two low side puffs */}
-          <ellipse cx="14" cy="52" rx="6" ry="10" fill={color}/>
-          <ellipse cx="86" cy="52" rx="6" ry="10" fill={color}/>
-          {/* Headband on top */}
-          <path d="M 20 18 Q 50 8 80 18 L 82 24 Q 50 14 18 24 Z" fill="#EC4899" stroke="#1a1a1a" strokeWidth="2"/>
-        </g>
-      );
-    case 'hijab':
-      // Scarf covering the head and neck
-      return (
-        <g {...s}>
-          <path d="M 8 40 Q 4 4 50 4 Q 96 4 92 40 L 92 70 Q 88 76 82 76 L 68 76 L 68 68 L 32 68 L 32 76 L 18 76 Q 12 76 8 70 Z"
-                fill={color === '#B91C1C' ? '#B91C1C' : color}/>
-          {/* Fold detail */}
-          <path d="M 32 68 Q 50 62 68 68" stroke="#1a1a1a" strokeWidth="2" fill="none"/>
-        </g>
-      );
-    case 'cap':
-      // Baseball cap
-      return (
-        <g {...s}>
-          <path d="M 22 32 Q 22 12 50 10 Q 78 12 78 32 L 78 28 Q 72 20 50 18 Q 28 20 22 28 Z" fill={color}/>
-          <ellipse cx="70" cy="34" rx="18" ry="4" fill={color}/>
-        </g>
-      );
-    case 'headphones':
-      // Big over-ear headphones
-      return (
-        <g {...s}>
-          <path d="M 22 32 Q 22 14 50 12 Q 78 14 78 32 L 76 28 Q 70 22 50 20 Q 30 22 24 28 Z" fill={color}/>
-          <path d="M 12 44 Q 12 20 50 18 Q 88 20 88 44" stroke="#4B5563" strokeWidth="5" fill="none" strokeLinecap="round"/>
-          <ellipse cx="12" cy="48" rx="6" ry="9" fill="#4B5563"/>
-          <ellipse cx="88" cy="48" rx="6" ry="9" fill="#4B5563"/>
+        <g fill={fill}>
+          <circle cx={15} cy={48} r={11} />
+          <circle cx={85} cy={48} r={11} />
+          <circle cx={11} cy={58} r={7} />
+          <circle cx={89} cy={58} r={7} />
         </g>
       );
     default:
-      return <path d="M 18 38 Q 18 12 50 12 Q 82 12 82 38 L 78 30 Q 70 20 50 18 Q 30 20 22 30 Z" fill={color} {...s}/>;
+      return null;
+  }
+}
+
+// Mèches qui retombent devant les épaules (cheveux longs)
+function HairOverShoulders({ style, fill }) {
+  if (style !== 'long' && style !== 'wave') return null;
+  return (
+    <g fill={fill}>
+      <path d="M 21 50 C 16 70 17 88 19 100 L 33 100 C 31 90 30 78 31 68 C 28 62 25 56 21 50 Z" />
+      <path d="M 79 50 C 84 70 83 88 81 100 L 67 100 C 69 90 70 78 69 68 C 72 62 75 56 79 50 Z" />
+    </g>
+  );
+}
+
+// ─── Cheveux : couche AVANT (dessus du crâne, frange, voile, casquette…) ─────
+function HairFront({ style, fill, color, accent }) {
+  const hi = mixHex(color, '#FFFFFF', 0.4);
+  const shine = (d) => <path d={d} stroke={hi} strokeWidth={1} fill="none" strokeLinecap="round" opacity={0.35} />;
+  const pulledBack = "M 26 40 C 22 19 34 8 50 8 C 66 8 78 19 74 40 C 73 32 69 26 64 23.5 C 55 20.5 45 20.5 36 23.5 C 31 26 27 32 26 40 Z";
+  switch (style) {
+    case 'bald':
+      return <ellipse cx={45} cy={20.5} rx={7} ry={2.4} fill="#FFFFFF" opacity={0.28} transform="rotate(-12 45 20.5)" />;
+    case 'crew':
+      return (
+        <g>
+          <path d="M 26.5 39 C 24 21 35 11 50 11 C 65 11 76 21 73.5 39 C 72.5 31 69 27 65 24.6 C 57 21.4 43 21.4 35 24.6 C 31 27 27.5 31 26.5 39 Z" fill={fill} />
+          {shine("M 40 15 C 46 13 54 13 60 15")}
+        </g>
+      );
+    case 'short':
+      return (
+        <g>
+          <path d="M 26 42 C 21.5 20 34 7.5 50 7.5 C 67 7.5 78.5 20 74 42 C 73.5 34 71 29 67 26 C 60 24.5 50 25 42 20.5 C 37 24 29 29 26 42 Z" fill={fill} />
+          {shine("M 44 13 C 51 10.5 60 12 66 17")}
+          {shine("M 34 19 C 37 15 41 13 45 12")}
+        </g>
+      );
+    case 'quiff':
+      return (
+        <g>
+          <path d="M 26 42 C 22 19 31 4.5 52 3.5 C 71 3.5 79.5 19 74 42 C 73 33 70 28 66 25.5 C 58 26.5 48 24.5 40 19 C 35 24 29 30 26 42 Z" fill={fill} />
+          {shine("M 42 12 C 49 6.5 60 6.5 67 13")}
+          {shine("M 45 17 C 52 13 60 13.5 66 18")}
+        </g>
+      );
+    case 'curly-m':
+      return (
+        <g fill={fill}>
+          <path d="M 26.5 40 C 24 21 35 11 50 11 C 65 11 76 21 73.5 40 C 72.5 31 69 27 65 24.6 C 57 21.4 43 21.4 35 24.6 C 31 27 27.5 31 26.5 40 Z" />
+          {[[29,25,7],[36,16,7.5],[46,11.5,8],[56,11.5,8],[65,16,7.5],[72,25,7],[26.5,34,5],[73.5,34,5],[36,24.5,5],[44,21.5,5],[52,20.8,5],[60,22,5],[66,25.5,4.5]]
+            .map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} />)}
+          <g fill="none" stroke={hi} strokeWidth={0.9} opacity={0.3} strokeLinecap="round">
+            <path d="M 41 9 Q 45 6 49 8.5" /><path d="M 53 8 Q 57 5.8 61 9" /><path d="M 31 18 Q 34 14 38 15" />
+          </g>
+        </g>
+      );
+    case 'wave-m':
+      return (
+        <g>
+          <path d="M 26 42 C 21.5 19 33 6.5 51 6.5 C 68.5 6.5 78.5 19 74 42 C 73.2 34 71 30 68 27.5 C 60 30.5 46 30 36 22 C 31 27 28 33 26 42 Z" fill={fill} />
+          {shine("M 40 14 C 48 9.5 60 11 67 18")}
+          {shine("M 40 20 C 48 25 58 26.5 66 24.5")}
+        </g>
+      );
+    case 'spike':
+      return <path d="M 26 40 L 24 24 L 30 27 L 30 12 L 37 20 L 40 5 L 46 16 L 51 3 L 56 16 L 62 6 L 64 20 L 71 13 L 70 27 L 76 24 L 74 40 C 72 31 68 27 64 25 C 56 22 44 22 36 25 C 32 27 28 31 26 40 Z" fill={fill} />;
+    case 'cap': {
+      const capDark = mixHex(accent, '#000000', 0.35);
+      return (
+        <g>
+          <path d="M 26.5 40 C 25.5 34 26 30 27 27 L 73 27 C 74 30 74.5 34 73.5 40 C 72.8 35 71.5 32 70 30 L 30 30 C 28.5 32 27.2 35 26.5 40 Z" fill={fill} />
+          <path d="M 25 30 C 24 13 36 6 50 6 C 64 6 76 13 75 30 C 66 25.5 34 25.5 25 30 Z" fill={accent} />
+          <path d="M 25 30 C 40 24.5 66 24.5 80 30.5 C 89 33 91 36.5 86 37.5 C 70 32.5 40 30.5 25 33 Z" fill={capDark} />
+          <path d="M 38 11 C 45 8 55 8 62 11" stroke="#FFFFFF" strokeWidth={0.9} fill="none" opacity={0.3} strokeLinecap="round" />
+        </g>
+      );
+    }
+    case 'headphones':
+      return (
+        <g>
+          <path d="M 26 42 C 21.5 20 34 7.5 50 7.5 C 67 7.5 78.5 20 74 42 C 73.5 34 71 29 67 26 C 60 24.5 50 25 42 20.5 C 37 24 29 29 26 42 Z" fill={fill} />
+          <path d="M 24 44 C 20 16 36 4 50 4 C 64 4 80 16 76 44" stroke="#374151" strokeWidth={3.6} fill="none" strokeLinecap="round" />
+          <rect x={19.5} y={38} width={8} height={16} rx={3.6} fill="#1F2937" />
+          <rect x={72.5} y={38} width={8} height={16} rx={3.6} fill="#1F2937" />
+          <rect x={21} y={41} width={2} height={10} rx={1} fill="#6B7280" />
+          <rect x={77} y={41} width={2} height={10} rx={1} fill="#6B7280" />
+        </g>
+      );
+    case 'bob':
+      return (
+        <g>
+          <path d="M 24.5 46 C 19.5 20 34 7 50 7 C 66 7 80.5 20 75.5 46 C 74.5 35 71 28 66 25 C 58 27 46 26 40 20 C 34 25 27.5 33 24.5 46 Z" fill={fill} />
+          <path d="M 24.6 40 C 22.5 50 23.5 61 27.5 68.5 C 29 59 28 49 29 39 Z" fill={fill} />
+          <path d="M 75.4 40 C 77.5 50 76.5 61 72.5 68.5 C 71 59 72 49 71 39 Z" fill={fill} />
+          {shine("M 42 13 C 50 10 60 12 67 19")}
+        </g>
+      );
+    case 'long':
+      return (
+        <g>
+          <path d="M 23.5 48 C 18.5 20 34 6 50 6 C 66 6 81.5 20 76.5 48 C 75.5 37 70 27.5 62 22.5 C 56 20.5 52 20 50 16.5 C 48 20 44 20.5 38 22.5 C 30 27.5 24.5 37 23.5 48 Z" fill={fill} />
+          {shine("M 33 20 C 37 14 43 11 48 10.5")}
+          {shine("M 67 20 C 63 14 57 11 52 10.5")}
+        </g>
+      );
+    case 'wave':
+      return (
+        <g>
+          <path d="M 23.5 48 C 18 20 34 6 50 6 C 66 6 82 20 76.5 48 C 75.5 36 71 28.5 66 25.5 C 58 28 46 26.5 40 19.5 C 33 25 25.5 35 23.5 48 Z" fill={fill} />
+          {shine("M 42 13 C 50 9.5 61 12 68 20")}
+          {shine("M 30 30 C 31 24 35 19 39 16.5")}
+        </g>
+      );
+    case 'ponytail':
+    case 'buns':
+    case 'updo':
+      return (
+        <g>
+          <path d={pulledBack} fill={fill} />
+          {shine("M 36 16 C 43 11.5 57 11.5 64 16")}
+          {shine("M 50 9.5 L 50 20")}
+        </g>
+      );
+    case 'curly':
+      return (
+        <g fill={fill}>
+          <path d={pulledBack} />
+          {[[33,25,6],[41,21.5,6],[50,20.5,6],[59,21.5,6],[67,25,6],[27.5,33,5],[72.5,33,5],[26,42,4],[74,42,4]]
+            .map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} />)}
+          <g fill="none" stroke={hi} strokeWidth={0.9} opacity={0.3} strokeLinecap="round">
+            <path d="M 37 8 Q 42 4.5 47 7" /><path d="M 55 6.5 Q 60 4.5 64 8.5" /><path d="M 20 26 Q 22 20 27 18" /><path d="M 76 17 Q 81 20 82 26" />
+          </g>
+        </g>
+      );
+    case 'headband-tails':
+      return (
+        <g>
+          <path d={pulledBack} fill={fill} />
+          <path d="M 25.6 33 C 33 17.5 67 17.5 74.4 33 L 74.8 28 C 66 13.5 34 13.5 25.2 28 Z" fill="#EC4899" />
+          <path d="M 33 20.5 C 43 15.5 57 15.5 67 20.5" stroke="#FFFFFF" strokeWidth={0.7} fill="none" opacity={0.45} strokeLinecap="round" />
+        </g>
+      );
+    case 'hijab': {
+      const dark = mixHex(color, '#000000', 0.3);
+      return (
+        <g>
+          <path fillRule="evenodd" fill={fill}
+                d="M 50 4 C 75 4 83 24 81 46 C 81 60 73 77 60 81 Q 50 85 40 81 C 27 77 19 60 19 46 C 17 24 25 4 50 4 Z
+                   M 50 21.5 C 63 21.5 70 30 70 43 C 70 56 65 68.5 57 72.5 Q 50 75.5 43 72.5 C 35 68.5 30 56 30 43 C 30 30 37 21.5 50 21.5 Z" />
+          <path d="M 31 36 C 33 27 40 22.5 50 22.5 C 60 22.5 67 27 69 36" stroke={dark} strokeWidth={0.8} fill="none" opacity={0.5} />
+          <path d="M 24 30 C 27 16 38 8 50 8" stroke="#FFFFFF" strokeWidth={0.9} fill="none" opacity={0.25} strokeLinecap="round" />
+          <path d="M 40 81 C 45 78 55 78 60 81" stroke={dark} strokeWidth={0.8} fill="none" opacity={0.45} />
+        </g>
+      );
+    }
+    default:
+      return <path d="M 26 42 C 21.5 20 34 7.5 50 7.5 C 67 7.5 78.5 20 74 42 C 73.5 34 71 29 67 26 C 59 23 41 23 33 26 C 29 29 26.5 34 26 42 Z" fill={fill} />;
   }
 }
 
 function AnimatedAvatar({ avatar, size='md', speaking=false }) {
   const sizes = { xs:'w-8 h-8', sm:'w-12 h-12', md:'w-16 h-16', lg:'w-24 h-24', xl:'w-32 h-32' };
   const face = FACES[avatar.id] || { eyes:'round', mouth:'smile', accessory:null };
-  const { hair, hairColor, skin } = deriveAvatarLook(avatar);
-  const mouthColor = face.accessory === 'lipstick' ? '#9F1239' : '#1a1a1a';
+  const { hair, hairColor, skin, eyeColor } = deriveAvatarLook(avatar);
+  const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
+  const isM = avatar.gender === 'male';
+  const age = avatar.age || 30;
+
+  // Palette dérivée du teint
+  const skinLight = mixHex(skin, '#FFFFFF', 0.22);
+  const skinShade = mixHex(skin, '#5A2E1A', 0.26);
+  const skinDeep  = mixHex(skin, '#3A1A10', 0.45);
+  const lip = face.accessory === 'lipstick'
+    ? '#B3123F'
+    : mixHex(skin, '#A63A4E', isM ? 0.32 : 0.5);
+  const browColor = hair === 'hijab' ? '#2A1B15' : ['#D9A95C', '#E9DDBF', '#E9E4DE', '#8A8480'].includes(hairColor)
+    ? mixHex(hairColor, '#3E2A1E', 0.45)
+    : mixHex(hairColor, '#000000', 0.15);
+  const facialHair = mixHex(hairColor, '#000000', 0.1);
+  const shirt = avatar.color || '#475569';
+  const shirtDark = mixHex(shirt, '#000000', 0.32);
+  const shirtLight = mixHex(shirt, '#FFFFFF', 0.25);
+  const bgSoft = avatar.soft || '#F8F5F2';
+  const coversEars = hair === 'hijab';
+
   const [blink, setBlink] = useState(false);
-  const [look, setLook] = useState({ x: 0, y: 0 });  // pupil offset for eye-tracking
-  const [wave, setWave] = useState(false);            // occasional greeting wave
-  const [smileFlash, setSmileFlash] = useState(false); // occasional smile flash
+  const [look, setLook] = useState({ x: 0, y: 0 });
+  const [smileFlash, setSmileFlash] = useState(false);
+  const [eyebrowRaise, setEyebrowRaise] = useState(false);
+  const [headNod, setHeadNod] = useState(false);
+  const [cheekSmile, setCheekSmile] = useState(false);
+  const [eyeSmile, setEyeSmile] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    // Blink
-    const blinkTick = () => {
-      if (!alive) return;
-      if (Math.random() < 0.5) {
-        setBlink(true);
-        setTimeout(() => alive && setBlink(false), 130);
-      }
-    };
-    const blinkId = setInterval(blinkTick, 2400);
+    // Clignement naturel, parfois double
+    const blinkId = setInterval(() => {
+      if (!alive || Math.random() >= 0.55) return;
+      setBlink(true);
+      setTimeout(() => {
+        if (!alive) return;
+        setBlink(false);
+        if (Math.random() < 0.15) {
+          setTimeout(() => alive && setBlink(true), 120);
+          setTimeout(() => alive && setBlink(false), 260);
+        }
+      }, 140);
+    }, 2200);
 
-    // Eye movement (looking around)
-    const lookTick = () => {
+    // Le regard se promène
+    const lookId = setInterval(() => {
       if (!alive) return;
       const positions = [
-        { x: 0, y: 0 },   { x: 0, y: 0 },
-        { x: -1.5, y: 0 },{ x: 1.5, y: 0 },
-        { x: 0, y: -1 },  { x: 0, y: 1 },
-        { x: 1, y: -0.5 },{ x: -1, y: -0.5 },
+        { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 },
+        { x: -1.5, y: 0 }, { x: 1.5, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 },
+        { x: 1, y: -0.5 }, { x: -1, y: -0.5 }, { x: 2, y: 0.5 }, { x: -2, y: 0.5 },
       ];
-      const pick = positions[Math.floor(Math.random() * positions.length)];
-      setLook(pick);
-    };
-    const lookId = setInterval(lookTick, 1800);
+      setLook(positions[Math.floor(Math.random() * positions.length)]);
+    }, 1600);
 
-    // Occasional wave
-    const waveTick = () => {
-      if (!alive) return;
-      if (Math.random() < 0.35) {
-        setWave(true);
-        setTimeout(() => alive && setWave(false), 1300);
-      }
-    };
-    const waveId = setInterval(waveTick, 5500);
+    // Sourire passager (lèvres + joues + yeux plissés)
+    const smileId = setInterval(() => {
+      if (!alive || Math.random() >= 0.4) return;
+      setSmileFlash(true); setCheekSmile(true); setEyeSmile(true);
+      setTimeout(() => {
+        if (!alive) return;
+        setSmileFlash(false); setCheekSmile(false); setEyeSmile(false);
+      }, 1100);
+    }, 4200);
 
-    // Occasional smile flash
-    const smileTick = () => {
-      if (!alive) return;
-      if (Math.random() < 0.4) {
-        setSmileFlash(true);
-        setTimeout(() => alive && setSmileFlash(false), 900);
-      }
-    };
-    const smileId = setInterval(smileTick, 4200);
+    // Haussement de sourcils (attention)
+    const eyebrowId = setInterval(() => {
+      if (!alive || Math.random() >= 0.3) return;
+      setEyebrowRaise(true);
+      setTimeout(() => alive && setEyebrowRaise(false), 850);
+    }, 6800);
+
+    // Hochement de tête (acquiescement)
+    const nodId = setInterval(() => {
+      if (!alive || Math.random() >= 0.25) return;
+      setHeadNod(true);
+      setTimeout(() => alive && setHeadNod(false), 1000);
+    }, 7500);
 
     return () => {
       alive = false;
-      clearInterval(blinkId); clearInterval(lookId);
-      clearInterval(waveId); clearInterval(smileId);
+      clearInterval(blinkId); clearInterval(lookId); clearInterval(smileId);
+      clearInterval(eyebrowId); clearInterval(nodId);
     };
   }, []);
+
+  const g = (name) => `${name}${uid}`;
+  const hairFill = `url(#${g('hair')})`;
+  const browW = isM ? 1.9 : 1.3;
+  const idleMouth = smileFlash && !speaking && (face.mouth === 'neutral' || face.mouth === 'smirk') ? 'smile' : face.mouth;
 
   return (
     <div className={`${sizes[size]} relative shrink-0`}>
@@ -2266,61 +2587,178 @@ function AnimatedAvatar({ avatar, size='md', speaking=false }) {
       <div
         className="relative w-full h-full grid place-items-center overflow-hidden rounded-full"
         style={{
-          backgroundColor: avatar.soft || '#F8F5F2',
+          backgroundColor: bgSoft,
           border: '2px solid rgba(255,255,255,0.85)',
           boxShadow: `0 4px 14px ${avatar.color}55`,
           animation: speaking
-            ? 'avatar-bounce 0.55s ease-in-out infinite'
-            : 'avatar-breathe 4.5s ease-in-out infinite',
+            ? 'avatar-bounce 0.55s ease-in-out infinite, avatar-glow 2.5s ease-in-out infinite'
+            : headNod
+              ? 'avatar-nod 1s ease-in-out'
+              : 'avatar-breathe 4.5s ease-in-out infinite, avatar-sway 8s ease-in-out infinite',
         }}
       >
-        <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-          {/* Shirt/shoulders at the bottom (colored) */}
-          <path d="M 0 100 L 0 88 Q 4 76 20 74 L 50 70 L 80 74 Q 96 76 100 88 L 100 100 Z"
-                fill={avatar.color} stroke="#1a1a1a" strokeWidth="2.5" strokeLinejoin="round"/>
-          {/* Neck */}
-          <path d="M 42 66 L 42 74 Q 50 76 58 74 L 58 66 Z" fill={skin} stroke="#1a1a1a" strokeWidth="2"/>
-          {/* Head (skin) */}
-          <circle cx={50} cy={42} r={30} fill={skin} stroke="#1a1a1a" strokeWidth="2.5"/>
-          {/* Hair on top */}
-          <HairPath style={hair} color={hairColor} />
-          {/* Blush */}
-          {face.blush && !speaking && (
-            <g opacity={0.5} fill="#E11D48">
-              <ellipse cx={30} cy={54} rx={5} ry={2.5} />
-              <ellipse cx={70} cy={54} rx={5} ry={2.5} />
+        <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id={g('bg')} cx="50%" cy="38%" r="75%">
+              <stop offset="0%" stopColor={mixHex(bgSoft, '#FFFFFF', 0.55)} />
+              <stop offset="100%" stopColor={mixHex(bgSoft, shirt, 0.28)} />
+            </radialGradient>
+            <radialGradient id={g('skin')} cx="44%" cy="36%" r="68%">
+              <stop offset="0%" stopColor={skinLight} />
+              <stop offset="55%" stopColor={skin} />
+              <stop offset="100%" stopColor={skinShade} />
+            </radialGradient>
+            <linearGradient id={g('neck')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={skinDeep} />
+              <stop offset="45%" stopColor={skinShade} />
+              <stop offset="100%" stopColor={skin} />
+            </linearGradient>
+            <linearGradient id={g('hair')} gradientUnits="userSpaceOnUse" x1="40" y1="4" x2="56" y2="92">
+              <stop offset="0%" stopColor={mixHex(hairColor, '#FFFFFF', 0.2)} />
+              <stop offset="45%" stopColor={hairColor} />
+              <stop offset="100%" stopColor={mixHex(hairColor, '#000000', 0.3)} />
+            </linearGradient>
+            <linearGradient id={g('shirt')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={shirtLight} />
+              <stop offset="100%" stopColor={shirtDark} />
+            </linearGradient>
+            <radialGradient id={g('blush')} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#E0526A" stopOpacity="0.55" />
+              <stop offset="100%" stopColor="#E0526A" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+
+          {/* Fond studio */}
+          <rect x={0} y={0} width={100} height={100} fill={`url(#${g('bg')})`} />
+
+          <g style={{
+            animation: !speaking && !headNod ? 'avatar-head-tilt 11s ease-in-out infinite' : 'none',
+            transformOrigin: '50px 80px',
+          }}>
+            {/* Cheveux derrière la tête */}
+            <HairBack style={hair} fill={hairFill} />
+
+            {/* Cou (ombre sous le menton) */}
+            <path d="M 41.5 62 L 41.5 80 Q 50 89 58.5 80 L 58.5 62 Z" fill={`url(#${g('neck')})`} />
+
+            {/* Épaules + vêtement */}
+            <path d="M 4 100 C 6 90 17 84.5 33 81.5 L 41.5 79 Q 50 90 58.5 79 L 67 81.5 C 83 84.5 94 90 96 100 Z"
+                  fill={`url(#${g('shirt')})`} />
+            {isM ? (
+              <g fill={shirtLight}>
+                <path d="M 41.5 79 L 48.5 89.5 L 38 85.5 Z" />
+                <path d="M 58.5 79 L 51.5 89.5 L 62 85.5 Z" />
+              </g>
+            ) : (
+              <path d="M 41.5 79 Q 50 91 58.5 79" stroke={shirtDark} strokeWidth={1} fill="none" opacity={0.55} />
+            )}
+            <path d="M 14 100 C 16 94 20 90 26 88" stroke={shirtDark} strokeWidth={0.8} fill="none" opacity={0.35} />
+            <path d="M 86 100 C 84 94 80 90 74 88" stroke={shirtDark} strokeWidth={0.8} fill="none" opacity={0.35} />
+
+            <HairOverShoulders style={hair} fill={hairFill} />
+
+            {/* Oreilles */}
+            {!coversEars && (
+              <g>
+                <ellipse cx={26.6} cy={45.5} rx={3.6} ry={6} fill={skinShade} />
+                <ellipse cx={73.4} cy={45.5} rx={3.6} ry={6} fill={skinShade} />
+                <path d="M 25.6 42.5 Q 27.6 45.5 26 49" stroke={skinDeep} strokeWidth={0.6} fill="none" opacity={0.5} />
+                <path d="M 74.4 42.5 Q 72.4 45.5 74 49" stroke={skinDeep} strokeWidth={0.6} fill="none" opacity={0.5} />
+                {!isM && (
+                  <g fill="#E6B84A">
+                    <circle cx={26.2} cy={51.6} r={1.1} />
+                    <circle cx={73.8} cy={51.6} r={1.1} />
+                  </g>
+                )}
+              </g>
+            )}
+
+            {/* Visage */}
+            <path d="M 50 15 C 66 15 73.5 27 73.5 41 C 73.5 55 67.5 68 58.5 73 Q 50 77.5 41.5 73 C 32.5 68 26.5 55 26.5 41 C 26.5 27 34 15 50 15 Z"
+                  fill={`url(#${g('skin')})`} />
+            {/* Modelé : ombres des tempes et de la mâchoire */}
+            <path d="M 27 44 C 28 56 33 67 41.5 73 C 36 66 32 57 31 46 Z" fill={skinShade} opacity={0.35} />
+            <path d="M 73 44 C 72 56 67 67 58.5 73 C 64 66 68 57 69 46 Z" fill={skinShade} opacity={0.45} />
+            <ellipse cx={46} cy={27} rx={11} ry={5} fill="#FFFFFF" opacity={0.1} />
+
+            {/* Barbe */}
+            {face.accessory === 'beard' && (
+              <path d="M 27.6 49 C 28.5 62 33.5 70 41.5 74 Q 50 78.5 58.5 74 C 66.5 70 71.5 62 72.4 49 C 70.5 55.5 66 59.5 60 58.6 C 56 56.6 53 56.8 50 57.8 C 47 56.8 44 56.6 40 58.6 C 34 59.5 29.5 55.5 27.6 49 Z"
+                    fill={facialHair} opacity={0.92} />
+            )}
+
+            {/* Joues rosées */}
+            {(face.blush || cheekSmile || !isM) && (
+              <g opacity={cheekSmile ? 1 : face.blush ? 0.8 : 0.4} style={{ transition: 'opacity 0.5s ease-out' }}>
+                <ellipse cx={35} cy={54} rx={6} ry={4} fill={`url(#${g('blush')})`} />
+                <ellipse cx={65} cy={54} rx={6} ry={4} fill={`url(#${g('blush')})`} />
+              </g>
+            )}
+
+            {/* Taches de rousseur */}
+            {face.freckles && (
+              <g fill="#8A4A24" opacity={0.5}>
+                {[[36,51],[38.6,53],[41,50.6],[34,53.4],[59,50.6],[61.4,53],[64,51],[66,53.4],[47.6,50],[52.4,50]]
+                  .map(([x, y], i) => <circle key={i} cx={x} cy={y} r={0.55} />)}
+              </g>
+            )}
+
+            {/* Rides légères selon l'âge */}
+            {age >= 45 && (
+              <g stroke={skinDeep} fill="none" strokeLinecap="round" opacity={age >= 60 ? 0.42 : 0.26}>
+                <path d="M 43.6 56 Q 41.4 59 41.8 62.4" strokeWidth={0.5} />
+                <path d="M 56.4 56 Q 58.6 59 58.2 62.4" strokeWidth={0.5} />
+                <path d="M 31 44.6 L 29.2 45.6 M 69 44.6 L 70.8 45.6" strokeWidth={0.45} />
+                {age >= 52 && <path d="M 40 29.5 Q 50 28 60 29.5" strokeWidth={0.45} />}
+                {age >= 60 && <path d="M 42 26 Q 50 24.8 58 26" strokeWidth={0.45} />}
+                {age >= 60 && <path d="M 34.5 47.6 Q 39 49.4 43.5 47.8 M 56.5 47.8 Q 61 49.4 65.5 47.6" strokeWidth={0.45} />}
+              </g>
+            )}
+
+            {/* Nez */}
+            <path d="M 50 43 L 50 52.5" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" opacity={0.14} />
+            <path d="M 52.6 44.5 C 53.2 49 54.6 52 54.4 54.2 C 53.6 55.9 51.4 56.4 50 56.4 C 48.6 56.4 46.4 55.9 45.6 54.2"
+                  stroke={skinDeep} strokeWidth={0.75} fill="none" strokeLinecap="round" opacity={0.5} />
+            <ellipse cx={47.7} cy={55.2} rx={0.95} ry={0.55} fill={skinDeep} opacity={0.5} />
+            <ellipse cx={52.3} cy={55.2} rx={0.95} ry={0.55} fill={skinDeep} opacity={0.5} />
+            <circle cx={49.4} cy={53.2} r={1.5} fill="#FFFFFF" opacity={0.16} />
+
+            {/* Sourcils */}
+            <g style={{
+              transform: eyebrowRaise ? 'translateY(-1.3px)' : 'translateY(0)',
+              transition: 'transform 0.3s ease-out',
+            }} stroke={browColor} strokeWidth={browW} fill="none" strokeLinecap="round">
+              <path d={isM ? "M 33 37.4 Q 38.5 34.8 44.6 36.8" : "M 33.4 37 Q 38.5 34.2 44.4 36.6"} />
+              <path d={isM ? "M 67 37.4 Q 61.5 34.8 55.4 36.8" : "M 66.6 37 Q 61.5 34.2 55.6 36.6"} />
             </g>
-          )}
-          {/* Freckles */}
-          {face.freckles && (
-            <g fill="#7C2D12" opacity={0.6}>
-              <circle cx={40} cy={52} r={0.9} />
-              <circle cx={44} cy={54} r={0.9} />
-              <circle cx={56} cy={54} r={0.9} />
-              <circle cx={60} cy={52} r={0.9} />
-              <circle cx={50} cy={50} r={0.9} />
+
+            {/* Yeux */}
+            <g style={{ transformOrigin: '39px 43px', animation: eyeSmile && !speaking ? 'avatar-eyes-smile 1.1s ease-in-out' : 'none' }}>
+              <Eye cx={39} style={face.eyes} blink={blink} look={look} eyeColor={eyeColor} skin={skin} clipId={g('eyeL')} />
             </g>
-          )}
-          {/* Eyes (pupils track `look`) */}
-          <g style={{ transform: `translate(${look.x}px, ${look.y}px)`, transition: 'transform 0.5s ease-out' }}>
-            <Eye cx={34} style={face.eyes} blink={blink} />
-            <Eye cx={66} style={face.eyes} blink={blink} />
+            <g style={{ transformOrigin: '61px 43px', animation: eyeSmile && !speaking ? 'avatar-eyes-smile 1.1s ease-in-out' : 'none' }}>
+              <Eye cx={61} style={face.eyes} blink={blink} look={look} eyeColor={eyeColor} skin={skin} clipId={g('eyeR')} />
+            </g>
+
+            {/* Moustache */}
+            {face.moustache && (
+              <path d="M 40.6 58.6 C 45 55.8 48.2 56.8 50 57.9 C 51.8 56.8 55 55.8 59.4 58.6 C 56 60.9 52 60.3 50 59.8 C 48 60.3 44 60.9 40.6 58.6 Z"
+                    fill={facialHair} opacity={0.95} />
+            )}
+
+            {/* Bouche */}
+            <Mouth style={idleMouth} speaking={speaking} lip={lip} />
+            {/* Ombre sous la lèvre inférieure */}
+            {!speaking && face.accessory !== 'beard' && (
+              <path d="M 46 67.6 Q 50 68.8 54 67.6" stroke={skinDeep} strokeWidth={0.6} fill="none" strokeLinecap="round" opacity={0.25} />
+            )}
+
+            {/* Cheveux devant (ou voile / casquette / casque) */}
+            <HairFront style={hair} fill={hairFill} color={hairColor} accent={shirt} />
+
+            {/* Lunettes, bindi */}
+            <Accessory kind={face.accessory} />
           </g>
-          {/* Moustache */}
-          {face.moustache && (
-            <path d="M 38 60 Q 50 64 62 60 Q 58 63 50 63 Q 42 63 38 60 Z" fill="#1a1a1a" opacity={0.9} />
-          )}
-          {/* Accessory (glasses, beard, bindi…) */}
-          <Accessory kind={face.accessory} />
-          {/* Mouth (smile-flash if idle) */}
-          <Mouth style={smileFlash && !speaking ? 'smile' : face.mouth} speaking={speaking} color={mouthColor} />
-          {/* Little waving hand (idle greeting) */}
-          {wave && !speaking && (
-            <g style={{ transformOrigin: '86px 82px', animation: 'avatar-wave 1.3s ease-in-out' }}>
-              <circle cx={86} cy={82} r={5} fill={skin} stroke="#1a1a1a" strokeWidth={1.2} />
-              <path d="M 83 78 L 83 72 M 85 78 L 85 70 M 87 78 L 87 70 M 89 78 L 89 72" stroke="#1a1a1a" strokeWidth={1} strokeLinecap="round" />
-            </g>
-          )}
         </svg>
       </div>
     </div>
@@ -9270,6 +9708,52 @@ function MainApp({ profile, signOut, reloadProfile }) {
         75%  { transform: rotate(-15deg); }
         90%  { transform: rotate(0deg); opacity: 1; }
         100% { transform: rotate(0deg); opacity: 0; }
+      }
+      /* Nouvelles animations pour plus de vie */
+      @keyframes avatar-head-tilt {
+        0%, 100% { transform: rotate(0deg); }
+        25%      { transform: rotate(-2deg); }
+        75%      { transform: rotate(2deg); }
+      }
+      @keyframes avatar-sway {
+        0%, 100% { transform: translateX(0) rotate(0deg); }
+        33%      { transform: translateX(-1.5px) rotate(-1deg); }
+        66%      { transform: translateX(1.5px) rotate(1deg); }
+      }
+      @keyframes avatar-eyebrow-raise {
+        0%, 70%, 100% { transform: translateY(0); }
+        80%, 90%      { transform: translateY(-2px); }
+      }
+      @keyframes avatar-cheek-smile {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50%      { opacity: 0.75; transform: scale(1.15); }
+      }
+      @keyframes avatar-nod {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        20%      { transform: translateY(1px) rotate(2deg); }
+        40%      { transform: translateY(-1px) rotate(-1deg); }
+        60%      { transform: translateY(1px) rotate(1deg); }
+      }
+      @keyframes avatar-glow {
+        0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+        50%      { filter: drop-shadow(0 0 8px rgba(255,255,255,0.3)); }
+      }
+      @keyframes avatar-sparkle {
+        0%   { opacity: 0; transform: scale(0.3) rotate(0deg); }
+        50%  { opacity: 1; transform: scale(1.2) rotate(180deg); }
+        100% { opacity: 0; transform: scale(0.3) rotate(360deg); }
+      }
+      @keyframes avatar-mouth-talk {
+        0%   { transform: scaleY(0.3); }
+        20%  { transform: scaleY(1.2) scaleX(0.9); }
+        40%  { transform: scaleY(0.5) scaleX(1.1); }
+        60%  { transform: scaleY(1.1); }
+        80%  { transform: scaleY(0.4) scaleX(0.95); }
+        100% { transform: scaleY(0.7); }
+      }
+      @keyframes avatar-eyes-smile {
+        0%, 100% { transform: scaleY(1); }
+        50%      { transform: scaleY(0.5) translateY(-1px); }
       }
     `;
     document.head.appendChild(style);
